@@ -225,6 +225,175 @@
             opacity: 1;
         }
 
+        /* ===== 費用計算機樣式 ===== */
+        .calculator-section {
+            margin-top: 80px;
+            padding: 50px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .calculator-section h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .calculator-section > p {
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 35px;
+        }
+
+        .calculator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .calc-group {
+            margin-bottom: 20px;
+        }
+
+        .calc-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #48dbfb;
+            font-size: 1rem;
+        }
+
+        .calc-group select,
+        .calc-group input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.15);
+            background: rgba(0,0,0,0.3);
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .calc-group select:focus,
+        .calc-group input:focus {
+            outline: none;
+            border-color: #48dbfb;
+            box-shadow: 0 0 20px rgba(72, 219, 251, 0.2);
+        }
+
+        .calc-group select option {
+            background: #1a1a2e;
+            color: #fff;
+        }
+
+        .number-input-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .number-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .number-btn:hover {
+            background: #48dbfb;
+            border-color: #48dbfb;
+        }
+
+        .number-input-group input {
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .calc-result {
+            margin-top: 35px;
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(72, 219, 251, 0.1), rgba(10, 189, 227, 0.1));
+            border-radius: 20px;
+            text-align: center;
+            border: 2px solid rgba(72, 219, 251, 0.3);
+        }
+
+        .result-label {
+            font-size: 1rem;
+            color: #aaa;
+            margin-bottom: 8px;
+        }
+
+        .result-price {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #48dbfb, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .result-note {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .calc-cta {
+            margin-top: 25px;
+        }
+
+        .calc-cta-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 40px;
+            background: linear-gradient(90deg, #06C755, #00B901);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+
+        .calc-cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(6, 199, 85, 0.4);
+        }
+
+        .calc-breakdown {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .calc-breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .calc-breakdown-row:last-child {
+            border-bottom: none;
+            font-weight: 600;
+            color: #fff;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -668,6 +837,12 @@
             .cta-buttons { flex-direction: column; }
             .cta-btn { width: 100%; text-align: center; }
             
+            /* 費用計算機手機版 */
+            .calculator-section { padding: 30px 20px; }
+            .calculator-grid { grid-template-columns: 1fr; }
+            .result-price { font-size: 2rem; }
+            .calc-cta-btn { width: 100%; justify-content: center; }
+            
             /* 手機版音樂控制優化 */
             .music-control {
                 left: 15px;
@@ -846,6 +1021,75 @@
                     <span class="card-link">探索行程 →</span>
                 </div>
             </a>
+        </div>
+
+        <!-- 費用計算機 -->
+        <div class="calculator-section">
+            <h2>💰 費用計算機</h2>
+            <p>快速試算你的旅遊費用！</p>
+            
+            <div class="calculator-grid">
+                <div class="calc-main">
+                    <div class="calc-group">
+                        <label>🗺️ 選擇行程</label>
+                        <select id="calcTrip">
+                            <option value="phuket" data-price="13000" data-currency="฿">🏝️ 普吉島 4天3夜 - ฿13,000 起</option>
+                            <option value="zhangjiajie" data-price="2400" data-currency="¥">🏔️ 張家界 4天3夜 - ¥2,400 起</option>
+                            <option value="mazu" data-price="0" data-currency="請洽詢">🏮 大甲媽遶境 - 請洽詢</option>
+                        </select>
+                    </div>
+                    
+                    <div class="calc-group">
+                        <label>👥 大人數量</label>
+                        <div class="number-input-group">
+                            <button class="number-btn" onclick="changeNumber('adults', -1)">−</button>
+                            <input type="number" id="adults" value="2" min="1" max="20" onchange="calculate()">
+                            <button class="number-btn" onclick="changeNumber('adults', 1)">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="calc-group">
+                        <label>👶 兒童數量</label>
+                        <div class="number-input-group">
+                            <button class="number-btn" onclick="changeNumber('children', -1)">−</button>
+                            <input type="number" id="children" value="0" min="0" max="20" onchange="calculate()">
+                            <button class="number-btn" onclick="changeNumber('children', 1)">+</button>
+                        </div>
+                    </div>
+                    
+                    <div class="calc-group">
+                        <label>📅 出發日期</label>
+                        <input type="date" id="calcDate" onchange="calculate()">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="calc-result">
+                <div class="result-label">預估總費用</div>
+                <div class="result-price" id="totalPrice">฿26,000</div>
+                <div class="result-note">※ 實際費用以 LINE 諮詢報價為準</div>
+                
+                <div class="calc-breakdown" id="breakdown" style="display: none;">
+                    <div class="calc-breakdown-row">
+                        <span>大人 <span id="adultsCount">2</span>人 × ฿13,000</span>
+                        <span id="adultsTotal">฿26,000</span>
+                    </div>
+                    <div class="calc-breakdown-row">
+                        <span>兒童 <span id="childrenCount">0</span>人 × ฿9,100 (7折)</span>
+                        <span id="childrenTotal">฿0</span>
+                    </div>
+                    <div class="calc-breakdown-row">
+                        <span>合計</span>
+                        <span id="grandTotal">฿26,000</span>
+                    </div>
+                </div>
+                
+                <div class="calc-cta">
+                    <a href="https://line.me/ti/p/@sticker-tycoon" class="calc-cta-btn" target="_blank">
+                        💬 取得詳細報價
+                    </a>
+                </div>
+            </div>
         </div>
 
         <!-- CTA 區塊 -->
@@ -1105,6 +1349,78 @@
                 }, 1000);
             }, 3000);
         }, 2000);
+
+        // ===== 費用計算機 =====
+        // 設定預設日期為今天
+        document.getElementById('calcDate').valueAsDate = new Date();
+
+        function changeNumber(field, delta) {
+            const input = document.getElementById(field);
+            let value = parseInt(input.value) + delta;
+            const min = field === 'adults' ? 1 : 0;
+            if (value >= min && value <= 20) {
+                input.value = value;
+                calculate();
+            }
+        }
+
+        function calculate() {
+            const tripSelect = document.getElementById('calcTrip');
+            const selectedOption = tripSelect.options[tripSelect.selectedIndex];
+            const basePrice = parseInt(selectedOption.dataset.price);
+            const currency = selectedOption.dataset.currency;
+            
+            const adults = parseInt(document.getElementById('adults').value) || 0;
+            const children = parseInt(document.getElementById('children').value) || 0;
+            
+            // 兒童價格為大人7折
+            const childrenPrice = Math.round(basePrice * 0.7);
+            
+            const adultsTotal = adults * basePrice;
+            const childrenTotal = children * childrenPrice;
+            const grandTotal = adultsTotal + childrenTotal;
+            
+            const totalEl = document.getElementById('totalPrice');
+            const breakdownEl = document.getElementById('breakdown');
+            
+            // 格式化數字
+            const formatNum = (num) => {
+                if (currency === '請洽詢') return '請洽詢';
+                return currency + num.toLocaleString();
+            };
+            
+            if (basePrice === 0) {
+                // 大甲媽行程需要洽詢
+                totalEl.textContent = '請洽詢 LINE';
+                breakdownEl.style.display = 'none';
+            } else {
+                totalEl.textContent = formatNum(grandTotal);
+                breakdownEl.style.display = 'block';
+                
+                document.getElementById('adultsCount').textContent = adults;
+                document.getElementById('adultsTotal').textContent = formatNum(adultsTotal);
+                document.getElementById('childrenCount').textContent = children;
+                document.getElementById('childrenTotal').textContent = formatNum(childrenTotal);
+                document.getElementById('grandTotal').textContent = formatNum(grandTotal);
+            }
+            
+            // 更新貨幣樣式
+            if (currency === '฿') {
+                totalEl.style.background = 'linear-gradient(90deg, #48dbfb, #0abde3)';
+            } else if (currency === '¥') {
+                totalEl.style.background = 'linear-gradient(90deg, #feca57, #f8b739)';
+            } else {
+                totalEl.style.background = 'linear-gradient(90deg, #ff6b6b, #ee5a5a)';
+            }
+            totalEl.style.webkitBackgroundClip = 'text';
+            totalEl.style.backgroundClip = 'text';
+        }
+
+        // 初始化計算
+        calculate();
+        
+        // 監聽行程選擇變更
+        document.getElementById('calcTrip').addEventListener('change', calculate);
     </script>
 </body>
 </html>
