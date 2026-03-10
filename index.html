@@ -972,17 +972,82 @@
         </a>
     </div>
 
-    <div class="container">
-        <header>
+    <!-- Hero 背景圖 -->
+    <style>
+        .hero-section {
+            height: 400px;
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.85) 0%, rgba(22, 33, 62, 0.7) 50%, rgba(15, 52, 96, 0.8) 100%),
+                        url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1600&q=80') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 60px;
+            border-radius: 0;
+            position: relative;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, transparent 0%, rgba(26, 26, 46, 0.9) 100%);
+        }
+        
+        .hero-section .hero-content {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+        
+        .hero-section h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            margin-bottom: 16px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        .hero-section .subtitle {
+            font-size: 1.3rem;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+        }
+        
+        .hero-section .badge {
+            display: inline-block;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        @media (max-width: 768px) {
+            .hero-section {
+                height: 300px;
+            }
+        }
+    </style>
+    
+    <div class="hero-section">
+        <div class="hero-content">
             <h1>✈️ 2026 旅遊網頁合集</h1>
             <p class="subtitle">探索三個精彩旅程</p>
             <span class="badge">🌏 亞洲之旅</span>
-        </header>
+        </div>
+    </div>
+
+    <div class="container" style="padding-top: 0;">
         
         <div class="trips-grid">
             <!-- 大甲媽 -->
             <a href="mazu/" class="trip-card mazu" style="text-decoration: none; color: inherit;">
-                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1531169096461-06d21a4b68ac?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1597655605378-99c1b5a7be5d?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
                     <span class="card-badge">🌸 台灣</span>
                 </div>
                 <div class="card-content">
@@ -1003,7 +1068,7 @@
             
             <!-- 普吉島 -->
             <a href="phuket/" class="trip-card phuket" style="text-decoration: none; color: inherit;">
-                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1537655784934-ff0550d6a7e2?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
                     <span class="card-badge">🏝️ 泰國</span>
                 </div>
                 <div class="card-content">
@@ -1024,7 +1089,7 @@
             
             <!-- 張家界 -->
             <a href="zhangjiajie/" class="trip-card zhangjiajie" style="text-decoration: none; color: inherit;">
-                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1589330694653-ded6df03f754?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
+                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1557672172-298e090bd0f1?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
                     <span class="card-badge">🏔️ 中國</span>
                 </div>
                 <div class="card-content">
@@ -1146,19 +1211,19 @@
             <h2>⭐ 客戶評價</h2>
             <div class="testimonials-grid">
                 <div class="testimonial-card">
-                    <div class="avatar">👨‍💼</div>
+                    <div class="avatar" style="background-image: url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=face'); background-size: cover; background-position: center;"></div>
                     <div class="name">王先生</div>
                     <div class="rating">★★★★★</div>
                     <p class="comment">張家界行程安排很棒，導遊專業又貼心。阿凡達的場景真的就在眼前！</p>
                 </div>
                 <div class="testimonial-card">
-                    <div class="avatar">👩‍🎨</div>
+                    <div class="avatar" style="background-image: url('https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face'); background-size: cover; background-position: center;"></div>
                     <div class="name">林小姐</div>
                     <div class="rating">★★★★★</div>
                     <p class="comment">普吉島玩得很開心！浮潛超美，住宿也很舒適。已經推薦給朋友了！</p>
                 </div>
                 <div class="testimonial-card">
-                    <div class="avatar">👨‍👩‍👧</div>
+                    <div class="avatar" style="background-image: url('https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&crop=face'); background-size: cover; background-position: center;"></div>
                     <div class="name">陳家庭</div>
                     <div class="rating">★★★★★</div>
                     <p class="comment">大甲媽遶境體驗終身難忘！感謝安排住宿和交通，很順利的一次旅程。</p>
