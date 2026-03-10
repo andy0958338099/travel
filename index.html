@@ -167,6 +167,238 @@
             color: #feca57;
         }
         
+        /* 亮點標籤 */
+        .trip-highlights {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .trip-highlight {
+            padding: 5px 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        /* 價格區塊 */
+        .card-price {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .price-from {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .price-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+
+        .price-value.mazu { color: #ff6b6b; }
+        .price-value.phuket { color: #48dbfb; }
+        .price-value.zhangjiajie { color: #feca57; }
+
+        /* CTA 按鈕 */
+        .cta-section {
+            margin-top: 80px;
+            padding: 60px 40px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 30px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .cta-section h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+        }
+
+        .cta-section p {
+            color: #aaa;
+            margin-bottom: 30px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cta-btn {
+            padding: 14px 35px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .cta-btn-primary {
+            background: linear-gradient(90deg, #48dbfb, #0abde3);
+            color: #fff;
+        }
+
+        .cta-btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(72, 219, 251, 0.4);
+        }
+
+        .cta-btn-secondary {
+            background: transparent;
+            border: 2px solid #48dbfb;
+            color: #48dbfb;
+        }
+
+        .cta-btn-secondary:hover {
+            background: #48dbfb;
+            color: #fff;
+        }
+
+        /* QR Code 區塊 */
+        .qr-section {
+            margin-top: 60px;
+            padding: 50px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .qr-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+        }
+
+        .qr-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 15px;
+        }
+
+        .qr-box img {
+            width: 150px;
+            height: 150px;
+            display: block;
+        }
+
+        .qr-info h3 {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+        }
+
+        .qr-info p {
+            color: #aaa;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .line-id {
+            display: inline-block;
+            padding: 10px 20px;
+            background: rgba(72, 219, 251, 0.1);
+            border: 2px solid #48dbfb;
+            border-radius: 25px;
+            color: #48dbfb;
+            font-weight: 600;
+        }
+
+        /* 客戶評價 */
+        .testimonials-section {
+            margin-top: 80px;
+        }
+
+        .testimonials-section h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 40px;
+        }
+
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .testimonial-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .testimonial-card .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff6b6b, #feca57);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .testimonial-card .name {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .testimonial-card .rating {
+            color: #feca57;
+            margin-bottom: 12px;
+        }
+
+        .testimonial-card .comment {
+            color: #aaa;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* FAQ */
+        .faq-section {
+            margin-top: 80px;
+        }
+
+        .faq-section h2 {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 40px;
+        }
+
+        .faq-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .faq-item {
+            background: rgba(255,255,255,0.03);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .faq-item h3 {
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            color: #feca57;
+        }
+
+        .faq-item p {
+            color: #aaa;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
         footer {
             text-align: center;
             margin-top: 80px;
@@ -175,10 +407,14 @@
             color: #666;
             font-size: 0.9rem;
         }
-        
+
         @media (max-width: 768px) {
             h1 { font-size: 2rem; }
             .trips-grid { grid-template-columns: 1fr; }
+            .cta-section { padding: 40px 20px; }
+            .qr-container { flex-direction: column; gap: 25px; }
+            .cta-buttons { flex-direction: column; }
+            .cta-btn { width: 100%; text-align: center; }
         }
     </style>
 </head>
@@ -198,7 +434,16 @@
                 </div>
                 <div class="card-content">
                     <h2 class="card-title">🏮 大甲媽祖遶境</h2>
-                    <p class="card-desc">台灣最盛大的宗教活動，體驗傳統文化與虔誠信仰的力量。</p>
+                    <p class="card-desc">台灣最盛大的宗教活動，體驗傳統文化與虔誠信仰的力量。9天8夜深度體驗。</p>
+                    <div class="trip-highlights">
+                        <span class="trip-highlight">🏃 340公里</span>
+                        <span class="trip-highlight">🙏 宗教盛事</span>
+                        <span class="trip-highlight">📅 4/17-26</span>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-from">含住宿</span>
+                        <span class="price-value mazu">請洽詢</span>
+                    </div>
                     <span class="card-link">探索行程 →</span>
                 </div>
             </a>
@@ -210,7 +455,16 @@
                 </div>
                 <div class="card-content">
                     <h2 class="card-title">🌴 普吉島渡假</h2>
-                    <p class="card-desc">陽光、沙灘、海灘！享受泰國最大的熱帶島嶼風情。</p>
+                    <p class="card-desc">陽光、沙灘、海灘！享受泰國最大的熱帶島嶼風情。4天3夜放鬆之旅。</p>
+                    <div class="trip-highlights">
+                        <span class="trip-highlight">🏖️ 跳島遊</span>
+                        <span class="trip-highlight">🤿 浮潛</span>
+                        <span class="trip-highlight">📅 全年適宜</span>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-from">人只要</span>
+                        <span class="price-value phuket">฿13,000</span>
+                    </div>
                     <span class="card-link">探索行程 →</span>
                 </div>
             </a>
@@ -222,10 +476,103 @@
                 </div>
                 <div class="card-content">
                     <h2 class="card-title">🏔️ 張家界國家森林公園</h2>
-                    <p class="card-desc">探訪世界自然遺產，感受奇峰怪石的壯觀景色。</p>
+                    <p class="card-desc">探訪世界自然遺產，感受奇峰怪石的壯觀景色。4天3夜奇幻之旅。</p>
+                    <div class="trip-highlights">
+                        <span class="trip-highlight">🚡 百龍天梯</span>
+                        <span class="trip-highlight">🌉 玻璃橋</span>
+                        <span class="trip-highlight">📅 3-5月</span>
+                    </div>
+                    <div class="card-price">
+                        <span class="price-from">人只要</span>
+                        <span class="price-value zhangjiajie">¥2,400</span>
+                    </div>
                     <span class="card-link">探索行程 →</span>
                 </div>
             </a>
+        </div>
+
+        <!-- CTA 區塊 -->
+        <div class="cta-section">
+            <h2>💬 需要客製化行程？</h2>
+            <p>告訴我們你的需求，我們為你打造專屬旅程！</p>
+            <div class="cta-buttons">
+                <a href="https://line.me/ti/p/@sticker-tycoon" class="cta-btn cta-btn-primary" target="_blank">
+                    💬 LINE 諮詢
+                </a>
+                <a href="#" class="cta-btn cta-btn-secondary">
+                    📞 電話聯繫
+                </a>
+            </div>
+        </div>
+
+        <!-- QR Code 區塊 -->
+        <div class="qr-section">
+            <div class="qr-container">
+                <div class="qr-box">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://line.me/ti/p/@sticker-tycoon" alt="LINE QR Code">
+                </div>
+                <div class="qr-info">
+                    <h3>加入「貼圖大亨」</h3>
+                    <p>掃描 QR Code 加入官方 LINE<br>獲取最新旅遊資訊、優惠活動<br>一對一客製化行程規劃</p>
+                    <span class="line-id">LINE ID: @sticker-tycoon</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 客戶評價 -->
+        <div class="testimonials-section">
+            <h2>⭐ 客戶評價</h2>
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="avatar">👨‍💼</div>
+                    <div class="name">王先生</div>
+                    <div class="rating">★★★★★</div>
+                    <p class="comment">張家界行程安排很棒，導遊專業又貼心。阿凡達的場景真的就在眼前！</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="avatar">👩‍🎨</div>
+                    <div class="name">林小姐</div>
+                    <div class="rating">★★★★★</div>
+                    <p class="comment">普吉島玩得很開心！浮潛超美，住宿也很舒適。已經推薦給朋友了！</p>
+                </div>
+                <div class="testimonial-card">
+                    <div class="avatar">👨‍👩‍👧</div>
+                    <div class="name">陳家庭</div>
+                    <div class="rating">★★★★★</div>
+                    <p class="comment">大甲媽遶境體驗終身難忘！感謝安排住宿和交通，很順利的一次旅程。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ -->
+        <div class="faq-section">
+            <h2>❓ 常見問題</h2>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3>💳 付款方式有哪些？</h3>
+                    <p>支援銀行轉帳、信用卡、 LINE Pay 等多種方式。國外行程可使用 PayPal。</p>
+                </div>
+                <div class="faq-item">
+                    <h3>📝 護照需要多久效期？</h3>
+                    <p>一般須有 6 個月以上效期。泰國落地簽可停留 15 天，中国簽證需視護照別而定。</p>
+                </div>
+                <div class="faq-item">
+                    <h3>🧳 行李有上限嗎？</h3>
+                    <p>依航空公司規定。一般經濟艙每人 1 件 23kg，隨身行李 7kg。張家界為陸團，較彈性。</p>
+                </div>
+                <div class="faq-item">
+                    <h3>⏰ 可以改期或取消嗎？</h3>
+                    <p>出發前 14 天通知可免費改期一次。取消退款政策依行程而異，詳情請洽 LINE 客服。</p>
+                </div>
+                <div class="faq-item">
+                    <h3>👶 兒童費用怎麼算？</h3>
+                    <p>未滿 2 歲嬰兒不佔床免費，2-12 歲兒童 usually 7 折優惠。具體依行程報價而定。</p>
+                </div>
+                <div class="faq-item">
+                    <h3>🌧️ 雨天怎麼辦？</h3>
+                    <p>我們會提供雨具，並視情況調整行程順序。若因天氣取消戶外活動，可延期或改期。</p>
+                </div>
+            </div>
         </div>
         
         <footer>
