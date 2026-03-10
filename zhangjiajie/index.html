@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>張家界 | 阿凡達的奇幻世界</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;700&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --emerald: #10b981;
+            --emerald-dark: #059669;
+            --gold: #fbbf24;
+            --gold-light: #fcd34d;
+            --stone: #1c1917;
+            --stone-light: #292524;
+            --mist: #a8a29e;
+            --gradient-emerald: linear-gradient(135deg, #065f46 0%, #10b981 50%, #34d399 100%);
+            --gradient-gold: linear-gradient(135deg, #b45309 0%, #fbbf24 50%, #fcd34d 100%);
+            --gradient-mystic: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+            --gradient-sunrise: linear-gradient(135deg, #7c2d12 0%, #ea580c 50%, #fbbf24 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: var(--stone);
+            color: #f5f5f4;
+            overflow-x: hidden;
+            cursor: default;
+        }
+
+        /* Custom Cursor */
+        .cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--gold);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            transition: all 0.1s ease;
+            mix-blend-mode: difference;
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--gold);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(28, 25, 23, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 1000;
+            padding: 15px 0;
+            transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(251, 191, 36, 0.2);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 5%;
+        }
+
+        .nav-logo {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 1.8rem;
+            color: var(--gold);
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 40px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: #f5f5f4;
+            text-decoration: none;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gold);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-contact {
+            background: var(--gradient-gold);
+            color: var(--stone);
+            padding: 12px 30px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-contact:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(251, 191, 36, 0.4);
+        }
+
+        .nav-toggle {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .nav-toggle span {
+            width: 25px;
+            height: 2px;
+            background: var(--gold);
+            transition: all 0.3s ease;
+        }
+
+        /* QR Code Section */
+        .qr-section {
+            background: var(--stone-light);
+            padding: 80px 5%;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .qr-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 60px;
+            flex-wrap: wrap;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .qr-box {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .qr-box img {
+            width: 180px;
+            height: 180px;
+            display: block;
+        }
+
+        .qr-info h3 {
+            font-family: 'Noto Serif TC', serif;
+            font-size: 2rem;
+            color: var(--gold);
+            margin-bottom: 15px;
+        }
+
+        .qr-info p {
+            color: var(--mist);
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .qr-info .line-id {
+            margin-top: 20px;
+            padding: 15px 30px;
+            background: rgba(251, 191, 36, 0.1);
+            border: 2px solid var(--gold);
+            border-radius: 50px;
+            display: inline-block;
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        /* Mobile Nav */
+        @media (max-width: 900px) {
+            .nav-links {
+                position: fixed;
+                top: 70px;
+                left: 0;
+                width: 100%;
+                background: rgba(28, 25, 23, 0.98);
+                flex-direction: column;
+                padding: 30px;
+                gap: 25px;
+                transform: translateY(-150%);
+                transition: transform 0.3s ease;
+            }
+
+            .nav-links.active {
+                transform: translateY(0);
+            }
+
+            .nav-toggle {
+                display: flex;
+            }
+
+            .nav-contact {
+                display: none;
+            }
+        }
+
+        /* Loading Screen */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--stone);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 1s ease;
+        }
+
+        .loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-text {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: clamp(2rem, 8vw, 4rem);
+            color: var(--gold);
+            animation: pulse 2s infinite;
+        }
+
+        /* Floating Particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--gold);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 15s infinite;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(16, 185, 129, 0.3) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 50%, rgba(251, 191, 36, 0.2) 0%, transparent 50%),
+                linear-gradient(180deg, #0f172a 0%, #1e1b4b 100%);
+            animation: bgShift 20s infinite alternate;
+        }
+
+        .hero-mountains {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60%;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 320'%3E%3Cpath fill='%2310b981' fill-opacity='0.1' d='M0,160 L150,100 L300,180 L450,80 L600,140 L750,60 L900,120 L1050,40 L1200,100 L1200,320 L0,320 Z'/%3E%3Cpath fill='%23059669' fill-opacity='0.15' d='M0,200 L200,140 L400,220 L600,120 L800,180 L1000,100 L1200,160 L1200,320 L0,320 Z'/%3E%3Cpath fill='%23047857' fill-opacity='0.2' d='M0,240 L250,180 L500,260 L750,160 L1000,220 L1200,140 L1200,320 L0,320 Z'/%3E%3C/svg%3E") bottom/cover no-repeat;
+            animation: mountainMove 30s infinite alternate;
+        }
+
+        .hero-content {
+            text-align: center;
+            z-index: 10;
+            padding: 0 20px;
+        }
+
+        .hero-title {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: clamp(4rem, 20vw, 12rem);
+            background: var(--gradient-gold);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 40px rgba(251, 191, 36, 0.5));
+            animation: titleGlow 3s infinite alternate;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(1.2rem, 4vw, 2rem);
+            color: var(--emerald);
+            letter-spacing: 0.5em;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+            animation: fadeInUp 1.5s ease 0.5s both;
+        }
+
+        .hero-scroll {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            animation: fadeInUp 1.5s ease 1s both;
+        }
+
+        .scroll-line {
+            width: 2px;
+            height: 60px;
+            background: linear-gradient(180deg, var(--gold) 0%, transparent 100%);
+            animation: scrollDown 2s infinite;
+        }
+
+        .scroll-text {
+            font-size: 0.9rem;
+            color: var(--mist);
+            letter-spacing: 0.2em;
+        }
+
+        /* Section Styles */
+        section {
+            padding: 150px 5%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 100px;
+        }
+
+        .section-number {
+            font-family: 'Ma Shan Zheng', cursive;
+            font-size: 8rem;
+            background: var(--gradient-emerald);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0.3;
+            margin-bottom: -40px;
+        }
+
+        .section-title {
+            font-family: 'Noto Serif TC', serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #f5f5f4 0%, #a8a29e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+
+        .section-desc {
+            font-size: 1.3rem;
+            color: var(--mist);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Timeline Section */
+        .timeline {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: var(--gradient-emerald);
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            display: flex;
+            justify-content: flex-end;
+            padding: 40px 0;
+            position: relative;
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: all 0.8s ease;
+        }
+
+        .timeline-item.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .timeline-item:nth-child(even) {
+            justify-content: flex-start;
+            transform: translateX(50px);
+        }
+
+        .timeline-item:nth-child(even).visible {
+            transform: translateX(0);
+        }
+
+        .timeline-content {
+            width: 45%;
+            background: var(--stone-light);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            transition: all 0.4s ease;
+        }
+
+        .timeline-content:hover {
+            transform: scale(1.05);
+            border-color: var(--emerald);
+            box-shadow: 0 20px 60px rgba(16, 185, 129, 0.3);
+        }
+
+        .timeline-dot {
+            position: absolute;
+            top: 50%;
+            width: 30px;
+            height: 30px;
+            background: var(--gradient-gold);
+            border-radius: 50%;
+            transform: translateY(-50%);
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.6);
+        }
+
+        .timeline-item:nth-child(odd) .timeline-dot {
+            right: -65px;
+        }
+
+        .timeline-item:nth-child(even) .timeline-dot {
+            left: -65px;
+        }
+
+        .day-badge {
+            display: inline-block;
+            padding: 10px 25px;
+            background: var(--gradient-emerald);
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .timeline-content h3 {
+            font-family: 'Noto Serif TC', serif;
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: var(--gold);
+        }
+
+        .timeline-content p {
+            color: var(--mist);
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .activity-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .activity-tag {
+            padding: 8px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--emerald);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--emerald);
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--stone-light);
+            border-radius: 25px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid rgba(251, 191, 36, 0.1);
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        .card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .card:hover {
+            transform: translateY(-20px) scale(1.03);
+            border-color: var(--gold);
+            box-shadow: 0 30px 80px rgba(251, 191, 36, 0.2);
+        }
+
+        .card-image {
+            height: 250px;
+            background: var(--gradient-emerald);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-image::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='none' stroke='%23ffffff' stroke-width='0.5' stroke-opacity='0.2'/%3E%3C/svg%3E");
+            background-size: 50px 50px;
+            animation: patternMove 20s linear infinite;
+        }
+
+        .card-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
+        }
+
+        .card-content {
+            padding: 40px;
+        }
+
+        .card h3 {
+            font-family: 'Noto Serif TC', serif;
+            font-size: 1.8rem;
+            color: var(--gold);
+            margin-bottom: 15px;
+        }
+
+        .card p {
+            color: var(--mist);
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        .card-features {
+            list-style: none;
+            margin: 20px 0;
+        }
+
+        .card-features li {
+            padding: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #d4d4d4;
+        }
+
+        .card-features li::before {
+            content: '✦';
+            color: var(--gold);
+            font-size: 1.2rem;
+        }
+
+        .card-price {
+            display: inline-block;
+            padding: 12px 30px;
+            background: var(--gradient-gold);
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--stone);
+            margin-top: 15px;
+        }
+
+        /* Tips Section */
+        .tips-section {
+            background: linear-gradient(180deg, var(--stone) 0%, var(--stone-light) 100%);
+        }
+
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .tip-box {
+            background: rgba(16, 185, 129, 0.05);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.4s ease;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        .tip-box.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .tip-box:hover {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--emerald);
+            transform: translateY(-10px);
+        }
+
+        .tip-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .tip-box h3 {
+            font-size: 1.5rem;
+            color: var(--emerald);
+            margin-bottom: 15px;
+        }
+
+        .tip-box p {
+            color: var(--mist);
+            line-height: 1.8;
+        }
+
+        /* Budget Section */
+        .budget-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .budget-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 40px;
+            margin: 20px 0;
+            background: var(--stone-light);
+            border-radius: 20px;
+            border-left: 5px solid var(--emerald);
+            transition: all 0.4s ease;
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+
+        .budget-item.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .budget-item:hover {
+            background: rgba(16, 185, 129, 0.1);
+            transform: translateX(20px) scale(1.02);
+            border-left-color: var(--gold);
+        }
+
+        .budget-item h3 {
+            font-size: 1.3rem;
+            color: #f5f5f4;
+        }
+
+        .budget-price {
+            font-size: 2rem;
+            font-weight: 700;
+            background: var(--gradient-gold);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .budget-total {
+            margin-top: 60px;
+            padding: 50px;
+            background: var(--gradient-mystic);
+            border-radius: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .budget-total::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        .budget-total h3 {
+            font-size: 1.5rem;
+            color: var(--mist);
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .budget-total .price {
+            font-size: 5rem;
+            font-weight: 900;
+            background: var(--gradient-gold);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+            z-index: 1;
+            filter: drop-shadow(0 0 40px rgba(251, 191, 36, 0.5));
+        }
+
+        .budget-total p {
+            color: var(--mist);
+            margin-top: 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: var(--gradient-sunrise);
+            text-align: center;
+            padding: 150px 5%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='1' fill='%23ffffff' fill-opacity='0.1'/%3E%3C/svg%3E");
+            background-size: 30px 30px;
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-section h2 {
+            font-family: 'Noto Serif TC', serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            margin-bottom: 20px;
+            text-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .cta-section p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 50px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cta-btn {
+            padding: 18px 50px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .cta-btn-primary {
+            background: #fff;
+            color: var(--stone);
+        }
+
+        .cta-btn-primary:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .cta-btn-secondary {
+            background: transparent;
+            color: #fff;
+            border: 3px solid #fff;
+        }
+
+        .cta-btn-secondary:hover {
+            background: #fff;
+            color: var(--stone);
+            transform: translateY(-10px);
+        }
+
+        /* Footer */
+        footer {
+            background: #000;
+            text-align: center;
+            padding: 60px 5%;
+            position: relative;
+            z-index: 2;
+        }
+
+        footer p {
+            color: var(--mist);
+            font-size: 0.95rem;
+            line-height: 2;
+        }
+
+        footer .heart {
+            color: var(--gold);
+            animation: heartbeat 1.5s infinite;
+            display: inline-block;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        @keyframes bgShift {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(30deg); }
+        }
+
+        @keyframes mountainMove {
+            0% { transform: translateX(-5%); }
+            100% { transform: translateX(5%); }
+        }
+
+        @keyframes titleGlow {
+            0% { filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.3)); }
+            100% { filter: drop-shadow(0 0 60px rgba(251, 191, 36, 0.8)); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scrollDown {
+            0% { transform: scaleY(0); transform-origin: top; }
+            50% { transform: scaleY(1); transform-origin: top; }
+            51% { transform: scaleY(1); transform-origin: bottom; }
+            100% { transform: scaleY(0); transform-origin: bottom; }
+        }
+
+        @keyframes patternMove {
+            0% { background-position: 0 0; }
+            100% { background-position: 50px 50px; }
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            10%, 30% { transform: scale(1.2); }
+            20%, 40% { transform: scale(1); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .timeline::before {
+                left: 30px;
+            }
+
+            .timeline-content {
+                width: calc(100% - 80px);
+                margin-left: 80px;
+            }
+
+            .timeline-item,
+            .timeline-item:nth-child(even) {
+                justify-content: flex-start;
+            }
+
+            .timeline-item .timeline-dot,
+            .timeline-item:nth-child(even) .timeline-dot {
+                left: 15px;
+                right: auto;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .budget-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .cursor, .cursor-dot {
+                display: none;
+            }
+        }
+
+        /* Selection */
+        ::selection {
+            background: var(--emerald);
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="#" class="nav-logo">張家界</a>
+            <ul class="nav-links">
+                <li><a href="#itinerary">行程規劃</a></li>
+                <li><a href="#accommodation">住宿推薦</a></li>
+                <li><a href="#tips">旅遊貼士</a></li>
+                <li><a href="#budget">費用說明</a></li>
+            </ul>
+            <a href="https://line.me/ti/p/@sticker-tycoon" class="nav-contact" target="_blank">
+                <span>💬</span> 聯絡我們
+            </a>
+            <div class="nav-toggle" onclick="toggleNav()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Custom Cursor -->
+    <div class="cursor"></div>
+    <div class="cursor-dot"></div>
+
+    <!-- Loading Screen -->
+    <div class="loading">
+        <div class="loading-text">張家界</div>
+    </div>
+
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="hero-bg"></div>
+        <div class="hero-mountains"></div>
+        <div class="hero-content">
+            <h1 class="hero-title">張家界</h1>
+            <p class="hero-subtitle">Avatar's Fantasy World</p>
+        </div>
+        <div class="hero-scroll">
+            <div class="scroll-line"></div>
+            <span class="scroll-text">探索奇幻世界</span>
+        </div>
+    </div>
+
+    <!-- Timeline Section -->
+    <section id="itinerary">
+        <div class="section-header">
+            <div class="section-number">壹</div>
+            <h2 class="section-title">行程規劃</h2>
+            <p class="section-desc">精心設計的 4 天 3 夜深度之旅</p>
+        </div>
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-dot"></div>
+                    <span class="day-badge">Day 01</span>
+                    <h3>抵達張家界</h3>
+                    <p>從各地飛抵張家界荷花機場或高鐵站，專車接送至武陵源區特色民宿。下午自由探索溪布街，品嚐當地小吃，為明日行程儲備體力。</p>
+                    <div class="activity-tags">
+                        <span class="activity-tag">✈️ 抵達</span>
+                        <span class="activity-tag">🏨 入住</span>
+                        <span class="activity-tag">🍜 美食</span>
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-dot"></div>
+                    <span class="day-badge">Day 02</span>
+                    <h3>國家森林公園</h3>
+                    <p>搭乘百龍天梯直達袁家界，探訪《阿凡達》哈利路亞山原型。下午登天子山，欣賞御筆峰、仙女散花等奇觀，感受大自然的鬼斧神工。</p>
+                    <div class="activity-tags">
+                        <span class="activity-tag">🚡 百龍天梯</span>
+                        <span class="activity-tag">🏔️ 袁家界</span>
+                        <span class="activity-tag">🌄 天子山</span>
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-dot"></div>
+                    <span class="day-badge">Day 03</span>
+                    <h3>天門山天險</h3>
+                    <p>搭乘世界最長高山索道，挑戰玻璃棧道，攀登 999 級天梯直達天門洞。體驗 99 道彎通天大道的驚險刺激。</p>
+                    <div class="activity-tags">
+                        <span class="activity-tag">🚠 高山索道</span>
+                        <span class="activity-tag">🌉 玻璃棧道</span>
+                        <span class="activity-tag">🕳️ 天門洞</span>
+                    </div>
+                </div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-content">
+                    <div class="timeline-dot"></div>
+                    <span class="day-badge">Day 04</span>
+                    <h3>大峽谷返程</h3>
+                    <p>挑戰世界最長玻璃橋，漫步大峽谷步道，欣賞瀑布溪流。下午品嚐三下鍋後返程，結束難忘的張家界之旅。</p>
+                    <div class="activity-tags">
+                        <span class="activity-tag">🌉 玻璃橋</span>
+                        <span class="activity-tag">🚶 峽谷步道</span>
+                        <span class="activity-tag">🏠 返程</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Accommodation Section -->
+    <section id="accommodation">
+        <div class="section-header">
+            <div class="section-number">貳</div>
+            <h2 class="section-title">住宿推薦</h2>
+            <p class="section-desc">精選特色民宿，體驗在地風情</p>
+        </div>
+        <div class="cards-grid">
+            <div class="card">
+                <div class="card-image">
+                    <div class="card-icon">🏡</div>
+                </div>
+                <div class="card-content">
+                    <h3>山景庭院民宿</h3>
+                    <p>獨立小院設計，每間房都擁有觀景陽台。早晨被鳥鳴喚醒，夜晚伴星星入眠，遠離城市喧囂。</p>
+                    <ul class="card-features">
+                        <li>免費 WiFi & 空調</li>
+                        <li>24 小時熱水供應</li>
+                        <li>免費車站接送服務</li>
+                        <li>提供地道早餐</li>
+                    </ul>
+                    <div class="card-price">¥280-450 / 晚</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-image">
+                    <div class="card-icon">🏮</div>
+                </div>
+                <div class="card-content">
+                    <h3>土家族民宿</h3>
+                    <p>體驗地道土家族文化，傳統吊腳樓建築，主人熱情好客，提供民族服裝體驗與美食教學。</p>
+                    <ul class="card-features">
+                        <li>民族風裝修風格</li>
+                        <li>火塘文化體驗</li>
+                        <li>土家美食教學</li>
+                        <li>免費導遊諮詢</li>
+                    </ul>
+                    <div class="card-price">¥220-380 / 晚</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-image">
+                    <div class="card-icon">🎨</div>
+                </div>
+                <div class="card-content">
+                    <h3>文藝清新民宿</h3>
+                    <p>設計師品牌民宿，INS 風裝修，公共區域設有咖啡廳、書吧，適合年輕人打卡拍照。</p>
+                    <ul class="card-features">
+                        <li>設計感公共空間</li>
+                        <li>精品咖啡廳</li>
+                        <li>攝影跟拍服務</li>
+                        <li>文創產品展售</li>
+                    </ul>
+                    <div class="card-price">¥300-500 / 晚</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tips Section -->
+    <section class="tips-section" id="tips">
+        <div class="section-header">
+            <div class="section-number">叁</div>
+            <h2 class="section-title">旅遊貼士</h2>
+            <p class="section-desc">實用建議讓旅程更順利</p>
+        </div>
+        <div class="tips-grid">
+            <div class="tip-box">
+                <span class="tip-icon">🎫</span>
+                <h3>門票購買</h3>
+                <p>提前在攜程/美團購買聯票，比現場便宜 20-30%，QR code 快速入園</p>
+            </div>
+            <div class="tip-box">
+                <span class="tip-icon">👟</span>
+                <h3>裝備建議</h3>
+                <p>舒適運動鞋必備！每日步行 15000+ 步，帶上雨衣、防曬、保暖外套</p>
+            </div>
+            <div class="tip-box">
+                <span class="tip-icon">🍜</span>
+                <h3>美食推薦</h3>
+                <p>必嚐三下鍋、臘肉、酸湯魚。溪布街小吃人均 50 元吃飽</p>
+            </div>
+            <div class="tip-box">
+                <span class="tip-icon">📸</span>
+                <h3>拍照時機</h3>
+                <p>清晨 7-9 點光線最佳，遊客少。袁家界、天子山適合拍日出</p>
+            </div>
+            <div class="tip-box">
+                <span class="tip-icon">🚌</span>
+                <h3>交通提示</h3>
+                <p>景區內環保車免費，但排隊人多。建議早出發避開旅行團</p>
+            </div>
+            <div class="tip-box">
+                <span class="tip-icon">🌦️</span>
+                <h3>最佳季節</h3>
+                <p>3-5 月、9-11 月最佳。雨後雲海最美，但要注意安全</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Budget Section -->
+    <section id="budget">
+        <div class="section-header">
+            <div class="section-number">肆</div>
+            <h2 class="section-title">預算估算</h2>
+            <p class="section-desc">4 天 3 夜人均花費參考</p>
+        </div>
+        <div class="budget-container">
+            <div class="budget-item">
+                <h3>🏨 住宿（3 晚）</h3>
+                <div class="budget-price">¥900</div>
+            </div>
+            <div class="budget-item">
+                <h3>🎫 門票（聯票）</h3>
+                <div class="budget-price">¥600</div>
+            </div>
+            <div class="budget-item">
+                <h3>🍜 餐飲（4 天）</h3>
+                <div class="budget-price">¥400</div>
+            </div>
+            <div class="budget-item">
+                <h3>🚌 當地交通</h3>
+                <div class="budget-price">¥200</div>
+            </div>
+            <div class="budget-item">
+                <h3>🎁 其他雜支</h3>
+                <div class="budget-price">¥300</div>
+            </div>
+            <div class="budget-total">
+                <h3>總計約</h3>
+                <div class="price">¥2,400</div>
+                <p>人民幣 / 人（約 NT$10,800）</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- QR Code Section -->
+    <section class="qr-section" id="contact">
+        <div class="section-header">
+            <div class="section-number">伍</div>
+            <h2 class="section-title">聯絡我們</h2>
+            <p class="section-desc">加入 LINE 獲取更多旅遊資訊</p>
+        </div>
+        <div class="qr-container">
+            <div class="qr-box">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://line.me/ti/p/@sticker-tycoon" alt="LINE QR Code">
+            </div>
+            <div class="qr-info">
+                <h3>掃描 QR Code</h3>
+                <p>加入「貼圖大亨」官方帳號<br>獲取最新旅遊資訊與優惠</p>
+                <div class="line-id">LINE ID: @sticker-tycoon</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <div class="cta-section">
+        <div class="cta-content">
+            <h2>準備好出發了嗎？</h2>
+            <p>開始規劃你的張家界奇幻之旅吧！</p>
+            <div class="cta-buttons">
+                <a href="https://sticker-tycoon.netlify.app/" class="cta-btn cta-btn-primary">回到貼圖大亨</a>
+                <a href="#itinerary" class="cta-btn cta-btn-secondary">查看行程</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>Made with <span class="heart">❤</span> by 棉花糖</p>
+        <p>張家界旅遊攻略 © 2026 | 本頁面僅供參考，實際情況請以當地資訊為準</p>
+    </footer>
+
+    <script>
+        // Loading Screen
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.querySelector('.loading').classList.add('hidden');
+            }, 1500);
+        });
+
+        // Custom Cursor
+        const cursor = document.querySelector('.cursor');
+        const cursorDot = document.querySelector('.cursor-dot');
+
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            cursorDot.style.left = e.clientX + 'px';
+            cursorDot.style.top = e.clientY + 'px';
+        });
+
+        document.addEventListener('mousedown', () => {
+            cursor.style.transform = 'scale(0.8)';
+        });
+
+        document.addEventListener('mouseup', () => {
+            cursor.style.transform = 'scale(1)';
+        });
+
+        // Particles
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 15 + 's';
+            particle.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        // Intersection Observer
+        const observerOptions = {
+            threshold: 0.2,
+            rootMargin: '0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.timeline-item, .card, .tip-box, .budget-item').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Parallax Hero
+        window.addEventListener('scroll', () => {
+            const hero = document.querySelector('.hero');
+            const scrolled = window.pageYOffset;
+            hero.style.transform = `translateY(${scrolled * 0.3}px)`;
+        });
+
+        // Smooth Scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Mobile Navigation Toggle
+        function toggleNav() {
+            document.querySelector('.nav-links').classList.toggle('active');
+        }
+
+        // Close mobile nav when clicking a link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                document.querySelector('.nav-links').classList.remove('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅遊網頁合集 - 2026 之旅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 60px 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            background: linear-gradient(90deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
+        }
+        
+        .subtitle {
+            font-size: 1.3rem;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .trips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .trip-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .trip-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .card-image {
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        .card-image::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.6));
+        }
+        
+        .card-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            z-index: 1;
+        }
+        
+        .card-content {
+            padding: 24px;
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .card-desc {
+            color: #b0b0b0;
+            font-size: 0.95rem;
+            margin-bottom: 16px;
+        }
+        
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #48dbfb;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .card-link:hover {
+            gap: 12px;
+            color: #fff;
+        }
+        
+        /* 各自的主題色 */
+        .trip-card.mazu {
+            border-top: 4px solid #ff6b6b;
+        }
+        
+        .trip-card.mazu .card-link {
+            color: #ff6b6b;
+        }
+        
+        .trip-card.phuket {
+            border-top: 4px solid #48dbfb;
+        }
+        
+        .trip-card.phuket .card-link {
+            color: #48dbfb;
+        }
+        
+        .trip-card.zhangjiajie {
+            border-top: 4px solid #feca57;
+        }
+        
+        .trip-card.zhangjiajie .card-link {
+            color: #feca57;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 80px;
+            padding: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            .trips-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✈️ 2026 旅遊網頁合集</h1>
+            <p class="subtitle">探索三個精彩旅程</p>
+            <span class="badge">🌏 亞洲之旅</span>
+        </header>
+        
+        <div class="trips-grid">
+            <!-- 大甲媽 -->
+            <a href="/mazu/" class="trip-card mazu" style="text-decoration: none; color: inherit;">
+                <div class="card-image" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);">
+                    <span class="card-badge">🌸 台灣</span>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">🏮 大甲媽祖遶境</h2>
+                    <p class="card-desc">台灣最盛大的宗教活動，體驗傳統文化與虔誠信仰的力量。</p>
+                    <span class="card-link">探索行程 →</span>
+                </div>
+            </a>
+            
+            <!-- 普吉島 -->
+            <a href="/phuket/" class="trip-card phuket" style="text-decoration: none; color: inherit;">
+                <div class="card-image" style="background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%);">
+                    <span class="card-badge">🏝️ 泰國</span>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">🌴 普吉島渡假</h2>
+                    <p class="card-desc">陽光、沙灘、海灘！享受泰國最大的熱帶島嶼風情。</p>
+                    <span class="card-link">探索行程 →</span>
+                </div>
+            </a>
+            
+            <!-- 張家界 -->
+            <a href="/zhangjiajie/" class="trip-card zhangjiajie" style="text-decoration: none; color: inherit;">
+                <div class="card-image" style="background: linear-gradient(135deg, #feca57 0%, #f8b739 100%);">
+                    <span class="card-badge">🏔️ 中國</span>
+                </div>
+                <div class="card-content">
+                    <h2 class="card-title">🏔️ 張家界國家森林公園</h2>
+                    <p class="card-desc">探訪世界自然遺產，感受奇峰怪石的壯觀景色。</p>
+                    <span class="card-link">探索行程 →</span>
+                </div>
+            </a>
+        </div>
+        
+        <footer>
+            <p>持續更新中 🚀 | © 2026 旅遊網頁合集</p>
+        </footer>
+    </div>
+</body>
+</html>
