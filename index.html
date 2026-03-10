@@ -916,6 +916,27 @@
         .music-control, .back-to-top, .float-contact {
             animation-play-state: running;
         }
+        
+        /* 音樂提示動畫 */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -961,7 +982,7 @@
         <div class="trips-grid">
             <!-- 大甲媽 -->
             <a href="mazu/" class="trip-card mazu" style="text-decoration: none; color: inherit;">
-                <div class="card-image" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);">
+                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1531169096461-06d21a4b68ac?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
                     <span class="card-badge">🌸 台灣</span>
                 </div>
                 <div class="card-content">
@@ -982,7 +1003,7 @@
             
             <!-- 普吉島 -->
             <a href="phuket/" class="trip-card phuket" style="text-decoration: none; color: inherit;">
-                <div class="card-image" style="background: linear-gradient(135deg, #48dbfb 0%, #0abde3 100%);">
+                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
                     <span class="card-badge">🏝️ 泰國</span>
                 </div>
                 <div class="card-content">
@@ -1003,7 +1024,7 @@
             
             <!-- 張家界 -->
             <a href="zhangjiajie/" class="trip-card zhangjiajie" style="text-decoration: none; color: inherit;">
-                <div class="card-image" style="background: linear-gradient(135deg, #feca57 0%, #f8b739 100%);">
+                <div class="card-image" style="background-image: url('https://images.unsplash.com/photo-1589330694653-ded6df03f754?w=800&h=500&fit=crop'); background-size: cover; background-position: center;">
                     <span class="card-badge">🏔️ 中國</span>
                 </div>
                 <div class="card-content">
@@ -1194,38 +1215,115 @@
             }, 1500);
         });
 
-        // ===== 背景音樂控制 =====
+        // ===== 背景音樂控制 (支援跨頁面持續播放) =====
         const music = document.getElementById('bgMusic');
         const musicToggle = document.getElementById('musicToggle');
         const musicIcon = document.getElementById('musicIcon');
         const volumeSlider = document.getElementById('volumeSlider');
 
-        // 設定初始音量
-        music.volume = 0.4;
+        // 設定初始音量 (從 localStorage 恢復或使用預設值)
+        const savedVolume = localStorage.getItem('musicVolume');
+        music.volume = savedVolume ? parseFloat(savedVolume) : 0.4;
+        if (savedVolume) {
+            volumeSlider.value = parseFloat(savedVolume) * 100;
+        }
 
         // 音樂開關
         let isPlaying = false;
+        
+        // 更新音樂狀態並儲存到 localStorage
+        function updateMusicState(playing) {
+            isPlaying = playing;
+            localStorage.setItem('musicPlaying', playing ? 'true' : 'false');
+            localStorage.setItem('musicVolume', music.volume);
+            localStorage.setItem('musicTime', music.currentTime);
+        }
+        
+        // 頁面載入時恢復音樂播放狀態
+        window.addEventListener('load', function() {
+            const wasPlaying = localStorage.getItem('musicPlaying');
+            const savedVolume = localStorage.getItem('musicVolume');
+            const savedTime = localStorage.getItem('musicTime');
+            
+            if (wasPlaying === 'true') {
+                // 恢復音量
+                if (savedVolume) {
+                    music.volume = parseFloat(savedVolume);
+                    volumeSlider.value = parseFloat(savedVolume) * 100;
+                }
+                // 恢復播放位置
+                if (savedTime && !isNaN(parseFloat(savedTime))) {
+                    music.currentTime = parseFloat(savedTime);
+                }
+                // 嘗試自動播放
+                music.play().then(() => {
+                    musicIcon.textContent = '🎵';
+                    musicToggle.classList.add('playing');
+                    isPlaying = true;
+                    // 顯示「繼續播放」提示
+                    showMusicResumeTip();
+                }).catch(e => {
+                    console.log('需要用戶互動才能播放音樂');
+                });
+            }
+        });
+        
+        // 顯示音樂繼續播放提示
+        function showMusicResumeTip() {
+            const tip = document.createElement('div');
+            tip.innerHTML = '🎵 音樂已從上頁繼續播放';
+            tip.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 25px;
+                font-size: 0.9rem;
+                z-index: 9999;
+                animation: slideIn 0.5s ease, fadeOut 0.5s ease 2.5s forwards;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            `;
+            document.body.appendChild(tip);
+            setTimeout(function() {
+                tip.remove();
+            }, 3000);
+        }
+        
+        // 儲存音樂時間（定期儲存以支援跨頁面）
+        setInterval(function() {
+            if (!music.paused) {
+                localStorage.setItem('musicTime', music.currentTime);
+                localStorage.setItem('musicVolume', music.volume);
+            }
+        }, 1000);
+        
         musicToggle.addEventListener('click', function() {
             if (isPlaying) {
                 music.pause();
                 musicIcon.textContent = '🔇';
                 musicToggle.classList.remove('playing');
+                updateMusicState(false);
             } else {
                 // 使用者和網頁互動後才能播放音訊
                 music.play().then(() => {
                     musicIcon.textContent = '🎵';
                     musicToggle.classList.add('playing');
+                    updateMusicState(true);
+                    // 顯示提示
+                    showMusicResumeTip();
                 }).catch(e => {
                     console.log('無法自動播放，請點擊播放');
                     alert('請點擊播放按鈕以啟用背景音樂 🎵');
                 });
             }
-            isPlaying = !isPlaying;
         });
 
         // 音量控制
         volumeSlider.addEventListener('input', function() {
             music.volume = this.value / 100;
+            localStorage.setItem('musicVolume', music.volume);
         });
 
         // ===== 返回頂部按鈕 =====
