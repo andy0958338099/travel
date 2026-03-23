@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2024 BOBO 家族旅遊泰好玩 9 天 - 曼谷芭達雅深度之旅 🇹🇭</title>
+    <title>🇹🇭曼谷芭達雅 9 天 8 夜｜超詳細遊記＋攻略｜2024 BOBO 家族之旅</title>
+    <meta name="description" content="小紅書風格泰國遊記！鄭王廟、臥佛寺、騎大象、水上市場、湄南河遊輪，9 天 8 夜深度體驗曼谷芭達雅">
     <style>
         * {
             margin: 0;
@@ -12,39 +13,32 @@
         }
         
         body {
-            font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #ffecd2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
+            line-height: 1.8;
         }
         
         .container {
-            max-width: 900px;
+            max-width: 750px;
             margin: 0 auto;
             background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+            box-shadow: 0 0 60px rgba(0,0,0,0.15);
         }
         
-        .header {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
+        /* 封面圖片 */
+        .cover-image {
             position: relative;
+            width: 100%;
+            height: 400px;
             overflow: hidden;
         }
         
-        .header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: url('https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=600&fit=crop') center/cover;
-            opacity: 0.2;
+        .cover-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
             animation: slowZoom 20s ease-in-out infinite;
         }
         
@@ -53,222 +47,325 @@
             50% { transform: scale(1.1); }
         }
         
-        .header h1 {
-            font-size: 2.2em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-            position: relative;
-            z-index: 1;
-        }
-        
-        .header .subtitle {
-            font-size: 1.2em;
-            opacity: 0.95;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .agency-info {
-            background: #f8f9fa;
-            padding: 20px 30px;
-            border-bottom: 3px solid #f5576c;
-        }
-        
-        .agency-info h3 {
-            color: #764ba2;
-            margin-bottom: 10px;
-        }
-        
-        .agency-info p {
-            color: #555;
-            line-height: 1.8;
-        }
-        
-        .hero-gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
+        .cover-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
             padding: 30px;
+            color: white;
+        }
+        
+        .cover-title {
+            font-size: 2em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+        
+        .cover-subtitle {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        /* 作者資訊 */
+        .author-card {
+            display: flex;
+            align-items: center;
+            padding: 20px 25px;
             background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
         }
         
-        .hero-img {
-            border-radius: 15px;
+        .author-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            margin-right: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .author-info h3 {
+            color: #333;
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+        
+        .author-info p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        /* 標籤 */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px 25px;
+            background: #fafafa;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .tag {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        /* 圖片集錦 */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 15px;
+        }
+        
+        .photo-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
             transition: transform 0.3s ease;
-            aspect-ratio: 4/3;
         }
         
-        .hero-img:hover {
-            transform: scale(1.05);
+        .photo-item:hover {
+            transform: scale(1.02);
         }
         
-        .hero-img img {
+        .photo-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
         
-        .day-card {
-            margin: 20px 30px;
+        .photo-item:first-child {
+            grid-column: span 2;
+            aspect-ratio: 16/9;
+        }
+        
+        /* 正文內容 */
+        .content {
             padding: 25px;
-            border-radius: 15px;
-            background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            border-left: 5px solid #667eea;
-            transition: transform 0.3s ease;
         }
         
-        .day-card:hover {
-            transform: translateX(10px);
-        }
-        
-        .day-card:nth-child(odd) {
-            border-left-color: #f5576c;
-        }
-        
-        .day-card:nth-child(even) {
-            border-left-color: #667eea;
-        }
-        
-        .day-title {
+        .section-title {
             font-size: 1.5em;
-            color: #764ba2;
-            margin-bottom: 15px;
+            color: #ff6b6b;
+            margin: 30px 0 20px 0;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .day-number {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .section-title::before {
+            content: '📍';
+        }
+        
+        .day-block {
+            background: linear-gradient(135deg, #fff5f5 0%, #fff 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .day-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .day-badge {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e8e 100%);
             color: white;
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
+            flex-shrink: 0;
         }
         
-        .activities {
+        .day-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .activity-list {
             list-style: none;
+        }
+        
+        .activity-item {
+            padding: 10px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #555;
+            line-height: 1.7;
+        }
+        
+        .activity-item::before {
+            content: '✨';
+            position: absolute;
+            left: 0;
+            font-size: 1.1em;
+        }
+        
+        .tip-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.95em;
+        }
+        
+        .tip-box strong {
+            color: #856404;
+        }
+        
+        .hotel-card {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-radius: 12px;
+            padding: 15px;
             margin: 15px 0;
         }
         
-        .activities li {
-            padding: 8px 0;
-            padding-left: 25px;
-            position: relative;
-            color: #333;
-            line-height: 1.6;
+        .hotel-card h4 {
+            color: #2e7d32;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .activities li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #f5576c;
-            font-weight: bold;
-        }
-        
-        .accommodation {
-            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-            padding: 15px;
-            border-radius: 10px;
-            margin-top: 15px;
-        }
-        
-        .accommodation strong {
-            color: #d63384;
-        }
-        
-        .meals {
+        .meal-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
             margin-top: 15px;
         }
         
         .meal-item {
             background: white;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             text-align: center;
-            border: 2px solid #e9ecef;
+            border: 2px solid #eee;
         }
         
-        .meal-item .label {
-            font-size: 0.9em;
-            color: #6c757d;
+        .meal-label {
+            font-size: 0.8em;
+            color: #999;
             margin-bottom: 5px;
         }
         
-        .meal-item .value {
+        .meal-value {
             font-weight: bold;
-            color: #495057;
+            color: #333;
+            font-size: 0.9em;
         }
         
-        .highlight {
-            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            padding: 30px;
-            margin: 20px 30px;
+        /* 重點提示 */
+        .highlight-box {
+            background: linear-gradient(135deg, #ffe6e6 0%, #fff0f0 100%);
+            border: 2px dashed #ff6b6b;
             border-radius: 15px;
-            text-align: center;
+            padding: 20px;
+            margin: 25px 0;
         }
         
-        .highlight h2 {
-            color: #764ba2;
-            margin-bottom: 20px;
+        .highlight-title {
+            font-size: 1.3em;
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
-        .features {
+        .feature-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
-            margin-top: 20px;
         }
         
         .feature-item {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-        }
-        
-        .feature-item .icon {
-            font-size: 2em;
-            margin-bottom: 10px;
-        }
-        
-        .footer {
-            background: #2d3748;
-            color: white;
             text-align: center;
-            padding: 30px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+        
+        .feature-icon {
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+        
+        /* 底部資訊 */
+        .footer-info {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+            color: white;
+            padding: 30px 25px;
+            text-align: center;
             margin-top: 40px;
         }
         
-        .footer p {
-            margin: 5px 0;
+        .footer-info h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .footer-info p {
+            margin: 8px 0;
+            opacity: 0.9;
+        }
+        
+        .contact-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
         
         @media (max-width: 600px) {
-            .header h1 {
-                font-size: 1.6em;
+            .cover-image {
+                height: 300px;
             }
             
-            .day-title {
-                font-size: 1.2em;
+            .cover-title {
+                font-size: 1.5em;
             }
             
-            .meals {
+            .photo-grid {
                 grid-template-columns: 1fr;
             }
             
-            .hero-gallery {
+            .photo-item:first-child {
+                grid-column: span 1;
+                aspect-ratio: 16/9;
+            }
+            
+            .meal-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -276,332 +373,305 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🇹🇭 2024 BOBO 家族旅遊泰好玩 9 天</h1>
-            <div class="subtitle">曼谷 × 芭達雅 深度之旅 | 地表最強泰國旅遊團隊</div>
-        </div>
-        
-        <div class="hero-gallery">
-            <div class="hero-img">
-                <img src="https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=600&h=450&fit=crop" alt="曼谷夜景">
-            </div>
-            <div class="hero-img">
-                <img src="https://images.unsplash.com/photo-1598935899370-4f1891a546f7?w=600&h=450&fit=crop" alt="鄭王廟">
-            </div>
-            <div class="hero-img">
-                <img src="https://images.unsplash.com/photo-1552465011-b4e21bb6f8c5?w=600&h=450&fit=crop" alt="四面佛">
-            </div>
-            <div class="hero-img">
-                <img src="https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=600&h=450&fit=crop" alt="芭達雅海灘">
+        <!-- 封面圖片 -->
+        <div class="cover-image">
+            <img src="https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=1200&h=600&fit=crop" alt="曼谷夜景">
+            <div class="cover-overlay">
+                <h1 class="cover-title">🇹🇭 曼谷芭達雅 9 天 8 夜</h1>
+                <p class="cover-subtitle">超詳細遊記＋攻略｜地表最強泰國之旅</p>
             </div>
         </div>
         
-        <div class="agency-info">
-            <h3>🏢 旅行社資訊</h3>
-            <p><strong>金典國際旅行社</strong></p>
-            <p>交觀甲 5781 | 品保 1016</p>
-            <p>📞 電話：02-27528080 | 📠 傳真：02-27217070</p>
-        </div>
-        
-        <div class="highlight">
-            <h2>✨ 行程亮點</h2>
-            <div class="features">
-                <div class="feature-item">
-                    <div class="icon">🛕</div>
-                    <div>鄭王廟、臥佛寺、四面佛經典景點</div>
-                </div>
-                <div class="feature-item">
-                    <div class="icon">🦁</div>
-                    <div>塞福瑞野生動物園 + 海洋公園</div>
-                </div>
-                <div class="feature-item">
-                    <div class="icon">🚂</div>
-                    <div>美功鐵道市集、水上市場</div>
-                </div>
-                <div class="feature-item">
-                    <div class="icon">🚢</div>
-                    <div>招拍耶公主號遊湄南河</div>
-                </div>
-                <div class="feature-item">
-                    <div class="icon">🎢</div>
-                    <div>夢幻世界主題樂園、巧克力村</div>
-                </div>
-                <div class="feature-item">
-                    <div class="icon">🐘</div>
-                    <div>芭達雅騎大象體驗</div>
-                </div>
+        <!-- 作者資訊 -->
+        <div class="author-card">
+            <div class="author-avatar">🍡</div>
+            <div class="author-info">
+                <h3>BOBO 家族旅行團</h3>
+                <p>📍 金典國際旅行社｜交觀甲 5781 品保 1016</p>
             </div>
         </div>
         
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">1</span>
-                <span>第一天：台北 → 微笑之都曼谷</span>
+        <!-- 標籤 -->
+        <div class="tags">
+            <span class="tag">#曼谷旅行</span>
+            <span class="tag">#芭達雅</span>
+            <span class="tag">#泰國旅遊</span>
+            <span class="tag">#9 天 8 夜</span>
+            <span class="tag">#行程攻略</span>
+            <span class="tag">#鄭王廟</span>
+            <span class="tag">#騎大象</span>
+            <span class="tag">#水上市場</span>
+        </div>
+        
+        <!-- 圖片集錦 -->
+        <div class="photo-grid">
+            <div class="photo-item">
+                <img src="https://images.unsplash.com/photo-1598935899370-4f1891a546f7?w=800&h=450&fit=crop" alt="鄭王廟">
             </div>
-            <ul class="activities">
-                <li>三輪車遊曼谷老城區 - 體驗當地風情</li>
-                <li>曼谷王權大樓 Mahanakhon Sky Walk 景觀台 - 俯瞰曼谷全景</li>
-                <li>喬德夜市 - 泰好逛的在地夜市</li>
-                <li>飯店 check in</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>JC KEVIN Bangkok HOTEL 二房一廳 4 人房
+            <div class="photo-item">
+                <img src="https://images.unsplash.com/photo-1552465011-b4e21bb6f8c5?w=400&h=400&fit=crop" alt="四面佛">
             </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">×</div>
-                </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">機上</div>
-                </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">自理</div>
-                </div>
+            <div class="photo-item">
+                <img src="https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=400&h=400&fit=crop" alt="芭達雅海灘">
             </div>
         </div>
         
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">2</span>
-                <span>第二天：曼谷經典文化之旅</span>
-            </div>
-            <ul class="activities">
-                <li>鄭王廟 - 東方艾菲爾鐵塔（可租泰服拍美照喔）</li>
-                <li>臥佛寺 - 泰國最古老寺廟</li>
-                <li>世貿百貨商圈 + 四面佛 + BIG C - 泰好買</li>
-                <li>部落客推薦 - 水門市場白金購物中心</li>
-                <li>RED SKY BAR 高空酒吧 - 俯瞰曼谷夜景（飲料自理）</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>JC KEVIN Bangkok HOTEL 二房一廳 4 人房
-            </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">飯店自助餐</div>
-                </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">自理</div>
-                </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">自理</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">3</span>
-                <span>第三天：野生動物園 × 海洋公園</span>
-            </div>
-            <ul class="activities">
-                <li>塞福瑞野生動物園 + 海洋公園 - 歡樂一整日</li>
-                <li>曼谷最有特色的百貨公司 - Terminal 21 航廈</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>JC KEVIN Bangkok HOTEL 二房一廳 4 人房
-            </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">飯店自助餐</div>
-                </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">園區用餐</div>
-                </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">自理</div>
+        <!-- 正文內容 -->
+        <div class="content">
+            <p style="font-size: 1.1em; color: #333; line-height: 1.9;">
+                哈囉大家好～今天要來分享我們 BOBO 家族超精彩的<strong>9 天 8 夜曼谷芭達雅之旅</strong>！🎉<br><br>
+                這趟旅程真的太太太豐富了～從曼谷的經典寺廟、芭達雅的海濱度假，還有超好玩的野生動物園、水上市場、騎大象體驗！每天都充滿驚喜～<br><br>
+                廢話不多說，直接上乾貨！👇
+            </p>
+            
+            <!-- 行程亮點 -->
+            <div class="highlight-box">
+                <div class="highlight-title">✨ 這趟行程的 6 大亮點</div>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon">🛕</div>
+                        <div>鄭王廟<br>臥佛寺</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🦁</div>
+                        <div>野生動物園<br>海洋公園</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🚂</div>
+                        <div>美功鐵道<br>水上市場</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🚢</div>
+                        <div>湄南河<br>遊輪晚餐</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🎢</div>
+                        <div>夢幻世界<br>巧克力村</div>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">🐘</div>
+                        <div>芭達雅<br>騎大象</div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">4</span>
-                <span>第四天：暹羅古城 × 湄南河遊輪</span>
-            </div>
-            <ul class="activities">
-                <li>暹羅古城（古城 76 府）Ancient City - 泰國文化縮影</li>
-                <li>2018 年最新開幕 Icon Siam 河畔百貨 - 曼谷最豪華商場</li>
-                <li>招拍耶公主號遊輪遊湄南河 - 欣賞河岸風光</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>JC KEVIN Bangkok HOTEL 二房一廳 4 人房
-            </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">飯店自助餐</div>
+            
+            <!-- 每日行程 -->
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">1</div>
+                    <div class="day-title">台北 → 曼谷｜三輪車遊老城＋Mahanakhon 景觀台</div>
                 </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">自理</div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>三輪車遊曼谷老城區</strong> - 超有 fu！吹著風感受曼谷街道，當地人日常 get✓</li>
+                    <li class="activity-item"><strong>Mahanakhon Sky Walk</strong> - 78 樓高空玻璃地板！俯瞰曼谷全景，傍晚去最美～</li>
+                    <li class="activity-item"><strong>喬德夜市</strong> - 泰式小吃、文創小物，必逛！</li>
+                </ul>
+                <div class="hotel-card">
+                    <h4>🏨 今晚住宿</h4>
+                    <p>JC KEVIN Bangkok HOTEL 二房一廳 4 人房</p>
                 </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">公主號郵輪自助餐 🚢</div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">5</span>
-                <span>第五天：特色市場體驗</span>
-            </div>
-            <ul class="activities">
-                <li>歐式水上市場 - 獨特購物體驗</li>
-                <li>美功鐵道市集 - 世界奇觀火車穿市</li>
-                <li>曼谷馬爾地夫 Bubble in the Forest（無法訂位需現場排隊，飲料自理）</li>
-                <li>拉查達火車夜市 - 曼谷最夯夜市</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>JC KEVIN Bangkok HOTEL 二房一廳 4 人房
-            </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">飯店自助餐</div>
-                </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">自理</div>
-                </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">自理</div>
+                <div class="meal-grid">
+                    <div class="meal-item">
+                        <div class="meal-label">早餐</div>
+                        <div class="meal-value">×</div>
+                    </div>
+                    <div class="meal-item">
+                        <div class="meal-label">午餐</div>
+                        <div class="meal-value">機上</div>
+                    </div>
+                    <div class="meal-item">
+                        <div class="meal-label">晚餐</div>
+                        <div class="meal-value">自理</div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">6</span>
-                <span>第六天：主題樂園 × 童話村莊</span>
-            </div>
-            <ul class="activities">
-                <li>夢幻世界主題樂園 - 泰國版迪士尼</li>
-                <li>巧克力村 Chocolate Ville - 歐式童話場景</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>JC Kevin Sathorn Bangkok Hotel 二房一廳 4 人房
-            </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">飯店自助餐</div>
+            
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">2</div>
+                    <div class="day-title">曼谷經典｜鄭王廟＋臥佛寺＋四面佛＋高空酒吧</div>
                 </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">園區用餐</div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>鄭王廟（黎明寺）</strong> - 必拍！可以租泰服變身泰國小姐姐，超級出片📸</li>
+                    <li class="activity-item"><strong>臥佛寺</strong> - 泰國最古老寺廟，巨大的臥佛像超震撼</li>
+                    <li class="activity-item"><strong>四面佛＋BIG C</strong> - 拜拜＋購物一次搞定，BIG C 零食超好買！</li>
+                    <li class="activity-item"><strong>水門市場白金購物中心</strong> - 部落客推薦！便宜又好逛</li>
+                    <li class="activity-item"><strong>RED SKY BAR</strong> - 高空酒吧看夜景超浪漫～（飲料自理）</li>
+                </ul>
+                <div class="tip-box">
+                    <strong>💡 小貼士：</strong> 鄭王廟租泰服建議早上去，光線好拍照美！記得帶防曬～
                 </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">自理</div>
+                <div class="hotel-card">
+                    <h4>🏨 今晚住宿</h4>
+                    <p>JC KEVIN Bangkok HOTEL 二房一廳 4 人房</p>
                 </div>
             </div>
-        </div>
-        
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">7</span>
-                <span>第七天：曼谷 → 芭達雅渡假天堂</span>
-            </div>
-            <ul class="activities">
-                <li>前往渡假天堂 PATTAYA</li>
-                <li>GREAT&GRAND Sweet Station - 冰淇淋糖果屋夢幻甜點主題樂園</li>
-                <li>象園 - 騎大象體驗 🐘</li>
-                <li>入住盛泰瀾幻影渡假村 Centara Grand Mirage Beach Resort Pattaya</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>Centara Grand Mirage Beach Resort Pattaya
-            </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">飯店自助餐</div>
+            
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">3</div>
+                    <div class="day-title">動物園 × 海洋公園｜Terminal 21 航廈百貨</div>
                 </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">百年老店兜姐米粉湯</div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>塞福瑞野生動物園＋海洋公園</strong> - 可以近距離餵長頸鹿！海洋公園的海豚秀超精彩～</li>
+                    <li class="activity-item"><strong>Terminal 21</strong> - 每個樓層都是不同國家主題，超有特色！頂樓美食街便宜又好吃</li>
+                </ul>
+                <div class="tip-box">
+                    <strong>💡 小貼士：</strong> 動物園建議帶現金，餵動物一次約 20-50 泰銖～
                 </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">自理</div>
+                <div class="hotel-card">
+                    <h4>🏨 今晚住宿</h4>
+                    <p>JC KEVIN Bangkok HOTEL 二房一廳 4 人房</p>
                 </div>
             </div>
-        </div>
-        
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">8</span>
-                <span>第八天：芭達雅全日度假</span>
-            </div>
-            <ul class="activities">
-                <li>全日渡假村 - 享受飯店設施</li>
-                <li>The Oxygen 午餐（自理，導遊協助訂位及點餐）</li>
-                <li>芭達雅夜市 - 海濱城市夜生活</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>Centara Grand Mirage Beach Resort Pattaya
-            </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">飯店自助餐</div>
+            
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">4</div>
+                    <div class="day-title">暹羅古城＋Icon Siam＋湄南河遊輪晚餐</div>
                 </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">The Oxygen（自理）</div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>暹羅古城（76 府）</strong> - 泰國微縮景觀！一天逛遍泰國各地著名建築，必拍📸</li>
+                    <li class="activity-item"><strong>Icon Siam</strong> - 曼谷最豪華商場！室內水上市場超特別，冷氣超涼～</li>
+                    <li class="activity-item"><strong>招拍耶公主號遊湄南河</strong> - 傍晚出發，看夕陽＋夜景，還有自助餐！超讚～</li>
+                </ul>
+                <div class="hotel-card">
+                    <h4>🏨 今晚住宿</h4>
+                    <p>JC KEVIN Bangkok HOTEL 二房一廳 4 人房</p>
                 </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">自理</div>
+                <div class="meal-grid">
+                    <div class="meal-item">
+                        <div class="meal-label">早餐</div>
+                        <div class="meal-value">飯店</div>
+                    </div>
+                    <div class="meal-item">
+                        <div class="meal-label">午餐</div>
+                        <div class="meal-value">自理</div>
+                    </div>
+                    <div class="meal-item">
+                        <div class="meal-label">晚餐</div>
+                        <div class="meal-value">🚢 公主號自助餐</div>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="day-card">
-            <div class="day-title">
-                <span class="day-number">9</span>
-                <span>第九天：芭達雅 → 曼谷機場 → 桃園</span>
-            </div>
-            <ul class="activities">
-                <li>享受飯店設施</li>
-                <li>3 Mermaids 午餐（自理，導遊協助訂位及點餐）</li>
-                <li>前往曼谷機場</li>
-                <li>飛返桃園溫暖的家</li>
-            </ul>
-            <div class="accommodation">
-                <strong>🏨 住宿：</strong>溫暖的家
-            </div>
-            <div class="meals">
-                <div class="meal-item">
-                    <div class="label">早餐</div>
-                    <div class="value">飯店自助餐</div>
+            
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">5</div>
+                    <div class="day-title">水上市場＋鐵道市集＋曼谷馬爾地夫＋火車夜市</div>
                 </div>
-                <div class="meal-item">
-                    <div class="label">午餐</div>
-                    <div class="value">3 Mermaids（自理）</div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>歐式水上市場</strong> - 不用坐船就能逛水上市場！超方便～</li>
+                    <li class="activity-item"><strong>美功鐵道市集</strong> - 世界奇觀！火車從攤位中間穿過，超刺激🚂</li>
+                    <li class="activity-item"><strong>Bubble in the Forest</strong> - 曼谷馬爾地夫！網美必拍，但無法訂位要現場排隊喔</li>
+                    <li class="activity-item"><strong>拉查達火車夜市</strong> - 曼谷最夯夜市！彩色帳篷超好拍，小吃多到吃不完</li>
+                </ul>
+                <div class="tip-box">
+                    <strong>💡 小貼士：</strong> 鐵道市集火車經過時間不固定，建議問當地人～
                 </div>
-                <div class="meal-item">
-                    <div class="label">晚餐</div>
-                    <div class="value">機上</div>
+                <div class="hotel-card">
+                    <h4>🏨 今晚住宿</h4>
+                    <p>JC KEVIN Bangkok HOTEL 二房一廳 4 人房</p>
+                </div>
+            </div>
+            
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">6</div>
+                    <div class="day-title">夢幻世界樂園＋巧克力村</div>
+                </div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>夢幻世界主題樂園</strong> - 泰國版迪士尼！設施超多，可以玩整天～</li>
+                    <li class="activity-item"><strong>Chocolate Ville</strong> - 歐式童話村莊！每個角落都好拍，晚上點燈更美🍫</li>
+                </ul>
+                <div class="hotel-card">
+                    <h4>🏨 今晚住宿</h4>
+                    <p>JC Kevin Sathorn Bangkok Hotel 二房一廳 4 人房</p>
+                </div>
+            </div>
+            
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">7</div>
+                    <div class="day-title">曼谷 → 芭達雅｜騎大象＋海濱度假村</div>
+                </div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>前往芭達雅</strong> - 車程約 2 小時，沿途風景超美</li>
+                    <li class="activity-item"><strong>冰淇淋糖果屋</strong> - 夢幻甜點主題樂園！少女心爆發🍦</li>
+                    <li class="activity-item"><strong>騎大象體驗</strong> - 人生必體驗！大象超溫柔～</li>
+                    <li class="activity-item"><strong>Centara Grand Mirage</strong> - 超美海濱度假村！設施超棒，有私人海灘🏖️</li>
+                </ul>
+                <div class="hotel-card">
+                    <h4>🏨 今晚住宿</h4>
+                    <p>Centara Grand Mirage Beach Resort Pattaya</p>
+                </div>
+            </div>
+            
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">8</div>
+                    <div class="day-title">芭達雅全日度假｜享受飯店設施＋夜市</div>
+                </div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>全日度假村</strong> - 泳池、海灘、SPA...想幹嘛就幹嘛！放鬆就對了～</li>
+                    <li class="activity-item"><strong>The Oxygen 午餐</strong> - 景觀餐廳，食物好吃風景美（自理）</li>
+                    <li class="activity-item"><strong>芭達雅夜市</strong> - 海鮮超新鮮！必吃烤大蝦、泰式炒河粉</li>
+                </ul>
+                <div class="hotel-card">
+                    <h4>🏨 今晚住宿</h4>
+                    <p>Centara Grand Mirage Beach Resort Pattaya</p>
+                </div>
+            </div>
+            
+            <div class="day-block">
+                <div class="day-header">
+                    <div class="day-badge">9</div>
+                    <div class="day-title">芭達雅 → 曼谷機場 → 桃園｜帶著滿滿回憶回家</div>
+                </div>
+                <ul class="activity-list">
+                    <li class="activity-item"><strong>享受飯店最後時光</strong> - 再游一次泳、拍幾張照...</li>
+                    <li class="activity-item"><strong>3 Mermaids 午餐</strong> - 美人魚主題餐廳，超特別！（自理）</li>
+                    <li class="activity-item"><strong>前往曼谷機場</strong> - 免稅店最後衝刺🛍️</li>
+                    <li class="activity-item"><strong>飛返桃園</strong> - 帶著滿滿回憶回家～</li>
+                </ul>
+                <div class="meal-grid">
+                    <div class="meal-item">
+                        <div class="meal-label">早餐</div>
+                        <div class="meal-value">飯店</div>
+                    </div>
+                    <div class="meal-item">
+                        <div class="meal-label">午餐</div>
+                        <div class="meal-value">3 Mermaids</div>
+                    </div>
+                    <div class="meal-item">
+                        <div class="meal-label">晚餐</div>
+                        <div class="meal-value">機上</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 實用資訊 -->
+            <div class="highlight-box">
+                <div class="highlight-title">📋 實用資訊</div>
+                <div style="line-height: 2;">
+                    <strong>🏢 旅行社：</strong>金典國際旅行社<br>
+                    <strong>📞 電話：</strong>02-27528080<br>
+                    <strong>📠 傳真：</strong>02-27217070<br>
+                    <strong>✅ 證照：</strong>交觀甲 5781 品保 1016<br><br>
+                    <strong>💰 費用：</strong>請洽詢（含住宿）<br>
+                    <strong>📅 最佳季節：</strong>11 月 -2 月（涼爽少雨）<br>
+                    <strong>👗 穿著建議：</strong>輕薄衣物＋外套（室內冷氣強）<br>
+                    <strong>💊 必備物品：</strong>防曬、防蚊液、腸胃藥<br>
                 </div>
             </div>
         </div>
         
-        <div class="footer">
-            <p>📋 本行程由棉花糖 AI 助理解析自 PDF 文件</p>
-            <p>🍡 貼圖大亨旅遊服務 | 專業行程規劃</p>
-            <p>💬 如有任何問題，歡迎隨時諮詢</p>
+        <!-- 底部資訊 -->
+        <div class="footer-info">
+            <h3>🍡 貼圖大亨旅遊服務</h3>
+            <p>專業行程規劃｜LINE 一對一客服</p>
+            <p>本行程由棉花糖 AI 助理解析自 PDF 文件</p>
+            <a href="https://line.me/" class="contact-btn">💬 LINE 聯絡我們</a>
         </div>
     </div>
 </body>
