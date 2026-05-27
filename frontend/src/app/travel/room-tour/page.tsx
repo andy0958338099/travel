@@ -18,142 +18,150 @@ interface Photo {
   location: string;
 }
 
-const PHOTOS: Photo[] = [
-  // ── 客房 ──
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_06.jpg',
-    caption: '豪華客房（60平方米景觀空間）',
-    category: 'room',
-    location: '8-15樓',
+const HOTELS = {
+  shanghai: {
+    name: '上海嘉廷酒店',
+    nameEn: 'Kingtown Riverside Hotel Plaza Shanghai',
+    address: '上海靜安區新閘路126號（近昌平路）',
+    color: 'from-blue-800 to-blue-600',
+    source: undefined as string | undefined,
+    photos: [
+      { src: '/hotels/kingtown-plaza/shanghai/room_06.jpg', caption: '豪華客房（60平方米景觀空間）', category: 'room', location: '8-15樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_07.jpg', caption: '行政雙人床客房', category: 'room', location: '12-18樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_08.jpg', caption: '城市景觀客房（夜景）', category: 'room', location: '10-20樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_09.jpg', caption: '商務客房（辦公區配置）', category: 'room', location: '5-12樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_10.jpg', caption: '精緻雙床客房', category: 'room', location: '6-14樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_11.jpg', caption: '豪華套房臥室', category: 'room', location: '16-22樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_12.jpg', caption: '客房衛浴空間', category: 'room', location: '全館' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_15.jpg', caption: '精緻單人客房', category: 'room', location: '3-8樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_20.jpg', caption: '行政客房（加大床）', category: 'room', location: '18-25樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_02.jpg', caption: '豪華景觀客房', category: 'room', location: '5樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_03.jpg', caption: '商務客房', category: 'room', location: '6樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_09.jpg', caption: '行政套房', category: 'suite', location: '12樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_10.jpg', caption: '高級客房（加大床）', category: 'room', location: '13樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_11.jpg', caption: '精緻客房（mini bar）', category: 'room', location: '14樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_12.jpg', caption: '豪華景觀套房', category: 'room', location: '15樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_13.jpg', caption: '商務套房（客廳）', category: 'suite', location: '16樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_14.jpg', caption: '舒適客房（隔音設計）', category: 'room', location: '17樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_15.jpg', caption: '精緻客房（乾濕分離衛浴）', category: 'room', location: '18樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_16.jpg', caption: '豪華客房（景觀）', category: 'room', location: '19樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_17.jpg', caption: '商務套房', category: 'suite', location: '20樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_suite_01.jpg', caption: '尊享套房（60平方米）', category: 'suite', location: '20-25樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_suite_02.jpg', caption: '行政套房客廳', category: 'suite', location: '20-25樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_suite_03.jpg', caption: '尊享套房衛浴', category: 'suite', location: '20-25樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_suite_04.jpg', caption: '行政套房臥室', category: 'suite', location: '20-25樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/lobby_01.jpg', caption: '酒店大堂（挑高三層）', category: 'public', location: '1樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/lobby_02.jpg', caption: '大堂休閒區', category: 'public', location: '1樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/corridor_01.jpg', caption: '高空走廊景觀', category: 'public', location: '15樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/restaurant_01.jpg', caption: '自助餐廳', category: 'dining', location: '2樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/gym_01.jpg', caption: '健身中心', category: 'facility', location: '3樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_20.jpg', caption: '精緻雙人客房', category: 'room', location: '5樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_21.jpg', caption: '商務客房', category: 'room', location: '6樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_22.jpg', caption: '豪華景觀客房', category: 'room', location: '7樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_23.jpg', caption: '行政客房', category: 'room', location: '8樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_24.jpg', caption: '商務客房', category: 'room', location: '9樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_25.jpg', caption: '標準客房', category: 'room', location: '10樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_26.jpg', caption: '商務雙床房', category: 'room', location: '11樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_27.jpg', caption: '景觀客房', category: 'room', location: '12樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_28.jpg', caption: '家庭客房', category: 'room', location: '13樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_30.jpg', caption: '高級客房', category: 'room', location: '15樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_31.jpg', caption: '精緻客房', category: 'room', location: '16樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_32.jpg', caption: '豪華套房', category: 'suite', location: '17樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_33.jpg', caption: '商務套房', category: 'suite', location: '18樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_34.jpg', caption: '舒適客房', category: 'room', location: '19樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_35.jpg', caption: '精緻客房', category: 'room', location: '20樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_36.jpg', caption: '豪華客房', category: 'room', location: '3樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_37.jpg', caption: '商務套房', category: 'suite', location: '4樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_38.jpg', caption: '高級客房', category: 'room', location: '5樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_44.jpg', caption: '商務客房', category: 'room', location: '11樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_47.jpg', caption: '景觀客房', category: 'room', location: '14樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_50.jpg', caption: '高級客房', category: 'room', location: '17樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_52.jpg', caption: '豪華套房', category: 'suite', location: '19樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_53.jpg', caption: '商務套房', category: 'suite', location: '20樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_54.jpg', caption: '舒適客房', category: 'room', location: '3樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_55.jpg', caption: '精緻客房', category: 'room', location: '4樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_56.jpg', caption: '豪華客房', category: 'room', location: '5樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_57.jpg', caption: '商務套房', category: 'suite', location: '6樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_58.jpg', caption: '高級客房', category: 'room', location: '7樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_59.jpg', caption: '精緻客房', category: 'room', location: '8樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_61.jpg', caption: '商務客房', category: 'room', location: '10樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_62.jpg', caption: '豪華景觀客房', category: 'room', location: '11樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_63.jpg', caption: '行政客房', category: 'room', location: '12樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_64.jpg', caption: '商務客房', category: 'room', location: '13樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_65.jpg', caption: '標準客房', category: 'room', location: '14樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_66.jpg', caption: '商務雙床房', category: 'room', location: '15樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_67.jpg', caption: '景觀客房', category: 'room', location: '16樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_68.jpg', caption: '家庭客房', category: 'room', location: '17樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_70.jpg', caption: '高級客房', category: 'room', location: '19樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_71.jpg', caption: '精緻客房', category: 'room', location: '20樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_72.jpg', caption: '豪華套房', category: 'suite', location: '3樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_73.jpg', caption: '商務套房', category: 'suite', location: '4樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_74.jpg', caption: '舒適客房', category: 'room', location: '5樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_75.jpg', caption: '精緻客房', category: 'room', location: '6樓' },
+      { src: '/hotels/kingtown-plaza/shanghai/room_new_76.jpg', caption: '豪華客房', category: 'room', location: '7樓' },
+    ] as Photo[],
   },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_07.jpg',
-    caption: '行政雙人床客房',
-    category: 'room',
-    location: '12-18樓',
+  hangzhou: {
+    name: '杭州大酒店',
+    nameEn: 'Hangzhou Hotel ★★★★',
+    address: '杭州延安西路と体育場路の交差点（武林広場エリア）',
+    color: 'from-amber-700 to-amber-500',
+    source: 'shanghainavi.com',
+    photos: [
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_suite_01.jpg', caption: '尊享套房（湖景景觀）', category: 'suite', location: '19-29樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_suite_02.jpg', caption: '行政套房客廳', category: 'suite', location: '19-29樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_suite_03.jpg', caption: '尊享套房臥室', category: 'suite', location: '19-29樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_suite_04.jpg', caption: '行政套房衛浴', category: 'suite', location: '19-29樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_suite_05.jpg', caption: '豪華套房', category: 'suite', location: '19-29樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_suite_06.jpg', caption: '標準套房', category: 'suite', location: '19-29樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_01.jpg', caption: '標準客房（武林廣場景觀）', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_02.jpg', caption: '商務客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_03.jpg', caption: '豪華客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_04.jpg', caption: '景觀客房（城市天際線）', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_05.jpg', caption: '雙床客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_06.jpg', caption: '標準客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_07.jpg', caption: '商務客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_08.jpg', caption: '豪華客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_09.jpg', caption: '景觀客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_10.jpg', caption: '雙床客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_11.jpg', caption: '商務客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_12.jpg', caption: '豪華客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_13.jpg', caption: '景觀客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/room_14.jpg', caption: '精緻客房', category: 'room', location: '10-17樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/lobby_01.jpg', caption: '酒店大堂', category: 'public', location: '1樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/lobby_02.jpg', caption: '大堂休憩區', category: 'public', location: '1樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/restaurant_01.jpg', caption: '32F 旋轉餐廳「Revolving Restaurant」', category: 'dining', location: '32樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/restaurant_02.jpg', caption: '5F 中華餐廳「百合軒」', category: 'dining', location: '5樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/corridor_01.jpg', caption: '高空走廊景觀', category: 'public', location: '19-29樓' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/exterior_01.jpg', caption: '酒店外觀（日景）', category: 'public', location: '外觀' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/exterior_02.jpg', caption: '酒店外觀（武林廣場側）', category: 'public', location: '外觀' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/bathroom_01.jpg', caption: '衛浴空間（標準）', category: 'facility', location: '全館' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/bathroom_02.jpg', caption: '浴缸與備品 \u7535', category: 'facility', location: '全館' },
+      { src: '/hotels/hangzhou-hotel/hangzhou/view_01.jpg', caption: '武林廣場景觀（北向き）', category: 'facility', location: '高層客房' },
+    ] as Photo[],
   },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_08.jpg',
-    caption: '城市景觀客房（夜景）',
-    category: 'room',
-    location: '10-20樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_09.jpg',
-    caption: '商務客房（辦公區配置）',
-    category: 'room',
-    location: '5-12樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_10.jpg',
-    caption: '精緻雙床客房',
-    category: 'room',
-    location: '6-14樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_11.jpg',
-    caption: '豪華套房臥室',
-    category: 'room',
-    location: '16-22樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_12.jpg',
-    caption: '客房衛浴空間',
-    category: 'room',
-    location: '全館',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_15.jpg',
-    caption: '精緻單人客房',
-    category: 'room',
-    location: '3-8樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_20.jpg',
-    caption: '行政客房（加大床）',
-    category: 'room',
-    location: '18-25樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_suite_01.jpg',
-    caption: '尊享套房（60平方米）',
-    category: 'suite',
-    location: '20-25樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_suite_02.jpg',
-    caption: '行政套房客廳',
-    category: 'suite',
-    location: '20-25樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/room_suite_03.jpg',
-    caption: '尊享套房衛浴',
-    category: 'suite',
-    location: '20-25樓',
-  },
-  // ── 公共區域 ──
-  {
-    src: '/hotels/kingtown-plaza/shanghai/lobby_01.jpg',
-    caption: '酒店大堂（挑高三層）',
-    category: 'public',
-    location: '1樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/lobby_02.jpg',
-    caption: '大堂休閒區',
-    category: 'public',
-    location: '1樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/corridor_01.jpg',
-    caption: '高空走廊景觀',
-    category: 'public',
-    location: '15樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/hotel_exterior_01.jpg',
-    caption: '酒店外觀（夜景）',
-    category: 'public',
-    location: '外觀',
-  },
-  // ── 餐飲 ──
-  {
-    src: '/hotels/kingtown-plaza/shanghai/restaurant_01.jpg',
-    caption: '自助餐廳',
-    category: 'dining',
-    location: '2樓',
-  },
-  // ── 設施 ──
-  {
-    src: '/hotels/kingtown-plaza/shanghai/gym_01.jpg',
-    caption: '健身中心',
-    category: 'facility',
-    location: '3樓',
-  },
-  {
-    src: '/hotels/kingtown-plaza/shanghai/area_01.jpg',
-    caption: '酒店周邊環境',
-    category: 'facility',
-    location: '周邊',
-  },
-];
+};
+
+type HotelKey = keyof typeof HOTELS;
 
 export default function RoomTourPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [lightbox, setLightbox] = useState<Photo | null>(null);
+  const [activeHotel, setActiveHotel] = useState<HotelKey>('shanghai');
 
+  type HotelData = typeof HOTELS[HotelKey];
+  const hotel: HotelData = HOTELS[activeHotel];
   const filtered =
     activeCategory === 'all'
-      ? PHOTOS
-      : PHOTOS.filter((p) => p.category === activeCategory);
+      ? hotel.photos
+      : hotel.photos.filter((p) => p.category === activeCategory);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-800 to-blue-600 text-white">
+      <div className={`bg-gradient-to-r ${hotel.color} text-white`}>
         <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-4 mb-4 flex-wrap">
             <Link href="/travel" className="text-white/80 hover:text-white text-sm">
               ← 返回首頁
             </Link>
@@ -161,13 +169,28 @@ export default function RoomTourPage() {
               🗓️ 行程規劃
             </Link>
           </div>
+
+          {/* Hotel selector */}
+          <div className="flex gap-3 mb-4 flex-wrap">
+            {(Object.keys(HOTELS) as HotelKey[]).map((key) => (
+              <button
+                key={key}
+                onClick={() => setActiveHotel(key)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  activeHotel === key
+                    ? 'bg-white text-gray-800 shadow-md'
+                    : 'bg-white/20 hover:bg-white/30 text-white'
+                }`}
+              >
+                {HOTELS[key].name}
+              </button>
+            ))}
+          </div>
+
           <h1 className="text-4xl font-bold mb-2">🏨 Room Tour</h1>
-          <p className="text-white/80 text-lg">
-            上海嘉廷酒店 · Kingtown Riverside Hotel Plaza Shanghai
-          </p>
-          <p className="text-white/60 text-sm mt-1">
-            地址：上海靜安區新閘路126號（近昌平路）
-          </p>
+          <p className="text-white/80 text-lg">{hotel.name} · {hotel.nameEn}</p>
+          <p className="text-white/60 text-sm mt-1">📍 {hotel.address}</p>
+          <p className="text-white/40 text-xs mt-1">圖片來源：shanghainavi.com</p>
         </div>
       </div>
 
@@ -180,8 +203,8 @@ export default function RoomTourPage() {
               onClick={() => setActiveCategory(cat.id)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                 activeCategory === cat.id
-                  ? 'bg-blue-700 text-white shadow-md'
-                  : 'bg-white text-gray-600 hover:bg-blue-50 border border-gray-200'
+                  ? 'bg-gray-800 text-white shadow-md'
+                  : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
               {cat.emoji} {cat.label}
@@ -220,7 +243,6 @@ export default function RoomTourPage() {
           ))}
         </div>
 
-        {/* Empty state */}
         {filtered.length === 0 && (
           <div className="text-center py-16 text-gray-400">
             <div className="text-5xl mb-4">📷</div>
