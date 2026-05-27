@@ -484,7 +484,7 @@ export default function TravelJournalPage() {
           {/* Mini Route Map */}
           <div className="bg-white rounded-2xl shadow-2xl p-4 overflow-hidden">
             <h3 className="text-lg font-bold text-gray-700 mb-3 text-center">📍 完整路線圖</h3>
-            <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: "300px" }}>
+            <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: "750px" }}>
               <MapContainer
                 center={[30.4, 120.2]}
                 zoom={9}
