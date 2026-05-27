@@ -10,6 +10,7 @@ const STORIES = [
     tag: '世界文化景觀遗产',
     title: '西湖：千年湖泊的詩意棲居',
     dynasty: '唐宋巑峰 · 10世紀至今',
+    cover: '/stories/images/xihu.jpg',
     content: [
       {
         subtitle: '湖泊的誕生',
@@ -29,7 +30,7 @@ const STORIES = [
       },
       {
         subtitle: '世界文化景觀遗产的當代意義',
-        text: '2011年西湖被列為聯合國教科文組織世界文化景觀遺產，成為中國第41個世界遺產。評審報告指出：「西湖是人類湖泊文明的傑出典範，全面展現了中國景觀理念對自然的詩意詮釋。」湖山結合（山在湖邊、湖在城中）是中國「山水城市」理想的原型，也影響了日本、朝鮮半島的宮廷園林設計。',
+        text: '2011年西湖被列為聯合國教科文組織世界文化景觀遺產，成為中國第41個世界遺產。評審報告指出：「西湖是人類湖泊文明的傑出典範，全面展現了中國景觀理念對自然的詩意詮釋。」湖山結合（山在湖邊、湖在城中）是中國「山水城市」理想的原型，也影響了日本、朝鲜半島的宮廷園林設計。',
       },
     ],
   },
@@ -40,6 +41,7 @@ const STORIES = [
     tag: '中國最後的枕水人家',
     title: '烏鎮：江南水鄉的完整標本',
     dynasty: '南宋至今 · 800年歷史',
+    cover: '/stories/images/wuzhen.jpg',
     content: [
       {
         subtitle: '水上人家的物質文明',
@@ -50,8 +52,8 @@ const STORIES = [
         text: '烏鎮出生的文學家木心（本名孫璞），1927年生於鎮上書香門第，歷經文革苦難後流亡美國，1994年再訪故里，寫下《烏鎮》與《溫馨的舊時光》。他的散文以細緻的感官記憶重建了烏鎮的氣味、聲音與色調，讓這座水鄉成為中國文學地理的重要地標。故居現已改建為木心紀念館。',
       },
       {
-        subtitle: ' строитство 的演變：從原始水移到現代古鎮',
-        text: '烏鎮的保存模式是中國itude古鎮中最具争议的案例之一。1990年代旅遊開發後，鎮區進行了大規模「修舊如舊」改造，部分原住民遷出，傳統手工藝店鋪被替换為服務旅客的商業形態。但另一面，管道、排水、消防等基礎設施的現代化也使古建築得到更好的保護。今天的烏鎮是「真古蹟假生活」的標本，也是中國文化遺產如何在商業化與真實性之間掙扎的縮影。',
+        subtitle: '保存模式的演變：從原始水移到現代古鎮',
+        text: '烏鎮的保存模式是中國古鎮中最具争议的案例之一。1990年代旅遊開發後，鎮區進行了大規模「修舊如舊」改造，部分原住民遷出，傳統手工藝店鋪被替换為服務旅客的商業形態。但另一面，管道、排水、消防等基礎設施的現代化也使古建築得到更好的保護。今天的烏鎮是「真古蹟假生活」的標本，也是中國文化遺產如何在商業化與真實性之間掙扎的縮影。',
       },
     ],
   },
@@ -62,6 +64,7 @@ const STORIES = [
     tag: '活著的歷史廊棚',
     title: '西塘：越文化交匯處的千年古鎮',
     dynasty: '明代至今 · 600年精華',
+    cover: '/stories/images/xitang.jpg',
     content: [
       {
         subtitle: '吳根越角：地理與文化的交界',
@@ -78,12 +81,13 @@ const STORIES = [
     ],
   },
   {
-    id: 'hangzhou history',
+    id: 'hangzhou-history',
     location: '杭州',
     emoji: '🏯',
     tag: '南宋行在 · 絲綢之路起點',
-    title: '杭州：帝国經濟中心的千年榮光',
-    dynasty: '隋唐确立 · 南宋鼎盛 · 明清延續',
+    title: '杭州：帝國經濟中心的千年榮光',
+    dynasty: '隋唐確立 · 南宋鼎盛 · 明清延續',
+    cover: '/stories/images/hangzhou.jpg',
     content: [
       {
         subtitle: '隋煬帝的運河與杭州的興起',
@@ -110,6 +114,7 @@ const STORIES = [
     tag: '世界文化遺產 · 世界上最長的運河',
     title: '京杭大運河：流動的文明史詩',
     dynasty: '隋唐 Dynasty · 始於公元前5世紀 · 全線通航608年',
+    cover: '/stories/images/grand-canal.jpg',
     content: [
       {
         subtitle: '不是一個人挖的',
@@ -121,7 +126,7 @@ const STORIES = [
       },
       {
         subtitle: '流動的文化走廊',
-        text: '運河不僅是經濟通道，也是文化傳播的血管。元代雜劇、明清說唱文學、江南絲竹樂種，都是經由運河沿線城鎮傳播並形成流派。沿岸的窯口（德化窑、景德镇窑、宜興窑）生產的瓷器通過運河抵达北京與海外。可以說，沒有運河，就沒有今天所見的中國陶瓷美學。2014年列入世界文化遺產。',
+        text: '運河不僅是經濟通道，也是文化傳播的血管。元代雜劇、明清說唱文學、江南絲竹樂種，都是經由運河沿線城鎮傳播並形成流派。沿岸的窯口（德化窑、景德镇窑、宜興窑）生產的瓷器通過運河到达北京與海外。可以說，沒有運河，就沒有今天所見的中國陶瓷美學。2014年列入世界文化遺產。',
       },
     ],
   },
@@ -132,6 +137,7 @@ const STORIES = [
     tag: '中國十大名茶之首',
     title: '龍井村：一片茶葉里的中國美學',
     dynasty: '唐代陸羽《茶經》記載 · 清代列為貢品',
+    cover: '/stories/images/longjing.jpg',
     content: [
       {
         subtitle: '陸羽之前的杭州茶',
@@ -155,6 +161,7 @@ export default function StoriesPage() {
   const [active, setActive] = useState(STORIES[0].id);
 
   const story = STORIES.find((s) => s.id === active)!;
+  const sections = story.content;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
@@ -175,6 +182,16 @@ export default function StoriesPage() {
           <h1 className="text-4xl font-bold mb-2">📚 地理歷史故事</h1>
           <p className="text-white/80 text-lg">探索江南水鄉背後的人文故事</p>
         </div>
+      </div>
+
+      {/* Cover Image Hero */}
+      <div className="w-full h-64 md:h-80 overflow-hidden relative">
+        <img
+          src={story.cover}
+          alt={story.title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
       </div>
 
       {/* Tab Bar */}
@@ -223,12 +240,12 @@ export default function StoriesPage() {
 
         {/* Story sections */}
         <div className="space-y-8">
-          {story.content.map((section, i) => (
+          {sections.map((section, i) => (
             <div key={i} className="relative pl-8">
               {/* Timeline dot */}
               <div className="absolute left-0 top-2 w-4 h-4 rounded-full bg-amber-500 border-2 border-white shadow" />
               {/* Timeline line */}
-              {i < story.content.length - 1 && (
+              {i < sections.length - 1 && (
                 <div className="absolute left-[7px] top-5 bottom-[-32px] w-0.5 bg-amber-200" />
               )}
 
