@@ -450,7 +450,7 @@ export default function TravelJournalPage() {
         
         <div className="max-w-6xl mx-auto relative">
           {/* Countdown Timer */}
-          <CountdownTimer departureDate={new Date('2025-07-17')} />
+          <CountdownTimer departureDate={new Date('2026-07-17')} />
           
           <div className="text-center mb-8">
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg tracking-tight">
