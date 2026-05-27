@@ -1,0 +1,501 @@
+"use client";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
+
+// ── Itinerary data types ─────────────────────────────────────────────────────
+type ItineraryEvent = {
+  day: number;
+  startTime: string;
+  endTime?: string;
+  title: string;
+  description?: string;
+  category: "food" | "hotel" | "transport" | "spot" | "shopping";
+  location?: string;
+  cost?: number;
+  latitude?: number;
+  longitude?: number;
+};
+
+const STORAGE_KEY = "hangzhou-trip-postcard";
+
+// ── Category config ──────────────────────────────────────────────────────────
+const CATEGORY_CONFIG = {
+  food:      { icon: "🍜", color: "#C084FC", label: "美食",       bg: "bg-purple-100",   border: "border-purple-300" },
+  hotel:     { icon: "🏨", color: "#FB923C", label: "住宿",       bg: "bg-orange-100",   border: "border-orange-300" },
+  transport: { icon: "🚄", color: "#22D3EE", label: "交通",       bg: "bg-cyan-100",    border: "border-cyan-300" },
+  spot:      { icon: "📍", color: "#FACC15", label: "景點",       bg: "bg-yellow-100",  border: "border-yellow-300" },
+  shopping:  { icon: "🛍️", color: "#F9A8D4", label: "購物",       bg: "bg-pink-100",    border: "border-pink-300" },
+} as const;
+
+// ── Mode sizes (width x height in px) ───────────────────────────────────────
+const MODE_SIZES: Record<string, { w: number; h: number }> = {
+  story:    { w: 1080, h: 1920 },  // IG Story / Reels vertical
+  xiaohong: { w: 1242, h: 1660 },  // 小紅書
+  overview: { w: 1920, h: 1080 },  // 橫式總覽
+};
+
+// ── Default itinerary from planner ───────────────────────────────────────────
+const DEFAULT_ITINERARY: ItineraryEvent[] = [
+  { day: 1, startTime: "09:00", title: "浦東國際機場", category: "transport", cost: 0 },
+  { day: 1, startTime: "12:00", title: "外灘夜景", category: "spot", location: "上海", cost: 0 },
+  { day: 1, startTime: "17:00", title: "南京東路步行街", category: "shopping", location: "上海", cost: 0 },
+  { day: 1, startTime: "20:00", title: "海底撈火鍋", category: "food", location: "上海外攤", cost: 500 },
+  { day: 2, startTime: "08:00", title: "小楊生煎", category: "food", location: "上海", cost: 100 },
+  { day: 2, startTime: "09:30", title: "豫園", category: "spot", location: "上海", cost: 80 },
+  { day: 2, startTime: "12:00", title: "城隍廟", category: "spot", location: "上海", cost: 0 },
+  { day: 2, startTime: "14:00", title: "南翔饅頭", category: "food", location: "上海", cost: 120 },
+  { day: 2, startTime: "16:00", title: "西塘古鎮", category: "spot", location: "嘉善", cost: 190 },
+  { day: 3, startTime: "08:00", title: "江南戲曲服飾", category: "spot", location: "西塘", cost: 150 },
+  { day: 3, startTime: "12:00", title: "水宴餐廳", category: "food", location: "烏鎮", cost: 200 },
+  { day: 3, startTime: "15:00", title: "烏鎮東柵", category: "spot", location: "桐鄉", cost: 110 },
+  { day: 4, startTime: "08:00", title: "烏鎮西柵", category: "spot", location: "桐鄉", cost: 150 },
+  { day: 4, startTime: "14:00", title: "白蓮塔", category: "spot", location: "烏鎮", cost: 0 },
+  { day: 4, startTime: "16:00", title: "木心美術館", category: "spot", location: "烏鎮", cost: 20 },
+  { day: 4, startTime: "18:00", title: "搖櫓船", category: "transport", location: "烏鎮", cost: 150 },
+  { day: 5, startTime: "08:00", title: "西湖（主湖區）", category: "spot", location: "杭州", cost: 0 },
+  { day: 5, startTime: "11:00", title: "斷橋殘雪", category: "spot", location: "杭州", cost: 0 },
+  { day: 5, startTime: "13:00", title: "蘇堤", category: "spot", location: "杭州", cost: 0 },
+  { day: 5, startTime: "18:00", title: "武林夜市", category: "shopping", location: "杭州", cost: 200 },
+  { day: 5, startTime: "21:00", title: "河坊街", category: "shopping", location: "杭州", cost: 300 },
+  { day: 6, startTime: "06:00", title: "游埠豆漿", category: "food", location: "杭州", cost: 60 },
+  { day: 6, startTime: "10:00", title: "宋城千古情", category: "spot", location: "杭州", cost: 1600 },
+  { day: 6, startTime: "17:00", title: "馬驚興餐廳", category: "food", location: "杭州", cost: 200 },
+  { day: 7, startTime: "08:00", title: "龍井茶園", category: "spot", location: "杭州", cost: 0 },
+  { day: 7, startTime: "12:00", title: "大馬弄", category: "food", location: "杭州", cost: 100 },
+  { day: 7, startTime: "15:00", title: "西湖天地", category: "spot", location: "杭州", cost: 0 },
+  { day: 7, startTime: "18:00", title: "宮宴", category: "food", location: "杭州", cost: 800 },
+  { day: 8, startTime: "10:00", title: "靈隱寺", category: "spot", location: "杭州", cost: 100 },
+  { day: 8, startTime: "14:00", title: "京杭大運河遊船", category: "transport", location: "杭州", cost: 80 },
+];
+
+// ── Day meta ─────────────────────────────────────────────────────────────────
+const DAY_META: Record<number, { label: string; date: string }> = {
+  1: { label: "Day 1", date: "7/17 上海" },
+  2: { label: "Day 2", date: "7/18 嘉善" },
+  3: { label: "Day 3", date: "7/19 烏鎮" },
+  4: { label: "Day 4", date: "7/20 烏鎮" },
+  5: { label: "Day 5", date: "7/21 杭州" },
+  6: { label: "Day 6", date: "7/22 杭州" },
+  7: { label: "Day 7", date: "7/23 杭州" },
+  8: { label: "Day 8", date: "7/24 杭州" },
+};
+
+// ── Single card for one day ──────────────────────────────────────────────────
+function DayCard({
+  events,
+  day,
+  mode,
+}: {
+  events: ItineraryEvent[];
+  day: number;
+  mode: string;
+}) {
+  const { w, h } = MODE_SIZES[mode];
+  const meta = DAY_META[day];
+  const cfg = (key: keyof typeof CATEGORY_CONFIG) => CATEGORY_CONFIG[key];
+
+  // Scale down to fit viewport for preview (html2canvas uses actual size for export)
+  // Store original card dimensions; preview renders scaled, export uses full size
+  const isVertical = mode !== "overview";
+  const cardW = isVertical ? w : w / 2;
+  const cardH = isVertical ? h : h - 80; // leave space for header
+
+  // Preview: fit card into viewport width minus padding
+  const PREVIEW_MAX_W = typeof window !== 'undefined' ? Math.min(cardW, window.innerWidth - 80) : cardW;
+  const previewScale = cardW > 0 ? PREVIEW_MAX_W / cardW : 1;
+
+  return (
+    // Wrapper handles preview scaling; html2canvas targets the inner div at full size
+    <div style={{ width: PREVIEW_MAX_W, height: cardH * previewScale, overflow: 'hidden', transformOrigin: 'top left', transform: `scale(${previewScale})` }}>
+    <div
+      className="relative overflow-hidden rounded-2xl shadow-xl"
+      data-day={day}
+      style={{
+        width: cardW,
+        height: cardH,
+        background: "linear-gradient(160deg, #fef9f0 0%, #f0f7ff 100%)",
+        fontFamily: "'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif",
+      }}
+    >
+      {/* Header strip */}
+      <div
+        className="flex items-center justify-between px-6 py-4"
+        style={{
+          background: "linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%)",
+        }}
+      >
+        <div>
+          <div className="text-white font-black text-2xl tracking-wider">{meta.label}</div>
+          <div className="text-white/80 text-base font-medium">{meta.date}</div>
+        </div>
+        <div className="text-white text-lg font-bold">
+          {events.filter(e => (e.cost ?? 0) > 0).reduce((s, e) => s + (e.cost ?? 0), 0).toLocaleString()} TWD
+        </div>
+      </div>
+
+      {/* Events timeline */}
+      <div className="px-6 py-4 space-y-3 overflow-y-auto">
+        {events.map((event, i) => {
+          const cat = cfg(event.category as keyof typeof CATEGORY_CONFIG);
+          const isLast = i === events.length - 1;
+          return (
+            <div key={i} className="flex items-start gap-4">
+              {/* Connector line + dot */}
+              <div className="flex flex-col items-center">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-xl font-bold shadow-md"
+                  style={{ background: cat.color }}
+                >
+                  <span>{cat.icon}</span>
+                </div>
+                {!isLast && (
+                  <div
+                    className="w-0.5 flex-1 min-h-[2rem]"
+                    style={{ background: `${cat.color}40` }}
+                  />
+                )}
+              </div>
+
+              {/* Event card */}
+              <div
+                className={`flex-1 rounded-xl px-4 py-3 border-2 ${cat.border} ${cat.bg}`}
+                style={{ minHeight: 60 }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-bold text-gray-800 text-lg leading-tight">
+                    {event.title}
+                  </div>
+                  {event.cost !== undefined && event.cost > 0 && (
+                    <div
+                      className="text-sm font-bold px-2 py-0.5 rounded-full text-white ml-2 flex-shrink-0"
+                      style={{ background: cat.color }}
+                    >
+                      NT${event.cost.toLocaleString()}
+                    </div>
+                  )}
+                </div>
+                {event.location && (
+                  <div className="text-gray-500 text-sm mt-0.5">{event.location}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer watermark */}
+      <div className="absolute bottom-3 right-4 text-xs text-gray-400/60 font-medium">
+        ✈️ 杭州之旅 2026
+      </div>
+    </div>
+    </div>
+  );
+}
+
+// ── Main Page ─────────────────────────────────────────────────────────────────
+export default function PostcardPage() {
+  const [mode, setMode] = useState<"story" | "xiaohong" | "overview">("story");
+  const [itinerary, setItinerary] = useState<ItineraryEvent[]>([]);
+  const [editingDay, setEditingDay] = useState<number | null>(null);
+  const [editEvents, setEditEvents] = useState<ItineraryEvent[]>([]);
+  const [memberCount] = useState(7);
+  const printRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  // Load from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setItinerary(JSON.parse(saved));
+        return;
+      } catch {}
+    }
+
+    // Load from planner if no postcard saved yet
+    try {
+      const plannerRaw = localStorage.getItem("hangzhou-trip-planner");
+      if (plannerRaw) {
+        const activities = JSON.parse(plannerRaw);
+        if (Array.isArray(activities) && activities[0]?.day !== undefined) {
+          const mapped: ItineraryEvent[] = activities.map((a: any, i: number) => ({
+            day: a.day ?? 1,
+            startTime: a.startHour ? `${String(a.startHour).padStart(2, "0")}:00` : "09:00",
+            title: a.title ?? "",
+            category: a.costType === "food" ? "food"
+              : a.costType === "transport" ? "transport"
+              : a.costType === "accommodation" ? "hotel"
+              : a.costType === "flight" ? "transport"
+              : a.title?.includes("飯店") || a.title?.includes("住宿") ? "hotel"
+              : a.title?.includes("美食") || a.title?.includes("火鍋") || a.title?.includes("生煎") ? "food"
+              : "spot",
+            cost: a.cost ?? 0,
+            location: a.notes || undefined,
+          }));
+          setItinerary(mapped);
+          return;
+        }
+      }
+    } catch {}
+
+    // Fallback to default
+    setItinerary(DEFAULT_ITINERARY);
+  }, []);
+
+  // Save on change
+  useEffect(() => {
+    if (itinerary.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(itinerary));
+    }
+  }, [itinerary]);
+
+  const days = Array.from(new Set(itinerary.map(e => e.day))).sort((a, b) => a - b);
+
+  const startEdit = (day: number) => {
+    setEditingDay(day);
+    setEditEvents(itinerary.filter(e => e.day === day));
+  };
+
+  const cancelEdit = () => {
+    setEditingDay(null);
+    setEditEvents([]);
+  };
+
+  const saveEdit = () => {
+    if (editingDay === null) return;
+    setItinerary(prev => [
+      ...prev.filter(e => e.day !== editingDay),
+      ...editEvents.map(e => ({ ...e, day: editingDay })),
+    ]);
+    setEditingDay(null);
+    setEditEvents([]);
+  };
+
+  const removeEvent = (idx: number) => {
+    setEditEvents(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const addEvent = () => {
+    if (editingDay === null) return;
+    setEditEvents(prev => [
+      ...prev,
+      { day: editingDay, startTime: "09:00", title: "新活動", category: "spot", cost: 0 },
+    ]);
+  };
+
+  const updateEvent = (idx: number, field: keyof ItineraryEvent, value: any) => {
+    setEditEvents(prev => prev.map((e, i) => (i === idx ? { ...e, [field]: value } : e)));
+  };
+
+  // Export single card as image
+  const exportCard = useCallback(async (day: number) => {
+    const el = printRef.current?.querySelector(`[data-day="${day}"]`) as HTMLElement;
+    if (!el) return;
+    try {
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+      const link = document.createElement("a");
+      link.download = `day${day}-postcard.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("Export failed:", err);
+    }
+  }, []);
+
+  // Export all days as PDF (one page per day)
+  const exportAllPDF = useCallback(async () => {
+    if (!printRef.current) return;
+    setExporting(true);
+    try {
+      const { w, h } = MODE_SIZES[mode];
+      const pdf = new jsPDF({ unit: "px", format: [w, h], orientation: "portrait" });
+
+      for (const day of days) {
+        const el = printRef.current.querySelector(`[data-day="${day}"]`) as HTMLElement;
+        if (!el) continue;
+        const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: "#ffffff", logging: false });
+        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        if (day > 1) pdf.addPage([w, h], "portrait");
+        pdf.addImage(imgData, "JPEG", 0, 0, w, h);
+      }
+
+      pdf.save("hangzhou-trip-postcards.pdf");
+    } catch (err) {
+      console.error("PDF export failed:", err);
+    } finally {
+      setExporting(false);
+    }
+  }, [mode, days]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 p-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-gray-800">🖼️ 卡通旅遊行程圖卡</h1>
+            <p className="text-gray-500 mt-1">小紅書 / IG 風格卡通時間軸 · 一鍵生成可分享圖卡</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={exportAllPDF}
+              disabled={exporting || itinerary.length === 0}
+              className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50"
+            >
+              {exporting ? "📤 匯出中..." : "📥 匯出全部 PDF"}
+            </button>
+          </div>
+        </div>
+
+        {/* Mode selector */}
+        <div className="flex gap-3 mb-6">
+          {([
+            ["story",    "📱 直式 IG Story (1080×1920)"],
+            ["xiaohong", "📝 小紅書 (1242×1660)"],
+            ["overview", "🖥️ 橫式總覽 (1920×1080)"],
+          ] as [string, string][]).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setMode(key as any)}
+              className={`px-4 py-2.5 rounded-xl font-bold transition-all ${
+                mode === key
+                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg"
+                  : "bg-white text-gray-600 shadow hover:shadow-md"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Cards grid */}
+        <div
+          ref={printRef}
+          className="flex gap-6 flex-wrap justify-center"
+        >
+          {days.map(day => {
+            const dayEvents = itinerary.filter(e => e.day === day);
+            return (
+              <div key={day} data-day={day} className="flex flex-col gap-2">
+                {/* Card */}
+                <DayCard events={dayEvents} day={day} mode={mode} />
+
+                {/* Edit controls */}
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => exportCard(day)}
+                    className="px-4 py-1.5 bg-white rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 shadow transition-colors"
+                  >
+                    💾 下載圖片
+                  </button>
+                  <button
+                    onClick={() => startEdit(day)}
+                    className="px-4 py-1.5 bg-white rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 shadow transition-colors"
+                  >
+                    ✏️ 編輯
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Edit Modal */}
+        {editingDay !== null && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 border-b">
+                <h2 className="text-xl font-black text-gray-800">
+                  編輯 {DAY_META[editingDay]?.label ?? `Day ${editingDay}`} 行程
+                </h2>
+                <button onClick={cancelEdit} className="text-gray-400 hover:text-gray-700 text-2xl">×</button>
+              </div>
+
+              {/* Events list */}
+              <div className="p-5 space-y-3">
+                {editEvents.map((event, i) => {
+                  const cat = CATEGORY_CONFIG[event.category as keyof typeof CATEGORY_CONFIG];
+                  return (
+                    <div key={i} className={`rounded-xl p-4 border-2 ${cat.border} ${cat.bg}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xl">{cat.icon}</span>
+                        <button
+                          onClick={() => removeEvent(i)}
+                          className="text-red-400 hover:text-red-600 text-sm font-medium"
+                        >
+                          移除
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={event.title}
+                        onChange={e => updateEvent(i, "title", e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg mb-2 font-bold"
+                        placeholder="活動名稱"
+                      />
+                      <div className="flex gap-2">
+                        <select
+                          value={event.category}
+                          onChange={e => updateEvent(i, "category", e.target.value as any)}
+                          className="flex-1 px-2 py-1.5 border rounded-lg text-sm"
+                        >
+                          {Object.entries(CATEGORY_CONFIG).map(([key, val]) => (
+                            <option key={key} value={key}>{val.icon} {val.label}</option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={event.location ?? ""}
+                          onChange={e => updateEvent(i, "location", e.target.value)}
+                          className="flex-1 px-2 py-1.5 border rounded-lg text-sm"
+                          placeholder="地點"
+                        />
+                        <input
+                          type="number"
+                          value={event.cost ?? 0}
+                          onChange={e => updateEvent(i, "cost", Number(e.target.value))}
+                          className="w-24 px-2 py-1.5 border rounded-lg text-sm"
+                          placeholder="NT$"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <button
+                  onClick={addEvent}
+                  className="w-full py-3 border-2 border-dashed border-indigo-300 text-indigo-500 rounded-xl font-bold hover:border-indigo-500 hover:text-indigo-700 transition-colors"
+                >
+                  + 新增活動
+                </button>
+              </div>
+
+              {/* Footer */}
+              <div className="flex gap-3 p-5 border-t bg-gray-50 rounded-b-2xl">
+                <button
+                  onClick={cancelEdit}
+                  className="flex-1 py-2.5 rounded-xl border text-gray-600 font-bold hover:bg-gray-100 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={saveEdit}
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:from-indigo-700 hover:to-purple-700 transition-all"
+                >
+                  儲存
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

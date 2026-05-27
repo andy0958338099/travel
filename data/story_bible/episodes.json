@@ -1,0 +1,37 @@
+[
+  {
+    "id": "EP001",
+    "title": "三月的台中",
+    "date": "2026-03-01",
+    "location": "離題咖啡館",
+    "scenes": [
+      {
+        "scene_id": "S001",
+        "description": "沈予曦坐在離題咖啡館靠窗位置，手邊是熱美式，面前攤開全新的筆記本",
+        "characters": [
+          1
+        ],
+        "image_prompt": "front_view, female editor, sit by window, cafe, Taichung march scenery, warm sunlight, notebook open, contemplative expression, high quality photo",
+        "diary": "重新開始的勇氣"
+      },
+      {
+        "scene_id": "S002",
+        "description": "季允辰穿米白色古著襯衫，背著Nikon相機，專注觀察窗外的光線",
+        "characters": [
+          7
+        ],
+        "image_prompt": "three_quarter_view, male photographer, beige vintage shirt, Nikon camera, focused gaze at window light, coffee shop atmosphere, Taichung",
+        "diary": null
+      },
+      {
+        "scene_id": "S003",
+        "description": "溫芯蕾在吧台後方為季允辰手沖耶加雪菲，陽光灑在她專注的側臉",
+        "characters": [
+          6
+        ],
+        "image_prompt": "side_view, female cafe owner, behind counter, hand pour over coffee, Ethiopian Yirgacheffe, warm cafe lighting, focused graceful",
+        "diary": "總是遲到的人"
+      }
+    ]
+  }
+]

@@ -1,0 +1,88 @@
+{
+  "tasks": [
+    {
+      "id": "improve-dashboard",
+      "title": "優化儀表板",
+      "description": "為 dashboard 增加更多視覺化元素和快捷操作",
+      "priority": 1,
+      "estimated_minutes": 15,
+      "skills_needed": [
+        "frontend"
+      ]
+    },
+    {
+      "id": "add-story-arc",
+      "title": "故事弧線視覺化",
+      "description": "為每個角色建立故事進度時間軸",
+      "priority": 2,
+      "estimated_minutes": 20,
+      "skills_needed": [
+        "frontend",
+        "data-viz"
+      ]
+    },
+    {
+      "id": "song-playlist",
+      "title": "歌曲播放列表",
+      "description": "建立依曲風分類的歌曲播放器",
+      "priority": 2,
+      "estimated_minutes": 15,
+      "skills_needed": [
+        "frontend",
+        "audio"
+      ]
+    },
+    {
+      "id": "auto-tts-diary",
+      "title": "自動化 TTS",
+      "description": "日記生成後自動轉語音",
+      "priority": 1,
+      "estimated_minutes": 10,
+      "skills_needed": [
+        "backend",
+        "tts"
+      ]
+    },
+    {
+      "id": "relationship-network",
+      "title": "角色關係網絡圖",
+      "description": "ASCII 視覺化角色之間的暗戀/友情關係",
+      "priority": 3,
+      "estimated_minutes": 10,
+      "skills_needed": [
+        "design"
+      ]
+    },
+    {
+      "id": "improve-diary-page",
+      "title": "日記頁面增強",
+      "description": "加入心情圖標、關係標籤、搜尋過濾",
+      "priority": 2,
+      "estimated_minutes": 15,
+      "skills_needed": [
+        "frontend"
+      ]
+    },
+    {
+      "id": "clean-unused-assets",
+      "title": "清理閒置資源",
+      "description": "檢查並清理未使用的圖片/音頻檔案",
+      "priority": 3,
+      "estimated_minutes": 10,
+      "skills_needed": [
+        "system"
+      ]
+    },
+    {
+      "id": "backup-db",
+      "title": "資料庫備份",
+      "description": "定時備份 SQLite 資料庫",
+      "priority": 1,
+      "estimated_minutes": 5,
+      "skills_needed": [
+        "system"
+      ]
+    }
+  ],
+  "updated": "2026-05-09T10:03:39.699187"
+}

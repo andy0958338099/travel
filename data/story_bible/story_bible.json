@@ -1,0 +1,298 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-05-09",
+  "locations": {
+    "離題咖啡館": {
+      "description": "台中審計新村內的文青咖啡廳，季允辰和溫芯蕾常去的位置，靠窗有特殊光線",
+      "characters": [
+        1,
+        6,
+        7
+      ],
+      "diary_references": [
+        "重新開始的勇氣",
+        "總是遲到的人"
+      ]
+    },
+    "審計新村": {
+      "description": "台中熱門文創園區，有許多特色咖啡廳和選物店，沈予曦和簡怡然大學時期的回憶之地",
+      "characters": [
+        1,
+        3
+      ],
+      "diary_references": [
+        "閨蜜約定的重量"
+      ]
+    },
+    "健身工作室": {
+      "description": "周敘明工作的健身場所，簡怡然也會去運動",
+      "characters": [
+        8,
+        3
+      ],
+      "diary_references": []
+    },
+    "雜誌編輯部": {
+      "description": "《日常標點》雜誌辦公室，溫芯蕾在這裡有正職",
+      "characters": [
+        6,
+        1
+      ],
+      "diary_references": [
+        "關於工作的一些事"
+      ]
+    },
+    "商場": {
+      "description": "姜以甯偷偷關注別人的地方",
+      "characters": [
+        4
+      ],
+      "diary_references": [
+        "秘密的心情"
+      ]
+    },
+    "練習室": {
+      "description": "姜以甯平日訓練的地方",
+      "characters": [
+        4
+      ],
+      "diary_references": []
+    }
+  },
+  "characters": {
+    "1": {
+      "name": "沈予曦",
+      "role": "《日常標點》雜誌編輯",
+      "personality": "溫柔但有主見，習慣幫別人記錄故事，自己卻不善表達感情",
+      "secret": "暗戀季允辰",
+      "key_locations": [
+        "離題咖啡館",
+        "審計新村",
+        "雜誌編輯部"
+      ],
+      "story_arc": [
+        {
+          "phase": "起點",
+          "day": "D001",
+          "event": "新專題啟動，坐在離題咖啡館開始寫作",
+          "mood": "excited"
+        },
+        {
+          "phase": "摯友",
+          "day": "D002",
+          "event": "與簡怡然在審計新村咖啡廳聊心事",
+          "mood": "touched"
+        },
+        {
+          "phase": "暗戀",
+          "day": "D003",
+          "event": "聖誕節派對上第一次注意到季允辰",
+          "mood": "calm"
+        }
+      ]
+    },
+    "3": {
+      "name": "簡怡然",
+      "role": "健身網紅",
+      "personality": "開朗直接，把情緒發洩在健身房，但內心細膩",
+      "secret": "與健身教練周敘明是青梅竹馬但不想承認",
+      "key_locations": [
+        "審計新村",
+        "健身工作室"
+      ],
+      "story_arc": [
+        {
+          "phase": "日常",
+          "day": "D001",
+          "event": "睡到自然醒，平凡的小確幸",
+          "mood": "calm"
+        },
+        {
+          "phase": "閨密",
+          "day": "D002",
+          "event": "赴約沈予曦，發現她有心事",
+          "mood": "happy"
+        }
+      ]
+    },
+    "4": {
+      "name": "姜以甯",
+      "role": "練習生",
+      "personality": "低調神秘，喜歡觀察，暗戀健身網紅簡怡然",
+      "secret": "暗戀簡怡然",
+      "key_locations": [
+        "商場",
+        "練習室"
+      ],
+      "story_arc": [
+        {
+          "phase": "暗戀",
+          "day": "D001",
+          "event": "在商場偷偷關注簡怡然的社群帳號",
+          "mood": "happy"
+        }
+      ]
+    },
+    "5": {
+      "name": "陸思珩",
+      "role": "公關副總",
+      "personality": "外表光鮮但内心疲憊，工作狂",
+      "secret": "工作壓力大，沒有時間談戀愛",
+      "key_locations": [
+        "公司"
+      ],
+      "story_arc": [
+        {
+          "phase": "午夜",
+          "day": "D001",
+          "event": "辦公室加班到午夜，盯著電腦發呆",
+          "mood": "calm"
+        }
+      ]
+    },
+    "6": {
+      "name": "溫芯蕾",
+      "role": "咖啡廳老闆 / 雜誌編輯部員工（兼職）",
+      "personality": "內斂溫柔，觀察力強，暗戀季允辰但不敢說",
+      "secret": "暗戀季允辰，知道沈予曦也喜歡他",
+      "key_locations": [
+        "離題咖啡館",
+        "雜誌編輯部"
+      ],
+      "story_arc": [
+        {
+          "phase": "邂逅",
+          "day": "D001",
+          "event": "季允辰來咖啡廳，她為他沖耶加雪菲",
+          "mood": "calm"
+        },
+        {
+          "phase": "工作",
+          "day": "D002",
+          "event": "在雜誌編輯部開會，怡然幫她分擔工作",
+          "mood": "happy"
+        }
+      ]
+    },
+    "7": {
+      "name": "季允辰",
+      "role": "自由攝影師",
+      "personality": "安靜专注，喜欢捕捉光影，对感情迟钝",
+      "secret": "被沈予曦和溫芯蕾暗戀，但自己没意识到",
+      "key_locations": [
+        "離題咖啡館"
+      ],
+      "story_arc": [
+        {
+          "phase": "鏡頭",
+          "day": "D001",
+          "event": "在離題咖啡館觀察光線，拍摄台中街景",
+          "mood": "calm"
+        }
+      ]
+    },
+    "8": {
+      "name": "周敘明",
+      "role": "健身教練",
+      "personality": "陽光外向，屏東人，暗戀簡怡然但不敢表白",
+      "secret": "暗戀簡怡然，從大學就喜歡她",
+      "key_locations": [
+        "健身工作室"
+      ],
+      "story_arc": [
+        {
+          "phase": "暗戀",
+          "day": "D001",
+          "event": "在健身房看到簡怡然來運動，心跳加速",
+          "mood": "calm"
+        }
+      ]
+    }
+  },
+  "cross_references": {
+    "D001": {
+      "date": "2026-03-01",
+      "events": [
+        {
+          "char": 1,
+          "location": "離題咖啡館",
+          "action": "新專題啟動，坐在靠窗位置寫作"
+        },
+        {
+          "char": 6,
+          "location": "離題咖啡館",
+          "action": "為季允辰沖咖啡，看他觀察光線"
+        },
+        {
+          "char": 3,
+          "location": "家中/咖啡廳",
+          "action": "睡到自然醒的小確幸日常"
+        },
+        {
+          "char": 4,
+          "location": "商場",
+          "action": "偷偷關注簡怡然的社群"
+        },
+        {
+          "char": 8,
+          "location": "健身工作室",
+          "action": "上課時看到簡怡然來健身房"
+        },
+        {
+          "char": 5,
+          "location": "公司",
+          "action": "午夜加班盯電腦"
+        },
+        {
+          "char": 7,
+          "location": "離題咖啡館",
+          "action": "拍攝窗外的光線和城市"
+        }
+      ]
+    }
+  },
+  "song_genres": {
+    "1": {
+      "genre": "ballad",
+      "mood": "warm",
+      "tempo": "slow",
+      "description": "抒情敘事風，如同一封未寄出的信"
+    },
+    "3": {
+      "genre": "pop",
+      "mood": "upbeat",
+      "tempo": "medium",
+      "description": "明亮流行，健身時聽也很帶感"
+    },
+    "4": {
+      "genre": "rnb",
+      "mood": "sensual",
+      "tempo": "medium",
+      "description": "R&B節奏，訴說秘密的心事"
+    },
+    "5": {
+      "genre": "jazz",
+      "mood": "melancholy",
+      "tempo": "slow",
+      "description": "爵士鋼琴，午夜辦公室的孤獨"
+    },
+    "6": {
+      "genre": "acoustic",
+      "mood": "tender",
+      "tempo": "slow",
+      "description": "木吉他輕聲，咖啡香裡的溫柔心事"
+    },
+    "7": {
+      "genre": "indie",
+      "mood": " atmospheric",
+      "tempo": "medium",
+      "description": "indie民謠，鏡頭下的台中溫度"
+    },
+    "8": {
+      "genre": "hiphop",
+      "mood": "energetic",
+      "tempo": "fast",
+      "description": "嘻哈節奏，掩飾不住的暗戀心情"
+    }
+  }
+}
