@@ -577,6 +577,66 @@ export default function PlannerPage() {
             >
               👥 成員
             </button>
+            <button
+              onClick={() => {
+                const data = {
+                  activities,
+                  members,
+                  ticketAssignments,
+                  costTarget: localStorage.getItem(COST_STORAGE_KEY) || '2',
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'hangzhou-trip-planner.json';
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="px-3 py-1 rounded text-sm bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+              title="匯出行程資料"
+            >
+              💾 匯出
+            </button>
+            <label
+              className="px-3 py-1 rounded text-sm bg-teal-500 text-white hover:bg-teal-600 transition-colors cursor-pointer"
+              title="匯入行程資料"
+            >
+              📂 匯入
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    try {
+                      const data = JSON.parse(ev.target?.result as string);
+                      if (data.activities) {
+                        setActivities(data.activities);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(data.activities));
+                      }
+                      if (data.members) {
+                        setMembers(data.members);
+                        localStorage.setItem(MEMBER_STORAGE_KEY, JSON.stringify(data.members));
+                      }
+                      if (data.ticketAssignments) {
+                        setTicketAssignments(data.ticketAssignments);
+                        localStorage.setItem(TICKET_STORAGE_KEY, JSON.stringify(data.ticketAssignments));
+                      }
+                      if (data.costTarget) localStorage.setItem(COST_STORAGE_KEY, data.costTarget);
+                      alert('匯入成功 ✓');
+                    } catch {
+                      alert('匯入失敗，檔案格式錯誤');
+                    }
+                  };
+                  reader.readAsText(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
             <div className="flex items-center gap-1 ml-2">
               <span className="text-xs text-gray-500">格子大小：</span>
               <button
