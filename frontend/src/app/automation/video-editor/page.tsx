@@ -95,7 +95,7 @@ export default function VideoEditorPage() {
       setProgress("語音生成完成，自動生成字幕中...");
 
       // Step 2: Whisper 自動生成字幕
-      let subtitleText = "";
+      const subtitleText = "";
       if (autoSubtitle && audioPath) {
         addLog("🔤 使用 Whisper 自動生成字幕...");
         setProgress("Whisper 自動生成字幕中...");
