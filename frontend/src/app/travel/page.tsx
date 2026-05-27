@@ -1,10 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ATTRACTIONS, HOTELS, TRANSPORT, TIPS, ITINERARY, ALL_ATTRACTIONS } from "./data";
+import { ATTRACTIONS, HOTELS, TRANSPORT, TIPS, ALL_ATTRACTIONS } from "./data";
 import dynamic from "next/dynamic";
 import ItineraryPlanner from "./ItineraryPlanner";
-import BudgetTracker from "./BudgetTracker";
 import WeatherWidget from "./WeatherWidget";
 import SmartDropZone, { ExtractedData } from "./SmartDropZone";
 
@@ -50,7 +49,6 @@ const DynamicAttractionGallery = dynamic(() => import("./AttractionGallery"), {
 });
 
 export default function TravelPage() {
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [plannedAttractions, setPlannedAttractions] = useState<string[]>([]);
   const [daysUntil, setDaysUntil] = useState(0);
   const [budgetData, setBudgetData] = useState({ budget: 50000, spent: 0, percent: 0 });
@@ -370,71 +368,6 @@ export default function TravelPage() {
             {/* Itinerary Planner */}
             <section className="bg-white rounded-xl shadow-sm p-6">
               <ItineraryPlanner onUpdateAttractions={setPlannedAttractions} />
-            </section>
-
-            {/* Budget Tracker */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
-              <BudgetTracker />
-            </section>
-
-            {/* Day by Day Itinerary */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                📅 八日行程總覽
-              </h2>
-              <div className="space-y-3">
-                {ITINERARY.map((day) => (
-                  <div
-                    key={day.day}
-                    className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                      selectedDay === day.day
-                        ? "border-teal-500 bg-teal-50"
-                        : "hover:border-teal-300"
-                    }`}
-                    onClick={() => setSelectedDay(selectedDay === day.day ? null : day.day)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="bg-teal-100 text-teal-700 px-2 py-0.5 rounded text-sm font-bold">
-                            {day.day}
-                          </span>
-                          <span className="font-bold">{day.title}</span>
-                        </div>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">{day.highlight}</p>
-                      </div>
-                      <span className="text-gray-400">{selectedDay === day.day ? "▲" : "▼"}</span>
-                    </div>
-                    
-                    {selectedDay === day.day && (
-                      <div className="mt-4 pt-4 border-t border-teal-200 space-y-3 text-sm">
-                        <div>
-                          <div className="font-medium text-teal-700 mb-1">行程內容</div>
-                          <p className="text-gray-700 whitespace-pre-line">{day.content}</p>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div className="bg-gray-50 p-2 rounded">
-                            <span className="text-gray-500">早餐</span>
-                            <div className="font-medium">{day.meals.breakfast}</div>
-                          </div>
-                          <div className="bg-gray-50 p-2 rounded">
-                            <span className="text-gray-500">午餐</span>
-                            <div className="font-medium">{day.meals.lunch}</div>
-                          </div>
-                          <div className="bg-gray-50 p-2 rounded">
-                            <span className="text-gray-500">晚餐</span>
-                            <div className="font-medium">{day.meals.dinner}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4 text-xs">
-                          <span className="text-gray-500">🚗 {day.transport}</span>
-                          <span className="text-teal-600 font-medium">預算 {day.budget}</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
             </section>
 
             {/* Attractions */}
