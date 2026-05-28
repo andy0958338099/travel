@@ -12,6 +12,7 @@ type Video = {
   platform: 'youtube' | 'vimeo' | 'bilibili' | 'direct';
   title: string;
   category: string;
+  like_count: number;
   created_at: string;
 };
 
@@ -28,6 +29,18 @@ type Member = {
   name: string;
   color: string;
 };
+
+// ─── Visitor ID ──────────────────────────────────────────────────────────────
+
+function getVisitorId(): string {
+  const KEY = 'travel-video-visitor-id';
+  let id = localStorage.getItem(KEY);
+  if (!id) {
+    id = 'v_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(KEY, id);
+  }
+  return id;
+}
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -69,6 +82,84 @@ const CATEGORY_COLORS: Record<string, string> = {
   '行前準備': 'bg-teal-500',
 };
 
+// ─── Supabase ────────────────────────────────────────────────────────────────
+
+const supabase = createClient();
+
+async function fetchVideos(): Promise<Video[]> {
+  const { data, error } = await supabase
+    .from('travel_videos')
+    .select('*')
+    .order('like_count', { ascending: false });
+  if (error) { console.error(error); return []; }
+  return data ?? [];
+}
+
+async function insertVideo(video: Omit<Video, 'id' | 'created_at' | 'like_count'>): Promise<Video | null> {
+  const { data, error } = await supabase
+    .from('travel_videos')
+    .insert([{ ...video, like_count: 0 }])
+    .select()
+    .single();
+  if (error) { console.error(error); return null; }
+  return data;
+}
+
+async function deleteVideoFromDb(id: string) {
+  await supabase.from('travel_videos').delete().eq('id', id);
+  await supabase.from('travel_video_comments').delete().eq('video_id', id);
+  await supabase.from('travel_video_likes').delete().eq('video_id', id);
+}
+
+async function fetchComments(videoId: string): Promise<Comment[]> {
+  const { data } = await supabase
+    .from('travel_video_comments')
+    .select('*')
+    .eq('video_id', videoId)
+    .order('created_at', { ascending: true });
+  return data ?? [];
+}
+
+async function insertComment(comment: Omit<Comment, 'id' | 'created_at'>): Promise<Comment | null> {
+  const { data, error } = await supabase
+    .from('travel_video_comments')
+    .insert([{ ...comment }])
+    .select()
+    .single();
+  if (error) { console.error(error); return null; }
+  return data;
+}
+
+async function deleteCommentFromDb(id: string) {
+  await supabase.from('travel_video_comments').delete().eq('id', id);
+}
+
+async function fetchLikedVideoIds(visitorId: string): Promise<Set<string>> {
+  const { data } = await supabase
+    .from('travel_video_likes')
+    .select('video_id')
+    .eq('visitor_id', visitorId);
+  return new Set((data ?? []).map((r: { video_id: string }) => r.video_id));
+}
+
+async function callLikeVideo(videoId: string, visitorId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('like_video', {
+    p_video_id: videoId,
+    p_visitor_id: visitorId,
+  });
+  if (error) { console.error(error); return -1; }
+  return data as number;
+}
+
+async function callUnlikeVideo(videoId: string, visitorId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('unlike_video', {
+    p_video_id: videoId,
+    p_visitor_id: visitorId,
+  });
+  if (error) { console.error(error); return -1; }
+  return data as number;
+}
+
 // ─── Member Loader ───────────────────────────────────────────────────────────
 
 function useMembers(): Member[] {
@@ -99,57 +190,6 @@ function useMembers(): Member[] {
   return members;
 }
 
-// ─── Data Hooks ─────────────────────────────────────────────────────────────
-
-const supabase = createClient();
-
-async function fetchVideos(): Promise<Video[]> {
-  const { data, error } = await supabase
-    .from('travel_videos')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) { console.error(error); return []; }
-  return data ?? [];
-}
-
-async function insertVideo(video: Omit<Video, 'id' | 'created_at'>): Promise<Video | null> {
-  const { data, error } = await supabase
-    .from('travel_videos')
-    .insert([{ ...video }])
-    .select()
-    .single();
-  if (error) { console.error(error); return null; }
-  return data;
-}
-
-async function deleteVideoFromDb(id: string) {
-  await supabase.from('travel_videos').delete().eq('id', id);
-}
-
-async function fetchComments(videoId: string): Promise<Comment[]> {
-  const { data, error } = await supabase
-    .from('travel_video_comments')
-    .select('*')
-    .eq('video_id', videoId)
-    .order('created_at', { ascending: true });
-  if (error) { console.error(error); return []; }
-  return data ?? [];
-}
-
-async function insertComment(comment: Omit<Comment, 'id' | 'created_at'>): Promise<Comment | null> {
-  const { data, error } = await supabase
-    .from('travel_video_comments')
-    .insert([{ ...comment }])
-    .select()
-    .single();
-  if (error) { console.error(error); return null; }
-  return data;
-}
-
-async function deleteCommentFromDb(id: string) {
-  await supabase.from('travel_video_comments').delete().eq('id', id);
-}
-
 // ─── Add Video Form ─────────────────────────────────────────────────────────
 
 function AddVideoForm({ onAdd, onCancel }: { onAdd: (v: Video) => void; onCancel: () => void }) {
@@ -164,13 +204,7 @@ function AddVideoForm({ onAdd, onCancel }: { onAdd: (v: Video) => void; onCancel
     if (!url.trim()) { setError('請輸入影片網址'); return; }
     const { embedUrl, platform } = getEmbedUrl(url.trim());
     setLoading(true);
-    const result = await insertVideo({
-      url: url.trim(),
-      embed_url: embedUrl,
-      platform,
-      title: title.trim() || embedUrl.substring(0, 60),
-      category,
-    });
+    const result = await insertVideo({ url: url.trim(), embed_url: embedUrl, platform, title: title.trim() || embedUrl.substring(0, 60), category });
     setLoading(false);
     if (result) { onAdd(result); } else { setError('儲存失敗，請稍後再試'); }
   };
@@ -183,9 +217,7 @@ function AddVideoForm({ onAdd, onCancel }: { onAdd: (v: Video) => void; onCancel
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">
-            影片網址 <span className="text-red-500">*</span>
-          </label>
+          <label className="block text-sm font-medium text-gray-600 mb-1">影片網址 <span className="text-red-500">*</span></label>
           <input type="url" value={url} onChange={(e) => { setUrl(e.target.value); setError(''); }}
             placeholder="https://www.youtube.com/watch?v=..." className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
         </div>
@@ -218,11 +250,13 @@ function AddVideoForm({ onAdd, onCancel }: { onAdd: (v: Video) => void; onCancel
 // ─── Video Card ─────────────────────────────────────────────────────────────
 
 function VideoCard({
-  video, comments, members, onDeleteVideo, onDeleteComment, onAddComment, onRefreshComments,
+  video, comments, members, liked, onToggleLike, onDeleteVideo, onDeleteComment, onAddComment, onRefreshComments,
 }: {
   video: Video;
   comments: Comment[];
   members: Member[];
+  liked: boolean;
+  onToggleLike: (id: string, liked: boolean) => void;
   onDeleteVideo: () => void;
   onDeleteComment: (id: string) => void;
   onAddComment: (c: Comment) => void;
@@ -235,8 +269,27 @@ function VideoCard({
   const [showAuthorSelect, setShowAuthorSelect] = useState(true);
   const [adminUnlocked, setAdminUnlocked] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [likeCount, setLikeCount] = useState(video.like_count ?? 0);
+  const [likeLoading, setLikeLoading] = useState(false);
 
   const getMemberColor = (name: string) => members.find((m) => m.name === name)?.color ?? 'bg-gray-400';
+
+  const handleLike = async () => {
+    if (likeLoading) return;
+    setLikeLoading(true);
+    const visitorId = getVisitorId();
+    let newCount: number;
+    if (liked) {
+      newCount = await callUnlikeVideo(video.id, visitorId);
+      setLikeCount(newCount >= 0 ? newCount : likeCount);
+      if (newCount >= 0) onToggleLike(video.id, false);
+    } else {
+      newCount = await callLikeVideo(video.id, visitorId);
+      setLikeCount(newCount >= 0 ? newCount : likeCount);
+      if (newCount >= 0) onToggleLike(video.id, true);
+    }
+    setLikeLoading(false);
+  };
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,7 +307,7 @@ function VideoCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden flex flex-col">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
@@ -264,21 +317,30 @@ function VideoCard({
           <span className="text-xs text-gray-400">{PLATFORM_LABELS[video.platform]}</span>
           <h3 className="text-sm font-semibold text-gray-800 truncate">{video.title}</h3>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <span className="text-xs text-gray-400">{comments.length}則留言</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Like Button */}
           <button
-            onClick={handleDeleteVideo}
-            disabled={deleting}
-            className={`text-lg leading-none ml-1 ${deleting ? 'text-gray-300' : 'text-gray-300 hover:text-red-400'}`}
-            title="刪除影片"
+            onClick={handleLike}
+            disabled={likeLoading}
+            className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium transition-all ${
+              liked ? 'bg-red-50 text-red-500 border border-red-200' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-red-50 hover:text-red-400'
+            }`}
+            title={liked ? '收回讚' : '按讚'}
           >
+            <span>{liked ? '❤️' : '🤍'}</span>
+            <span>{likeCount}</span>
+          </button>
+          <span className="text-xs text-gray-400">{comments.length}則留言</span>
+          <button onClick={handleDeleteVideo} disabled={deleting}
+            className={`text-lg leading-none ${deleting ? 'text-gray-300' : 'text-gray-300 hover:text-red-400'}`}
+            title="刪除影片">
             {deleting ? '⏳' : '🗑️'}
           </button>
         </div>
       </div>
 
       {/* Video Player */}
-      <div className="aspect-video bg-black">
+      <div className="aspect-video bg-black flex-shrink-0">
         {video.platform === 'direct' ? (
           <video src={video.embed_url} controls className="w-full h-full" />
         ) : (
@@ -289,7 +351,7 @@ function VideoCard({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-3 flex items-center justify-between">
+      <div className="px-4 py-3 flex items-center justify-between mt-auto">
         <span className="text-xs text-gray-400">{formatDate(video.created_at)}</span>
         <button onClick={() => { setShowComments(!showComments); if (!showComments) onRefreshComments(); }}
           className={`text-sm font-medium px-4 py-1.5 rounded-full transition-colors ${showComments ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -319,8 +381,6 @@ function VideoCard({
               </div>
             ))}
           </div>
-
-          {/* Add Comment Form */}
           <form onSubmit={handleAddComment} className="space-y-2">
             {showAuthorSelect ? (
               <div>
@@ -330,17 +390,13 @@ function VideoCard({
                     <button key={m.id} type="button"
                       onClick={() => { setAuthor(m.name); setShowAuthorSelect(false); }}
                       className={`w-8 h-8 rounded-full ${m.color} flex items-center justify-center text-white text-xs font-bold hover:scale-110 transition-transform`}
-                      title={m.name}>
-                      {m.name.charAt(0)}
-                    </button>
+                      title={m.name}>{m.name.charAt(0)}</button>
                   ))}
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full ${getMemberColor(author)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                  {author.charAt(0)}
-                </div>
+                <div className={`w-8 h-8 rounded-full ${getMemberColor(author)} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>{author.charAt(0)}</div>
                 <span className="text-sm font-semibold text-gray-700">{author}</span>
                 <button type="button" onClick={() => { setAuthor(''); setShowAuthorSelect(true); }}
                   className="text-xs text-gray-400 hover:text-gray-600">切換</button>
@@ -351,9 +407,7 @@ function VideoCard({
                 <textarea value={commentText} onChange={(e) => setCommentText(e.target.value)}
                   placeholder="寫下你的想法..." rows={2}
                   className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400" />
-                <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex-shrink-0">
-                  送出
-                </button>
+                <button type="submit" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-semibold flex-shrink-0">送出</button>
               </div>
             )}
           </form>
@@ -371,13 +425,8 @@ function VideoCard({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   if ((e.target as HTMLInputElement).value === 'admin') {
-                    setAdminUnlocked(true);
-                    setShowDeleteConfirm(false);
-                    handleDeleteVideo();
-                  } else {
-                    alert('密碼錯誤');
-                    (e.target as HTMLInputElement).value = '';
-                  }
+                    setAdminUnlocked(true); setShowDeleteConfirm(false); handleDeleteVideo();
+                  } else { alert('密碼錯誤'); (e.target as HTMLInputElement).value = ''; }
                 }
               }} autoFocus />
             <div className="flex gap-2">
@@ -403,13 +452,13 @@ export default function VideosPage() {
   const [activeCategory, setActiveCategory] = useState('全部');
   const [videos, setVideos] = useState<Video[]>([]);
   const [commentsMap, setCommentsMap] = useState<Record<string, Comment[]>>({});
+  const [likedSet, setLikedSet] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
+  const [visitorId, setVisitorId] = useState('');
   const members = useMembers();
 
   const loadVideos = useCallback(async () => {
-    const data = await fetchVideos();
-    setVideos(data);
-    return data;
+    return await fetchVideos();
   }, []);
 
   const loadCommentsForVideo = useCallback(async (videoId: string) => {
@@ -418,15 +467,29 @@ export default function VideosPage() {
   }, []);
 
   useEffect(() => {
+    const vid = getVisitorId();
+    setVisitorId(vid);
     (async () => {
-      const data = await loadVideos();
-      // Load comments for all videos in parallel
-      await Promise.all(data.map((v) => loadCommentsForVideo(v.id)));
+      const [videoData, likedIds] = await Promise.all([
+        loadVideos(),
+        fetchLikedVideoIds(vid),
+      ]);
+      setVideos(videoData);
+      setLikedSet(likedIds);
+      await Promise.all(videoData.map((v) => loadCommentsForVideo(v.id)));
       setLoaded(true);
     })();
   }, [loadVideos, loadCommentsForVideo]);
 
-  const handleDeleteVideo = async (id: string) => {
+  const handleToggleLike = (videoId: string, liked: boolean) => {
+    setLikedSet((prev) => {
+      const next = new Set(prev);
+      if (liked) next.add(videoId); else next.delete(videoId);
+      return next;
+    });
+  };
+
+  const handleDeleteVideo = (id: string) => {
     setVideos((prev) => prev.filter((v) => v.id !== id));
   };
 
@@ -457,9 +520,7 @@ export default function VideosPage() {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-3xl font-bold mb-1">🎬 影片分享牆</h1>
-              <p className="text-white/70 text-sm">
-                {loaded ? `已同步 ${videos.length} 部影片` : '載入中...'}
-              </p>
+              <p className="text-white/70 text-sm">{loaded ? `已同步 ${videos.length} 部影片 · 按讚最高的在最上方` : '載入中...'}</p>
             </div>
             <button onClick={() => setShowAddForm(!showAddForm)}
               className={`px-5 py-2.5 rounded-full font-semibold text-sm transition-all ${showAddForm ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-white text-indigo-600 hover:bg-indigo-50 shadow-lg'}`}>
@@ -500,7 +561,7 @@ export default function VideosPage() {
         ) : (
           <div className="text-center text-xs text-gray-400 mb-4 flex items-center justify-center gap-1">
             <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
-            即時同步自 Supabase 資料庫
+            即時同步自 Supabase · 按讚最高的在最上方
           </div>
         )}
 
@@ -518,6 +579,8 @@ export default function VideosPage() {
                 video={video}
                 comments={commentsMap[video.id] ?? []}
                 members={members}
+                liked={likedSet.has(video.id)}
+                onToggleLike={handleToggleLike}
                 onDeleteVideo={() => handleDeleteVideo(video.id)}
                 onDeleteComment={(id) => handleDeleteComment(video.id, id)}
                 onAddComment={(c) => handleAddComment(video.id, c)}
