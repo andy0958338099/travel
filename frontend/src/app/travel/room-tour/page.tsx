@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const CATEGORIES = [
@@ -189,16 +189,21 @@ type HotelKey = keyof typeof HOTELS;
 function useHotelPhotos(hotelKey: HotelKey) {
   const defaultPhotos = HOTELS[hotelKey as HotelKey].photos;
   const storageKey = `room-tour-photos-${hotelKey}`;
-  const [photos, setPhotos] = useState<Photo[]>(() => {
-    if (typeof window === 'undefined') return defaultPhotos;
+
+  const [photos, setPhotos] = useState<Photo[]>(defaultPhotos);
+  const [modified, setModified] = useState(false);
+
+  // Re-read localStorage whenever hotelKey changes (i.e., user switched hotels)
+  useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey);
-      return saved ? JSON.parse(saved) : defaultPhotos;
+      setPhotos(saved ? JSON.parse(saved) : defaultPhotos);
     } catch {
-      return defaultPhotos;
+      setPhotos(defaultPhotos);
     }
-  });
-  const [modified, setModified] = useState(false);
+    setModified(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hotelKey]);
 
   const save = (next: Photo[]) => {
     setPhotos(next);
