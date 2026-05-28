@@ -181,6 +181,22 @@ wuzhenYoushe: {
       { src: '/hotels/wuzhen-youshe/bathroom_03.jpg', caption: '備品配置', category: 'facility', location: '全館' },
     ] as Photo[],
   },
+yuzhouChangwan: {
+    name: '西塘尋春·古韻雅居客棧',
+    nameEn: 'Xitang Yuzhou Changwan Inn',
+    address: '嘉善縣西塘鎮景區內南棚下77號',
+    color: 'from-amber-700 to-orange-600',
+    source: 'wingontravel.com',
+    photos: [
+      { src: '/hotels/yuzhou-changwan/room-01.jpg', caption: '漁舟唱晚·豪華大床房（28㎡景觀）', category: 'room', location: '2層' },
+      { src: '/hotels/yuzhou-changwan/room-02.jpg', caption: '客房空間與古韻家具', category: 'room', location: '2層' },
+      { src: '/hotels/yuzhou-changwan/room-03.jpg', caption: '中式雕花床頭與燈光', category: 'room', location: '2層' },
+      { src: '/hotels/yuzhou-changwan/room-04.jpg', caption: '窗邊休憩區', category: 'room', location: '2層' },
+      { src: '/hotels/yuzhou-changwan/room-05.jpg', caption: '衛浴空間（淋浴）', category: 'facility', location: '2層' },
+      { src: '/hotels/yuzhou-changwan/room-06.jpg', caption: '古鎮水景view', category: 'public', location: '公共區域' },
+      { src: '/hotels/yuzhou-changwan/room-07.jpg', caption: '客棧外觀與運河', category: 'public', location: '外觀' },
+    ] as Photo[],
+  },
 };
 
 type HotelKey = keyof typeof HOTELS;
