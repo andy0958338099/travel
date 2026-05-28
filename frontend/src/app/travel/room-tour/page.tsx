@@ -185,22 +185,78 @@ wuzhenYoushe: {
 
 type HotelKey = keyof typeof HOTELS;
 
+// ─── Per-hotel photo state (localStorage-backed) ───────────────────────────────
+function useHotelPhotos(hotelKey: HotelKey) {
+  const defaultPhotos = HOTELS[hotelKey as HotelKey].photos;
+  const storageKey = `room-tour-photos-${hotelKey}`;
+  const [photos, setPhotos] = useState<Photo[]>(() => {
+    if (typeof window === 'undefined') return defaultPhotos;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : defaultPhotos;
+    } catch {
+      return defaultPhotos;
+    }
+  });
+  const [modified, setModified] = useState(false);
+
+  const save = (next: Photo[]) => {
+    setPhotos(next);
+    setModified(true);
+    localStorage.setItem(storageKey, JSON.stringify(next));
+  };
+
+  const deletePhoto = (idx: number) => {
+    const next = photos.filter((_, i) => i !== idx);
+    save(next);
+  };
+
+  const moveLeft = (idx: number) => {
+    if (idx === 0) return;
+    const next = [...photos];
+    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+    save(next);
+  };
+
+  const moveRight = (idx: number) => {
+    if (idx === photos.length - 1) return;
+    const next = [...photos];
+    [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+    save(next);
+  };
+
+  const reset = () => {
+    setPhotos(defaultPhotos);
+    setModified(false);
+    localStorage.removeItem(storageKey);
+  };
+
+  return { photos, modified, deletePhoto, moveLeft, moveRight, reset };
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────────
 export default function RoomTourPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [lightbox, setLightbox] = useState<Photo | null>(null);
   const [activeHotel, setActiveHotel] = useState<HotelKey>('shanghai');
+  const [editMode, setEditMode] = useState(false);
 
-  type HotelData = typeof HOTELS[HotelKey];
-  const hotel: HotelData = HOTELS[activeHotel];
+  const { photos, modified, deletePhoto, moveLeft, moveRight, reset } = useHotelPhotos(activeHotel);
+
   const filtered =
     activeCategory === 'all'
-      ? hotel.photos
-      : hotel.photos.filter((p) => p.category === activeCategory);
+      ? photos
+      : photos.filter((p) => p.category === activeCategory);
+
+  const handleHotelChange = (key: HotelKey) => {
+    setActiveHotel(key);
+    setEditMode(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className={`bg-gradient-to-r ${hotel.color} text-white`}>
+      <div className={`bg-gradient-to-r ${HOTELS[activeHotel].color} text-white`}>
         <div className="max-w-6xl mx-auto px-6 py-8">
           <div className="flex items-center gap-4 mb-4 flex-wrap">
             <Link href="/travel" className="text-white/80 hover:text-white text-sm">
@@ -216,7 +272,7 @@ export default function RoomTourPage() {
             {(Object.keys(HOTELS) as HotelKey[]).map((key) => (
               <button
                 key={key}
-                onClick={() => setActiveHotel(key)}
+                onClick={() => handleHotelChange(key)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                   activeHotel === key
                     ? 'bg-white text-gray-800 shadow-md'
@@ -226,12 +282,38 @@ export default function RoomTourPage() {
                 {HOTELS[key].name}
               </button>
             ))}
+            <button
+              onClick={() => setEditMode((v) => !v)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ml-auto ${
+                editMode
+                  ? 'bg-red-500 text-white shadow-md'
+                  : 'bg-white/20 hover:bg-white/30 text-white border border-white/40'
+              }`}
+            >
+              {editMode ? '✏️ 離開編輯' : '✏️ 編輯照片'}
+            </button>
           </div>
 
           <h1 className="text-4xl font-bold mb-2">🏨 Room Tour</h1>
-          <p className="text-white/80 text-lg">{hotel.name} · {hotel.nameEn}</p>
-          <p className="text-white/60 text-sm mt-1">📍 {hotel.address}</p>
-          <p className="text-white/40 text-xs mt-1">圖片來源：{hotel.source}</p>
+          <p className="text-white/80 text-lg">{HOTELS[activeHotel].name} · {HOTELS[activeHotel].nameEn}</p>
+          <p className="text-white/60 text-sm mt-1">📍 {HOTELS[activeHotel].address}</p>
+          <p className="text-white/40 text-xs mt-1">圖片來源：{HOTELS[activeHotel].source}</p>
+
+          {/* Edit mode banner */}
+          {editMode && (
+            <div className="mt-4 bg-white/20 backdrop-blur-sm rounded-xl p-3 flex items-center gap-3 flex-wrap">
+              <span className="text-white text-sm">✏️ 編輯模式：點擊 × 刪除照片，← → 調整順序</span>
+              {modified && (
+                <span className="text-yellow-300 text-xs">● 已修改（自動儲存）</span>
+              )}
+              <button
+                onClick={reset}
+                className="ml-auto text-xs bg-white/20 hover:bg-white/30 text-white px-3 py-1 rounded-full border border-white/40 transition-colors"
+              >
+                重置為預設
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -258,30 +340,86 @@ export default function RoomTourPage() {
 
         {/* Photo grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filtered.map((photo, idx) => (
-            <button
-              key={idx}
-              onClick={() => setLightbox(photo)}
-              className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-200 cursor-zoom-in"
+          {filtered.map((photo, fidx) => {
+            // Find real index in photos array (accounting for category filter)
+            const realIdx = photos.findIndex((p) => p.src === photo.src && p.caption === photo.caption);
+            return (
+            <div
+              key={`${photo.src}-${fidx}`}
+              className="group relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-200"
             >
-              <img
-                src={photo.src}
-                alt={photo.caption}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end">
-                <div className="p-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                  {photo.caption}
+              {/* Thumbnail */}
+              <button
+                onClick={() => !editMode && setLightbox(photo)}
+                className={`w-full h-full cursor-zoom-in ${editMode ? 'opacity-60' : ''}`}
+                disabled={editMode}
+              >
+                <img
+                  src={photo.src}
+                  alt={photo.caption}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </button>
+
+              {/* Hover caption (view mode) */}
+              {!editMode && (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end">
+                  <div className="p-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                    {photo.caption}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Location tag */}
               <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
                 {photo.location}
               </div>
-            </button>
-          ))}
+
+              {/* Edit controls (always visible in edit mode, on hover in view mode) */}
+              {editMode ? (
+                /* Edit mode: always show controls */
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
+                  <button
+                    onClick={() => moveLeft(realIdx)}
+                    disabled={realIdx === 0}
+                    className="bg-white/90 hover:bg-white text-gray-800 w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold shadow disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="向左移動"
+                  >
+                    ←
+                  </button>
+                  <button
+                    onClick={() => deletePhoto(realIdx)}
+                    className="bg-red-500 hover:bg-red-600 text-white w-9 h-9 rounded-full flex items-center justify-center text-xl font-bold shadow"
+                    title="刪除"
+                  >
+                    ×
+                  </button>
+                  <button
+                    onClick={() => moveRight(realIdx)}
+                    disabled={realIdx === photos.length - 1}
+                    className="bg-white/90 hover:bg-white text-gray-800 w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold shadow disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="向右移動"
+                  >
+                    →
+                  </button>
+                  <span className="text-white text-[10px] bg-black/50 px-1 rounded mt-1">
+                    {photo.caption.slice(0, 12)}...
+                  </span>
+                </div>
+              ) : (
+                /* View mode: show on hover */
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end justify-end p-2">
+                  <span className="bg-black/60 text-white text-xs px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    {photo.caption}
+                  </span>
+                </div>
+              )}
+            </div>
+          );
+          })}
         </div>
 
         {filtered.length === 0 && (
