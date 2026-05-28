@@ -143,21 +143,63 @@ async function fetchLikedVideoIds(visitorId: string): Promise<Set<string>> {
 }
 
 async function callLikeVideo(videoId: string, visitorId: string): Promise<number> {
-  const { data, error } = await supabase.rpc('like_video', {
-    p_video_id: videoId,
-    p_visitor_id: visitorId,
-  });
-  if (error) { console.error(error); return -1; }
-  return data as number;
+  try {
+    // Use INSERT with ignoreDuplicates instead of upsert (upsert requires
+    // a unique constraint on (video_id, visitor_id) which may not exist)
+    const result = await supabase
+      .from('travel_video_likes')
+      .insert(
+        { id: crypto.randomUUID(), video_id: videoId, visitor_id: visitorId },
+      );
+
+    if (result.error) {
+      // Ignore duplicate-key errors (visitor already liked this video)
+      if (result.error.code !== '23505') {
+        console.error('like insert failed:', result.error);
+        return -1;
+      }
+    }
+
+    // Get updated count
+    const { count } = await supabase
+      .from('travel_video_likes')
+      .select('video_id', { count: 'exact', head: true })
+      .eq('video_id', videoId);
+
+    const newCount = count ?? 0;
+    await supabase
+      .from('travel_videos')
+      .update({ like_count: newCount })
+      .eq('id', videoId);
+
+    return newCount;
+  } catch (e) {
+    console.error('callLikeVideo exception:', e);
+    return -1;
+  }
 }
 
 async function callUnlikeVideo(videoId: string, visitorId: string): Promise<number> {
-  const { data, error } = await supabase.rpc('unlike_video', {
-    p_video_id: videoId,
-    p_visitor_id: visitorId,
-  });
-  if (error) { console.error(error); return -1; }
-  return data as number;
+  const { error: unlikeErr } = await supabase
+    .from('travel_video_likes')
+    .delete()
+    .eq('video_id', videoId)
+    .eq('visitor_id', visitorId);
+
+  if (unlikeErr) { console.error('unlike delete error:', unlikeErr); return -1; }
+
+  const { count } = await supabase
+    .from('travel_video_likes')
+    .select('video_id', { count: 'exact', head: true })
+    .eq('video_id', videoId);
+
+  const newCount = count ?? 0;
+  await supabase
+    .from('travel_videos')
+    .update({ like_count: newCount })
+    .eq('id', videoId);
+
+  return newCount;
 }
 
 // ─── Member Loader ───────────────────────────────────────────────────────────
