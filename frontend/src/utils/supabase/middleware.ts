@@ -14,11 +14,11 @@ export const createClient = (request: NextRequest) => {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value, options }) =>
-          request.cookies.set(name, value, options)
+          request.cookies.set({ name, value, ...options })
         );
         supabaseResponse = NextResponse.next({ request: { headers: request.headers } });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          supabaseResponse.cookies.set({ name, value, ...options })
         );
       },
     },
