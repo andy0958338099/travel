@@ -479,6 +479,99 @@ export default function TravelJournalPage() {
                 <div className="text-sm text-white text-opacity-80">人同行</div>
               </div>
             </div>
+
+            {/* PDF Export Button */}
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={async () => {
+                  const { jsPDF } = await import('jspdf');
+                  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                  const pageW = doc.internal.pageSize.getWidth();
+                  let y = 20;
+
+                  // Title
+                  doc.setFontSize(20);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text('江南水鄉八日物語 — 旅程日誌', pageW / 2, y, { align: 'center' });
+                  y += 12;
+                  doc.setFontSize(10);
+                  doc.setFont('helvetica', 'normal');
+                  doc.setTextColor(100);
+                  doc.text('杭州 · 烏鎮 · 西塘 深度漫遊日誌', pageW / 2, y, { align: 'center' });
+                  y += 10;
+
+                  // Load journal data
+                  const raw = localStorage.getItem('hangzhou-trip-journal-narratives');
+                  if (!raw) {
+                    doc.setTextColor(0);
+                    doc.text('尚無日誌資料', pageW / 2, y + 10, { align: 'center' });
+                  } else {
+                    const days = JSON.parse(raw) as Record<string, { narrative?: string; editedNarrative?: string; photos?: string[]; route?: string[] }>;
+                    const dayLabels = ['第一天 7/17', '第二天 7/18', '第三天 7/19', '第四天 7/20', '第五天 7/21', '第六天 7/22', '第七天 7/23', '第八天 7/24'];
+
+                    for (const [day, data] of Object.entries(days)) {
+                      const dayNum = parseInt(day.replace('day', ''));
+                      const label = dayLabels[dayNum - 1] || day;
+                      const text = data.editedNarrative || data.narrative || '';
+
+                      if (y > 250) { doc.addPage(); y = 20; }
+
+                      // Day header
+                      doc.setFillColor(102, 126, 234);
+                      doc.rect(14, y, pageW - 28, 8, 'F');
+                      doc.setFontSize(11);
+                      doc.setFont('helvetica', 'bold');
+                      doc.setTextColor(255);
+                      doc.text(label, 16, y + 5.5);
+                      doc.setTextColor(0);
+
+                      // Route
+                      if (data.route && data.route.length > 0) {
+                        y += 10;
+                        doc.setFontSize(8);
+                        doc.setFont('helvetica', 'italic');
+                        doc.setTextColor(120);
+                        doc.text('路線：' + data.route.join(' → '), 14, y);
+                        doc.setTextColor(0);
+                      }
+
+                      // Narrative
+                      y += 8;
+                      doc.setFontSize(9);
+                      doc.setFont('helvetica', 'normal');
+                      const lines = doc.splitTextToSize(text, pageW - 28);
+                      for (const line of lines) {
+                        if (y > 280) { doc.addPage(); y = 20; }
+                        doc.text(line, 14, y);
+                        y += 5;
+                      }
+
+                      // Photo count
+                      if (data.photos && data.photos.length > 0) {
+                        y += 2;
+                        doc.setFontSize(8);
+                        doc.setTextColor(150);
+                        doc.text(`📷 ${data.photos.length} 張照片`, 14, y);
+                        doc.setTextColor(0);
+                      }
+
+                      y += 10;
+                    }
+                  }
+
+                  // Footer
+                  if (y > 270) doc.addPage();
+                  doc.setFontSize(8);
+                  doc.setTextColor(180);
+                  doc.text('由 Manga Studio Travel 自動生成 — ' + new Date().toLocaleDateString('zh-TW'), pageW / 2, 290, { align: 'center' });
+
+                  doc.save(`journey-journal-${new Date().toISOString().slice(0,10)}.pdf`);
+                }}
+                className="bg-white hover:bg-gray-100 text-purple-700 font-bold px-6 py-2 rounded-full shadow-lg transition-all text-sm flex items-center gap-2"
+              >
+                📄 匯出旅程日誌 PDF
+              </button>
+            </div>
           </div>
 
           {/* Mini Route Map */}

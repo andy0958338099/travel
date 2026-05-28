@@ -140,6 +140,47 @@ const HOTELS = {
       { src: '/hotels/hangzhou-hotel/hangzhou/view_01.jpg', caption: '武林廣場景觀（北向き）', category: 'facility', location: '高層客房' },
     ] as Photo[],
   },
+wuzhenYoushe: {
+    name: '烏鎮悠舍悠得藝術酒店（西柵店）',
+    nameEn: 'Wuzhen Youshe Art Hotel (Xizha)',
+    address: '烏鎮鎮環河路59號（西柵北門步行2分鐘）',
+    color: 'from-teal-700 to-teal-500',
+    source: 'cncn.com',
+    photos: [
+      { src: '/hotels/wuzhen-youshe/exterior_01.jpg', caption: '酒店外觀（古典與藝術結合）', category: 'public', location: '外觀' },
+      { src: '/hotels/wuzhen-youshe/lobby_01.jpg', caption: '酒店大堂', category: 'public', location: '1樓' },
+      { src: '/hotels/wuzhen-youshe/corridor_01.jpg', caption: '走廊景觀', category: 'public', location: '全館' },
+      { src: '/hotels/wuzhen-youshe/room_01.jpg', caption: '精緻客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_02.jpg', caption: '商務客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_03.jpg', caption: '豪華客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_04.jpg', caption: '景觀客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_05.jpg', caption: '雙床客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_06.jpg', caption: '標準客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_07.jpg', caption: '商務客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_08.jpg', caption: '豪華客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_09.jpg', caption: '景觀客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_10.jpg', caption: '雙床客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_11.jpg', caption: '商務客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_12.jpg', caption: '豪華客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_13.jpg', caption: '景觀客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_14.jpg', caption: '精緻客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_15.jpg', caption: '商務客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_16.jpg', caption: '豪華客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_17.jpg', caption: '景觀客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_18.jpg', caption: '雙床客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_19.jpg', caption: '商務客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_20.jpg', caption: '標準客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_21.jpg', caption: '豪華客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_22.jpg', caption: '景觀客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_23.jpg', caption: '精緻客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_24.jpg', caption: '商務客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_25.jpg', caption: '豪華客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/room_26.jpg', caption: '景觀客房', category: 'room', location: '2-5樓' },
+      { src: '/hotels/wuzhen-youshe/bathroom_01.jpg', caption: '衛浴空間', category: 'facility', location: '全館' },
+      { src: '/hotels/wuzhen-youshe/bathroom_02.jpg', caption: '衛浴設施', category: 'facility', location: '全館' },
+      { src: '/hotels/wuzhen-youshe/bathroom_03.jpg', caption: '備品配置', category: 'facility', location: '全館' },
+    ] as Photo[],
+  },
 };
 
 type HotelKey = keyof typeof HOTELS;
@@ -190,7 +231,7 @@ export default function RoomTourPage() {
           <h1 className="text-4xl font-bold mb-2">🏨 Room Tour</h1>
           <p className="text-white/80 text-lg">{hotel.name} · {hotel.nameEn}</p>
           <p className="text-white/60 text-sm mt-1">📍 {hotel.address}</p>
-          <p className="text-white/40 text-xs mt-1">圖片來源：shanghainavi.com</p>
+          <p className="text-white/40 text-xs mt-1">圖片來源：{hotel.source}</p>
         </div>
       </div>
 

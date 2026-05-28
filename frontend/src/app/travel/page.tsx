@@ -251,6 +251,62 @@ export default function TravelPage() {
         </div>
       </div>
 
+      {/* Export / Import JSON */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-6 py-2 flex items-center gap-3">
+          <span className="text-xs text-gray-400">資料管理：</span>
+          <button
+            onClick={() => {
+              const keys = ['hangzhou-trip-planner', 'hangzhou-trip-budget', 'hangzhou-trip-packing', 'hangzhou-trip-itinerary', 'hangzhou-trip-journal-narratives', 'hangzhou-trip-flight', 'hangzhou-trip-hotel'];
+              const data: Record<string, string> = {};
+              for (const k of keys) {
+                const v = localStorage.getItem(k);
+                if (v) data[k] = v;
+              }
+              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `hangzhou-trip-backup-${new Date().toISOString().slice(0,10)}.json`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 py-1 rounded-full border border-teal-200 transition-colors"
+          >
+            📤 匯出備份
+          </button>
+          <label className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1 rounded-full border border-blue-200 cursor-pointer transition-colors">
+            📥 匯入還原
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                  try {
+                    const data = JSON.parse(ev.target?.result as string);
+                    let count = 0;
+                    for (const [k, v] of Object.entries(data)) {
+                      localStorage.setItem(k, v as string);
+                      count++;
+                    }
+                    alert(`已還原 ${count} 筆資料，請重新整理頁面。`);
+                    window.location.reload();
+                  } catch {
+                    alert('檔案格式錯誤，請確認是正確的備份檔。');
+                  }
+                };
+                reader.readAsText(file);
+              }}
+            />
+          </label>
+          <span className="text-xs text-gray-400">（localStorage ↔ JSON 檔案）</span>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
