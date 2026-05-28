@@ -197,6 +197,22 @@ yuzhouChangwan: {
       { src: '/hotels/yuzhou-changwan/room-07.jpg', caption: '客棧外觀與運河', category: 'public', location: '外觀' },
     ] as Photo[],
   },
+wuzhenHomestay: {
+    name: '烏鎮西柵民宿',
+    nameEn: 'Wuzhen Xizha Homestay',
+    address: '桐鄉市烏鎮鎮西柵景區內',
+    color: 'from-emerald-700 to-teal-600',
+    source: 'ctrip.com',
+    photos: [
+      { src: '/hotels/wuzhen-homestay/room_01.jpg', caption: '臨水景觀大床房', category: 'room', location: '2層' },
+      { src: '/hotels/wuzhen-homestay/room_02.jpg', caption: '水岸陽台空間', category: 'room', location: '2層' },
+      { src: '/hotels/wuzhen-homestay/room_03.jpg', caption: '中式古典客房', category: 'room', location: '2層' },
+      { src: '/hotels/wuzhen-homestay/room_04.jpg', caption: '古鎮水鄉view', category: 'room', location: '公共區域' },
+      { src: '/hotels/wuzhen-homestay/room_05.jpg', caption: '臨水大床房（夜景）', category: 'room', location: '2層' },
+      { src: '/hotels/wuzhen-homestay/room_06.jpg', caption: '衛浴空間', category: 'facility', location: '全館' },
+      { src: '/hotels/wuzhen-homestay/room_07.jpg', caption: '民宿外觀與河道', category: 'public', location: '外觀' },
+    ] as Photo[],
+  },
 };
 
 type HotelKey = keyof typeof HOTELS;
