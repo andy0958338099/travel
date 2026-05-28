@@ -165,6 +165,9 @@ export default function TravelPage() {
             <Link href="/travel/room-tour" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
               🏨 Room Tour
             </Link>
+            <Link href="/travel/videos" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
+              🎬 影片分享牆
+            </Link>
           </div>
           <h1 className="text-3xl font-bold mb-2">🗺️ 江南水鄉八日之旅</h1>
           <p className="text-white/80">8天7夜 · 杭州 → 上海 → 西塘 → 烏鎮 → 杭州</p>
@@ -257,7 +260,7 @@ export default function TravelPage() {
           <span className="text-xs text-gray-400">資料管理：</span>
           <button
             onClick={() => {
-              const keys = ['hangzhou-trip-planner', 'hangzhou-trip-budget', 'hangzhou-trip-packing', 'hangzhou-trip-itinerary', 'hangzhou-trip-journal-narratives', 'hangzhou-trip-flight', 'hangzhou-trip-hotel'];
+              const keys = ['hangzhou-trip-planner', 'hangzhou-trip-budget', 'hangzhou-trip-packing', 'hangzhou-trip-itinerary', 'hangzhou-trip-journal-narratives', 'hangzhou-trip-flight', 'hangzhou-trip-hotel', 'travel-videos'];
               const data: Record<string, string> = {};
               for (const k of keys) {
                 const v = localStorage.getItem(k);
