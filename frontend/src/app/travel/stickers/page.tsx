@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   STICKER_STYLES,
@@ -9,6 +9,10 @@ import {
   saveTripMembers,
   loadGeneratedStickers,
   saveGeneratedStickers,
+  uploadMemberPhoto,
+  deleteMemberPhoto,
+  generateStickerImage,
+  TripMember,
   GeneratedSticker
 } from '@/utils/stickerService';
 
@@ -18,6 +22,7 @@ interface StickerJob {
   styleId: string;
   expression: string;
   prompt: string;
+  photoUrl?: string;
   status: 'pending' | 'generating' | 'done' | 'failed';
   imageUrl?: string;
   retryCount?: number;
@@ -27,7 +32,7 @@ type Tab = 'create' | 'preview' | 'members';
 
 export default function StickersPage() {
   const [tab, setTab] = useState<Tab>('create');
-  const [members, setMembers] = useState<string[]>([]);
+  const [members, setMembers] = useState<TripMember[]>([]);
   const [selectedMember, setSelectedMember] = useState<string>('');
   const [selectedStyle, setSelectedStyle] = useState<string>('cute');
   const [selectedExpressions, setSelectedExpressions] = useState<string[]>([]);
@@ -39,12 +44,15 @@ export default function StickersPage() {
   const [activeStyleTab, setActiveStyleTab] = useState<string>('basic');
   const [editingMember, setEditingMember] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [uploadingMember, setUploadingMember] = useState<string | null>(null);
+  const [uploadingPhotoIdx, setUploadingPhotoIdx] = useState<number | null>(null);
+  const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   // Load members and generated stickers on mount
   useEffect(() => {
     const loaded = loadTripMembers();
     setMembers(loaded);
-    if (loaded.length > 0) setSelectedMember(loaded[0]);
+    if (loaded.length > 0) setSelectedMember(loaded[0].name);
     setGeneratedStickers(loadGeneratedStickers());
   }, []);
 
@@ -53,7 +61,7 @@ export default function StickersPage() {
     saveGeneratedStickers(generatedStickers);
   }, [generatedStickers]);
 
-  // Expression set for selected style tab
+  const currentMember = members.find(m => m.name === selectedMember);
   const currentExpressionSet = EXPRESSION_SETS[activeStyleTab as keyof typeof EXPRESSION_SETS];
 
   const toggleExpression = (exp: string) => {
@@ -64,11 +72,10 @@ export default function StickersPage() {
 
   const selectAllExpressions = () => {
     const allExprs = currentExpressionSet?.expressions || [];
-    setSelectedExpressions(prev => [...new Set([...prev, ...allExprs])]);
+    setSelectedExpressions(prev => Array.from(new Set([...prev, ...allExprs])));
   };
 
   const clearExpressions = () => {
-    // Remove expressions from current tab only
     const allExprs = currentExpressionSet?.expressions || [];
     setSelectedExpressions(prev => prev.filter(e => !allExprs.includes(e)));
   };
@@ -76,12 +83,14 @@ export default function StickersPage() {
   const startGeneration = async () => {
     if (!selectedMember || selectedExpressions.length === 0) return;
 
+    const photoUrl = currentMember?.photo?.url;
     const newJobs: StickerJob[] = selectedExpressions.map((expression, i) => ({
       id: `job-${Date.now()}-${i}`,
       memberName: selectedMember,
       styleId: selectedStyle,
       expression,
       prompt: buildStickerPrompt(selectedMember, selectedStyle, expression),
+      photoUrl,
       status: 'pending' as const
     }));
 
@@ -100,7 +109,7 @@ export default function StickersPage() {
       setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'generating' as const } : j));
 
       try {
-        const imageUrl = await generateImage(job.prompt);
+        const imageUrl = await generateStickerImage(job.prompt, job.photoUrl);
         setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'done' as const, imageUrl } : j));
       } catch {
         const retry = (job.retryCount || 0) + 1;
@@ -163,8 +172,8 @@ export default function StickersPage() {
 
   const addMember = () => {
     const name = memberInput.trim();
-    if (!name || members.includes(name)) return;
-    const updated = [...members, name];
+    if (!name || members.some(m => m.name === name)) return;
+    const updated = [...members, { name }];
     setMembers(updated);
     saveTripMembers(updated);
     setMemberInput('');
@@ -172,10 +181,14 @@ export default function StickersPage() {
   };
 
   const removeMember = (name: string) => {
-    const updated = members.filter(m => m !== name);
+    const member = members.find(m => m.name === name);
+    if (member?.photo?.filename) {
+      deleteMemberPhoto(member.photo.filename).catch(console.warn);
+    }
+    const updated = members.filter(m => m.name !== name);
     setMembers(updated);
     saveTripMembers(updated);
-    if (selectedMember === name) setSelectedMember(updated[0] || '');
+    if (selectedMember === name) setSelectedMember(updated[0]?.name || '');
   };
 
   const startEditMember = (name: string) => {
@@ -185,16 +198,43 @@ export default function StickersPage() {
 
   const saveEditMember = () => {
     if (!editingMember || !editName.trim()) return;
-    if (members.includes(editName.trim()) && editName.trim() !== editingMember) {
+    if (members.some(m => m.name === editName.trim() && m.name !== editingMember)) {
       alert('成員名稱已存在');
       return;
     }
-    const updated = members.map(m => m === editingMember ? editName.trim() : m);
+    const updated = members.map(m => m.name === editingMember ? { ...m, name: editName.trim() } : m);
     setMembers(updated);
     saveTripMembers(updated);
     if (selectedMember === editingMember) setSelectedMember(editName.trim());
     setEditingMember(null);
     setEditName('');
+  };
+
+  const handlePhotoUpload = async (memberName: string, file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('請上傳圖片檔案');
+      return;
+    }
+    setUploadingPhotoIdx(members.findIndex(m => m.name === memberName));
+    try {
+      const photo = await uploadMemberPhoto(memberName, file);
+      const updated = members.map(m => m.name === memberName ? { ...m, photo } : m);
+      setMembers(updated);
+      saveTripMembers(updated);
+    } catch (err: unknown) {
+      alert(`上傳失敗：${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setUploadingPhotoIdx(null);
+    }
+  };
+
+  const handleDeletePhoto = async (memberName: string) => {
+    const member = members.find(m => m.name === memberName);
+    if (!member?.photo) return;
+    await deleteMemberPhoto(member.photo.filename);
+    const updated = members.map(m => m.name === memberName ? { ...m, photo: undefined } : m);
+    setMembers(updated);
+    saveTripMembers(updated);
   };
 
   const _retryFailed = () => {
@@ -234,6 +274,43 @@ export default function StickersPage() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         {tab === 'create' && (
           <div className="space-y-6">
+            {/* Member + Photo selector */}
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h2 className="text-lg font-bold mb-4">👤 選擇成員</h2>
+              <div className="flex gap-3 flex-wrap">
+                {members.map(m => (
+                  <button
+                    key={m.name}
+                    onClick={() => setSelectedMember(m.name)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl border-2 transition-all ${
+                      selectedMember === m.name
+                        ? 'border-pink-500 bg-pink-50'
+                        : 'border-gray-100 hover:border-pink-200'
+                    }`}
+                  >
+                    {m.photo ? (
+                      <img src={m.photo.url} alt={m.name} className="w-8 h-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm">👤</div>
+                    )}
+                    <span className="font-medium text-sm">{m.name}</span>
+                  </button>
+                ))}
+              </div>
+              {currentMember?.photo && (
+                <div className="mt-3 flex items-center gap-3">
+                  <img src={currentMember.photo.url} alt="reference" className="w-20 h-20 rounded-xl object-cover border" />
+                  <div>
+                    <p className="text-sm text-gray-500">參考照片（用於保持角色一致性）</p>
+                    <p className="text-xs text-gray-400">MiniMax 會以這张照片為基礎生成貼圖</p>
+                  </div>
+                </div>
+              )}
+              {currentMember && !currentMember.photo && (
+                <p className="mt-3 text-sm text-amber-500">⚠️ 建議上傳成員照片，这样生成的贴图会更像本人</p>
+              )}
+            </div>
+
             {/* Style selector */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <h2 className="text-lg font-bold mb-4">🎨 選擇風格</h2>
@@ -260,7 +337,6 @@ export default function StickersPage() {
                   <button onClick={clearExpressions} className="text-xs px-3 py-1 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200">清除</button>
                 </div>
               </div>
-              {/* Expression set tabs */}
               <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
                 {Object.values(EXPRESSION_SETS).map(set => (
                   <button
@@ -273,7 +349,6 @@ export default function StickersPage() {
                   </button>
                 ))}
               </div>
-              {/* Expression grid */}
               <div className="grid grid-cols-4 gap-2">
                 {currentExpressionSet?.expressions.map(exp => (
                   <button
@@ -345,7 +420,6 @@ export default function StickersPage() {
 
         {tab === 'preview' && (
           <div className="space-y-6">
-            {/* Filter */}
             <div className="flex gap-3 items-center bg-white rounded-2xl shadow-sm p-4">
               <select
                 value={selectedMember}
@@ -353,9 +427,7 @@ export default function StickersPage() {
                 className="flex-1 px-3 py-2 border rounded-lg text-sm"
               >
                 <option value="">全部成員</option>
-                {[...new Set(generatedStickers.map(s => s.memberName))].map(m => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
+                {members.map(m => <option key={m.name} value={m.name}>{m.name}</option>)}
               </select>
               <select
                 value={selectedStyle}
@@ -369,7 +441,6 @@ export default function StickersPage() {
               </select>
             </div>
 
-            {/* Count */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -377,46 +448,33 @@ export default function StickersPage() {
                   <p className="text-sm text-gray-500 mt-1">
                     共 {generatedStickers.length} 張
                     {selectedMember && ` · ${selectedMember}`}
-                    {selectedStyle && ` · ${STICKER_STYLES[selectedStyle as keyof typeof STICKER_STYLES]?.name}`}
                   </p>
                 </div>
-                {generatedStickers.length >= 40 && (
-                  <div className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full">符合 LINE 上架標準 ✓</div>
-                )}
               </div>
-            </div>
 
-            {/* Sticker grid */}
-            {generatedStickers.length === 0 ? (
-              <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-                <div className="text-5xl mb-4">🎨</div>
-                <h3 className="text-lg font-bold mb-2">還沒有生成任何貼圖</h3>
-                <p className="text-sm text-gray-500">去「創作」頁面選擇風格和表情，開始製作 LINE 貼圖</p>
-                <button onClick={() => setTab('create')} className="mt-4 px-6 py-2 bg-pink-500 text-white rounded-lg font-medium hover:bg-pink-600">開始創作</button>
-              </div>
-            ) : (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
-                <div className="grid grid-cols-6 gap-3">
-                  {generatedStickers.map(sticker => (
-                    <div key={sticker.id} className="relative group">
-                      <div className="aspect-square bg-gray-50 rounded-xl overflow-hidden border hover:border-pink-300 transition-colors">
-                        <img src={sticker.imageUrl} alt={sticker.expression} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="mt-1 text-center">
-                        <div className="text-xs font-medium truncate">{sticker.expression}</div>
-                        <div className="text-xs text-gray-400">{sticker.memberName}</div>
-                      </div>
-                      <button
-                        onClick={() => downloadSticker(sticker)}
-                        className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <span className="text-white text-sm">下載</span>
-                      </button>
-                    </div>
-                  ))}
+              {generatedStickers.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <div className="text-5xl mb-3">🎨</div>
+                  <p>還沒有生成的貼圖</p>
+                  <p className="text-sm">去創作頁面選擇表情開始生成吧！</p>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="grid grid-cols-8 gap-3 mt-4">
+                  {generatedStickers
+                    .filter(s => !selectedMember || s.memberName === selectedMember)
+                    .filter(s => !selectedStyle || s.styleId === selectedStyle)
+                    .map(sticker => (
+                      <div key={sticker.id} className="relative group aspect-square bg-gray-50 rounded-xl overflow-hidden cursor-pointer" onClick={() => downloadSticker(sticker)}>
+                        <img src={sticker.imageUrl} alt={sticker.expression} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+                          <span className="text-white opacity-0 group-hover:opacity-100 text-xs font-medium">下載</span>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs text-center py-0.5 truncate">{sticker.expression}</div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -432,64 +490,94 @@ export default function StickersPage() {
                   onChange={e => setMemberInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && addMember()}
                   placeholder="輸入成員名稱"
-                  className="flex-1 px-4 py-2 border rounded-lg"
+                  className="flex-1 px-4 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-300"
                 />
-                <button onClick={addMember} className="px-6 py-2 bg-pink-500 text-white rounded-lg font-medium hover:bg-pink-600">新增</button>
+                <button onClick={addMember} className="px-6 py-2 bg-pink-500 text-white rounded-xl text-sm font-medium hover:bg-pink-600">
+                  新增
+                </button>
               </div>
-              <p className="text-xs text-gray-400 mt-2">成員名稱將作為 AI 貼圖的角色名稱</p>
             </div>
 
             {/* Member list */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
               <h2 className="text-lg font-bold mb-4">成員列表（{members.length} 人）</h2>
-              <div className="space-y-2">
-                {members.map(name => (
-                  <div key={name} className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center text-white font-bold text-lg">
-                      {name[0]}
-                    </div>
-                    {editingMember === name ? (
-                      <div className="flex-1 flex gap-2">
-                        <input
-                          value={editName}
-                          onChange={e => setEditName(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && saveEditMember()}
-                          className="flex-1 px-3 py-1 border rounded-lg"
-                          autoFocus
-                        />
-                        <button onClick={saveEditMember} className="px-3 py-1 bg-green-500 text-white rounded-lg text-sm">儲存</button>
-                        <button onClick={() => setEditingMember(null)} className="px-3 py-1 bg-gray-200 rounded-lg text-sm">取消</button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex-1">
-                          <div className="font-medium">{name}</div>
-                          <div className="text-xs text-gray-400">
-                            {generatedStickers.filter(s => s.memberName === name).length} 張貼圖
-                          </div>
+              <div className="space-y-4">
+                {members.map((member, idx) => (
+                  <div key={member.name} className="flex items-center gap-4 p-4 border rounded-xl">
+                    {/* Photo */}
+                    <div className="flex-shrink-0">
+                      {member.photo ? (
+                        <div className="relative">
+                          <img src={member.photo.url} alt={member.name} className="w-16 h-16 rounded-xl object-cover" />
+                          <button
+                            onClick={() => handleDeletePhoto(member.name)}
+                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                            title="刪除照片"
+                          >
+                            ✕
+                          </button>
                         </div>
-                        <button onClick={() => startEditMember(name)} className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700">編輯</button>
-                        <button onClick={() => removeMember(name)} className="px-3 py-1 text-sm text-red-400 hover:text-red-600">刪除</button>
-                      </>
-                    )}
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center text-2xl">👤</div>
+                      )}
+                    </div>
+
+                    {/* Name */}
+                    <div className="flex-1">
+                      {editingMember === member.name ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={e => setEditName(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && saveEditMember()}
+                            className="px-3 py-1 border rounded-lg text-sm"
+                            autoFocus
+                          />
+                          <button onClick={saveEditMember} className="px-3 py-1 bg-pink-500 text-white rounded-lg text-xs">儲存</button>
+                          <button onClick={() => setEditingMember(null)} className="px-3 py-1 bg-gray-200 rounded-lg text-xs">取消</button>
+                        </div>
+                      ) : (
+                        <p className="font-bold text-lg">{member.name}</p>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        ref={el => { fileInputRefs.current[member.name] = el; }}
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (file) handlePhotoUpload(member.name, file);
+                          e.target.value = '';
+                        }}
+                        className="hidden"
+                      />
+                      <button
+                        onClick={() => fileInputRefs.current[member.name]?.click()}
+                        disabled={uploadingPhotoIdx === idx}
+                        className="px-4 py-2 bg-pink-100 text-pink-600 rounded-lg text-xs font-medium hover:bg-pink-200 disabled:opacity-50"
+                      >
+                        {uploadingPhotoIdx === idx ? '上傳中...' : (member.photo ? '更換照片' : '上傳照片')}
+                      </button>
+                      <button onClick={() => startEditMember(member.name)} className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-200">編輯</button>
+                      <button onClick={() => removeMember(member.name)} className="px-4 py-2 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100">刪除</button>
+                    </div>
                   </div>
                 ))}
               </div>
-              {members.length === 0 && (
-                <div className="text-center py-8 text-gray-400">尚無成員，請新增</div>
-              )}
             </div>
 
-            {/* Info */}
-            <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl shadow-sm p-6">
-              <h2 className="text-lg font-bold mb-3">💡 LINE 貼圖小知識</h2>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>• LINE 貼圖最少需 <strong>40 張</strong> 才能上架</li>
-                <li>• 建議生成 40-160 張（一組）</li>
-                <li>• 所有貼圖需為同一角色（同一成員）</li>
-                <li>• 風格需統一（如：全部可愛風）</li>
-                <li>• 圖片尺寸：370×320 px，背景透明</li>
-                <li>• 生成完成後可下載並透過 LINE Creators Market 上架</li>
+            {/* Tips */}
+            <div className="bg-blue-50 rounded-2xl p-6">
+              <h3 className="font-bold text-blue-800 mb-2">💡 LINE 貼圖小知識</h3>
+              <ul className="text-sm text-blue-700 space-y-1">
+                <li>• LINE 貼圖最少需要 40 張，建议一次做一套（8 種表情 × 8 種風格 = 64 張）</li>
+                <li>• 上傳成員照片可以大幅提升角色一致性，生成更像本人的貼圖</li>
+                <li>• 建議選擇「可愛風」或「動漫風」，人物會更一致、更可爱</li>
+                <li>• 生成完成後可在預覽頁面下載，再透過 LINE Creator Market 上架</li>
               </ul>
             </div>
           </div>
@@ -499,36 +587,7 @@ export default function StickersPage() {
   );
 }
 
-async function generateImage(prompt: string): Promise<string> {
-  const apiKey = process.env.NEXT_PUBLIC_MINIMAX_API_KEY;
-  const groupId = process.env.NEXT_PUBLIC_MINIMAX_GROUP_ID;
-
-  if (!apiKey || !groupId) {
-    throw new Error('Missing API key');
-  }
-
-  const response = await fetch(`https://api.minimax.io/v1/image_generation?GroupId=${encodeURIComponent(groupId)}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'stable-diffusion',
-      prompt,
-      aspect_ratio: '1:1',
-      num_images: 1
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`API error: ${response.status} - ${error}`);
-  }
-
-  const data = await response.json();
-  if (!data.images || !data.images[0]?.url) {
-    throw new Error('No image URL in response');
-  }
-  return data.images[0].url;
+// Polyfill Array.from for Set spread (ES2017 target handles this, but keep for safety)
+function arrayFromSet<T>(set: Set<T>): T[] {
+  return Array.from(set);
 }

@@ -1,7 +1,10 @@
 /**
  * Sticker Service for Travel LINE Sticker Generator
  * 移植自貼圖大亨 sticker-styles.js，適配 MiniMax 圖片生成
+ * 成員照片上傳至 Supabase Storage（bucket: member-photos）
  */
+
+import { createClient } from '@/utils/supabase/client';
 
 export const STICKER_STYLES = {
   realistic: {
@@ -136,29 +139,133 @@ export function buildStickerPrompt(characterName: string, styleId: string, expre
   return `${characterBase}, ${expressionDesc}, transparent background PNG format, centered, no text or watermark`;
 }
 
-export function calculateStickerCount(memberCount: number, styleCount: number, expressionsPerStyle: number): number {
-  return memberCount * styleCount * expressionsPerStyle;
+// ── Member types ────────────────────────────────────────────────────────────────
+
+export interface MemberPhoto {
+  url: string;       // Supabase Storage public URL
+  filename: string;  // stored filename in bucket
 }
 
-export function loadTripMembers(): string[] {
+export interface TripMember {
+  name: string;
+  photo?: MemberPhoto;
+}
+
+// ── Member persistence (localStorage + Supabase Storage) ───────────────────────
+
+const LS_MEMBERS = 'hangzhou-trip-members';
+
+export function loadTripMembers(): TripMember[] {
   try {
-    const data = localStorage.getItem('hangzhou-trip-members');
-    if (data) {
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed.map((m: { name?: string; nickname?: string }) => m.name || m.nickname || '成員');
-      }
-      if (Array.isArray(parsed) && typeof parsed[0] === 'string') {
-        return parsed as string[];
-      }
+    const raw = localStorage.getItem(LS_MEMBERS);
+    if (!raw) return defaultMembers();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      // Support both old string[] and new TripMember[]
+      return parsed.map((m: string | TripMember) =>
+        typeof m === 'string' ? { name: m } : m
+      );
     }
   } catch {}
-  return ['小明', '小美', '小華', '阿呆', '阿瓜', '小琳', '阿強'];
+  return defaultMembers();
 }
 
-export function saveTripMembers(members: string[]): void {
-  localStorage.setItem('hangzhou-trip-members', JSON.stringify(members));
+function defaultMembers(): TripMember[] {
+  return [
+    { name: '小明' }, { name: '小美' }, { name: '小華' },
+    { name: '阿呆' }, { name: '阿瓜' }, { name: '小琳' }, { name: '阿強' }
+  ];
 }
+
+export function saveTripMembers(members: TripMember[]): void {
+  localStorage.setItem(LS_MEMBERS, JSON.stringify(members));
+}
+
+// ── Supabase Storage ────────────────────────────────────────────────────────────
+
+const BUCKET = 'member-photos';
+const supabase = createClient();
+
+export async function uploadMemberPhoto(memberName: string, file: File): Promise<MemberPhoto> {
+  const ext = file.name.split('.').pop() || 'jpg';
+  const safeName = memberName.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+  const filename = `${safeName}_${Date.now()}.${ext}`;
+
+  const { data: _uploadData, error } = await supabase.storage
+    .from(BUCKET)
+    .upload(filename, file, { contentType: file.type, upsert: true });
+
+  if (error) throw new Error(`上傳失敗：${error.message}`);
+
+  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(filename);
+  return { url: urlData.publicUrl, filename };
+}
+
+export async function deleteMemberPhoto(filename: string): Promise<void> {
+  const { error } = await supabase.storage.from(BUCKET).remove([filename]);
+  if (error) console.warn('刪除照片失敗:', error.message);
+}
+
+// ── Sticker image generation with reference photo ─────────────────────────────
+
+export async function generateStickerImage(
+  prompt: string,
+  referencePhotoUrl?: string
+): Promise<string> {
+  const apiKey = process.env.NEXT_PUBLIC_MINIMAX_API_KEY;
+  if (!apiKey) throw new Error('缺少 MiniMax API Key');
+
+  // Build request — MiniMax image-01 supports reference image via base64
+  const body: Record<string, unknown> = {
+    model: 'image-01',
+    prompt,
+    aspect_ratio: '1:1',
+    num_images: 1
+  };
+
+  // If we have a reference photo URL, fetch it and convert to base64
+  if (referencePhotoUrl) {
+    try {
+      const res = await fetch(referencePhotoUrl);
+      const blob = await res.blob();
+      const base64 = await blobToBase64(blob);
+      body.image_base64 = base64;
+    } catch {
+      // Proceed without reference photo
+    }
+  }
+
+  const response = await fetch('https://api.minimax.io/v1/image_generation', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`MiniMax error ${response.status}: ${err}`);
+  }
+
+  const data = await response.json();
+  // image-01 returns base64 directly in data.data[0].image_base64
+  const base64 = data.data?.image_base64?.[0];
+  if (!base64) throw new Error('生成失敗：無圖片資料');
+  return `data:image/png;base64,${base64}`;
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// ── Generated stickers (localStorage) ────────────────────────────────────────
 
 export interface GeneratedSticker {
   id: string;
@@ -169,35 +276,16 @@ export interface GeneratedSticker {
   createdAt: number;
 }
 
+const LS_STICKERS = 'hangzhou-trip-stickers';
+
 export function loadGeneratedStickers(): GeneratedSticker[] {
   try {
-    const data = localStorage.getItem('hangzhou-trip-stickers');
-    if (data) return JSON.parse(data);
+    const raw = localStorage.getItem(LS_STICKERS);
+    if (raw) return JSON.parse(raw);
   } catch {}
   return [];
 }
 
 export function saveGeneratedStickers(stickers: GeneratedSticker[]): void {
-  localStorage.setItem('hangzhou-trip-stickers', JSON.stringify(stickers));
-}
-
-export async function generateStickerImage(prompt: string): Promise<string> {
-  const apiKey = process.env.NEXT_PUBLIC_MINIMAX_API_KEY || '';
-  const groupId = process.env.NEXT_PUBLIC_MINIMAX_GROUP_ID || '';
-  const response = await fetch(`https://api.minimax.io/v1/image_generation?GroupId=${encodeURIComponent(groupId)}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'stable-diffusion',
-      prompt,
-      aspect_ratio: '1:1',
-      num_images: 1
-    })
-  });
-  if (!response.ok) throw new Error(`MiniMax API error: ${response.status}`);
-  const data = await response.json();
-  return data.images?.[0]?.url || '';
+  localStorage.setItem(LS_STICKERS, JSON.stringify(stickers));
 }
