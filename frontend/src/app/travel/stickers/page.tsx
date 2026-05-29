@@ -4,7 +4,6 @@ import Link from 'next/link';
 import {
   STICKER_STYLES,
   EXPRESSION_SETS,
-  EXPRESSION_DESCRIPTIONS,
   buildStickerPrompt,
   loadTripMembers,
   saveTripMembers,
@@ -198,17 +197,14 @@ export default function StickersPage() {
     setEditName('');
   };
 
-  const retryFailed = () => {
+  const _retryFailed = () => {
     const failed = jobs.filter(j => j.status === 'failed');
     if (failed.length === 0) return;
     setIsGenerating(true);
     processQueue(failed.map(j => ({ ...j, retryCount: 0 })));
   };
 
-  const styleCount = Object.keys(STICKER_STYLES).length;
   const expressionCount = selectedExpressions.length;
-  const estimatedTotal = expressionCount;
-  const canGenerate = selectedMember && expressionCount >= 40;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-rose-50">

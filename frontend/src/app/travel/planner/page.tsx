@@ -9,10 +9,7 @@ import {
   syncActivities,
   loadMembers,
   syncMembers,
-  loadCostTarget,
   syncCostTarget,
-  PRESET_ACTIVITIES,
-  PRESET_MEMBERS,
 } from '@/utils/plannerService';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -68,7 +65,7 @@ const DAYS = [
   { label: 'Day 8', date: '7/24' },
 ];
 
-const PRESET_PLANNER_ACTIVITIES: Activity[] = [
+const _PRESET_PLANNER_ACTIVITIES: Activity[] = [
   { id: 'act-1',  title: '外灘夜景',       day: 1, startHour: 17, duration: 3, color: 'bg-blue-400',   cost: 0 },
   { id: 'act-2',  title: '南京東路步行街',  day: 1, startHour: 20, duration: 2, color: 'bg-orange-400',  cost: 0 },
   { id: 'act-3',  title: '海底撈火鍋',     day: 1, startHour: 22, duration: 2, color: 'bg-red-400',    cost: 500 },

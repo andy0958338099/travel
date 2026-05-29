@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import html2canvas from "html2canvas";
 
 // ── Storage ───────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ const PERIOD_CONFIG: Record<Period, { icon: string; color: string; label: string
 // ── Card dimensions (story mode = IG portrait) ──────────────────────────────
 const CARD_W = 540;
 const CARD_H = 960;
-const HEADER_H = 80;
+const _HEADER_H = 80;
 
 // ── Day meta ───────────────────────────────────────────────────────────────
 const DAY_META: Record<number, DayData> = {

@@ -56,7 +56,7 @@ const VISUAL_STYLES = [
   { value: "Gothic dark fantasy", label: "哥德式暗黑奇幻" },
 ];
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const _API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function MVConceptModal({ songId, songTitle, onClose }: MVConceptModalProps) {
   const [mvConcept, setMVConcept] = useState<MVConcept | null>(null);
@@ -75,7 +75,7 @@ export default function MVConceptModal({ songId, songTitle, onClose }: MVConcept
   useEffect(() => {
     loadMVConcept();
     loadReferenceImages();
-  }, [songId]);
+  }, [songId, loadMVConcept]);
 
   useEffect(() => {
     // Load reference images when switching to references tab

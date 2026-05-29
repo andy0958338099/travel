@@ -88,7 +88,7 @@ function getSupabase() {
 }
 
 // Returns true only if the Supabase table is reachable (tables exist)
-async function isSupabaseAvailable(): Promise<boolean> {
+async function _isSupabaseAvailable(): Promise<boolean> {
   try {
     const supabase = getSupabase();
     const { error } = await supabase
