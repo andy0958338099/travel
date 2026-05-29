@@ -73,11 +73,6 @@ export default function MVConceptModal({ songId, songTitle, onClose }: MVConcept
   const [droppedPath, setDroppedPath] = useState<string | null>(null);
 
   useEffect(() => {
-    loadMVConcept();
-    loadReferenceImages();
-  }, [songId, loadMVConcept]);
-
-  useEffect(() => {
     // Load reference images when switching to references tab
     if (activeTab === "references") {
       loadReferenceImages();
@@ -112,6 +107,10 @@ export default function MVConceptModal({ songId, songTitle, onClose }: MVConcept
       console.error("Failed to load reference images:", error);
     }
   };
+
+  useEffect(() => {
+    loadMVConcept();
+  }, [songId]);
 
   const handleGenerate = async () => {
     setGenerating(true);
