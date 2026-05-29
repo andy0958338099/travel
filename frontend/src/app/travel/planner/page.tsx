@@ -775,11 +775,12 @@ function ActivityBlock({
   const [showTooltip, setShowTooltip] = useState(false);
 
   // 從 activity.tickets 計算已購買/未購買
-  const purchasedBy = activity.tickets
-    ? members.filter(m => activity.tickets!.some(t => t.purchasedBy.includes(m.id)))
+  const ticketArray = Array.isArray(activity.tickets) ? activity.tickets : [];
+  const purchasedBy = ticketArray.length > 0
+    ? members.filter(m => ticketArray.some((t: TicketType) => t.purchasedBy.includes(m.id)))
     : [];
-  const notPurchased = members.filter(m => !purchasedBy.some(p => p.id === m.id));
-  const hasTickets = activity.tickets && activity.tickets.length > 0;
+  const notPurchased = members.filter(m => !purchasedBy.some((p: Member) => p.id === m.id));
+  const hasTickets = ticketArray.length > 0;
 
   return (
     <div
@@ -884,7 +885,7 @@ function ActivityEditor({
   const [color, setColor] = useState(activity.color);
   const [cost, setCost] = useState(activity.cost ?? 0);
   const [costType, setCostType] = useState(activity.costType || 'ticket');
-  const [tickets, setTickets] = useState<TicketType[]>(activity.tickets ?? []);
+  const [tickets, setTickets] = useState<TicketType[]>(Array.isArray(activity.tickets) ? activity.tickets : activity.tickets ? JSON.parse(activity.tickets as unknown as string) : []);
 
   const handleSave = () => {
     onUpdate(activity.id, { title, notes, duration, color, cost, costType, tickets });
