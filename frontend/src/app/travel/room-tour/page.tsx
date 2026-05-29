@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 
 const CATEGORIES = [
@@ -217,55 +217,33 @@ wuzhenHomestay: {
 
 type HotelKey = keyof typeof HOTELS;
 
-// ─── Per-hotel photo state (localStorage-backed) ───────────────────────────────
+// ─── Per-hotel photo state — always uses hardcoded defaults for consistency ─────
+// All users see the same photos; edit mode is view-only (no localStorage override)
 function useHotelPhotos(hotelKey: HotelKey) {
   const defaultPhotos = HOTELS[hotelKey as HotelKey].photos;
-  const storageKey = `room-tour-photos-${hotelKey}`;
 
-  const [photos, setPhotos] = useState<Photo[]>(defaultPhotos);
-  const [modified, setModified] = useState(false);
+  // Always return defaults — no localStorage override
+  const photos = defaultPhotos;
+  const modified = false;
 
-  // Re-read localStorage whenever hotelKey changes (i.e., user switched hotels)
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      setPhotos(saved ? JSON.parse(saved) : defaultPhotos);
-    } catch {
-      setPhotos(defaultPhotos);
-    }
-    setModified(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hotelKey]);
-
-  const save = (next: Photo[]) => {
-    setPhotos(next);
-    setModified(true);
-    localStorage.setItem(storageKey, JSON.stringify(next));
+  const save = (_next: Photo[]) => {
+    // View-only: discard edits to keep all users in sync
   };
 
-  const deletePhoto = (idx: number) => {
-    const next = photos.filter((_, i) => i !== idx);
-    save(next);
+  const deletePhoto = (_idx: number) => {
+    // View-only: discard deletes to keep all users in sync
   };
 
-  const moveLeft = (idx: number) => {
-    if (idx === 0) return;
-    const next = [...photos];
-    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-    save(next);
+  const moveLeft = (_idx: number) => {
+    // View-only
   };
 
-  const moveRight = (idx: number) => {
-    if (idx === photos.length - 1) return;
-    const next = [...photos];
-    [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
-    save(next);
+  const moveRight = (_idx: number) => {
+    // View-only
   };
 
   const reset = () => {
-    setPhotos(defaultPhotos);
-    setModified(false);
-    localStorage.removeItem(storageKey);
+    // Already at defaults
   };
 
   return { photos, modified, deletePhoto, moveLeft, moveRight, reset };
@@ -403,8 +381,8 @@ export default function RoomTourPage() {
 
               {/* Hover caption (view mode) */}
               {!editMode && (
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end">
-                  <div className="p-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-end pointer-events-none">
+                  <div className="p-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto">
                     {photo.caption}
                   </div>
                 </div>

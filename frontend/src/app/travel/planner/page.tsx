@@ -4,6 +4,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import {
+  loadActivities,
+  syncActivities,
+  loadMembers,
+  syncMembers,
+  loadCostTarget,
+  syncCostTarget,
+  PRESET_ACTIVITIES,
+  PRESET_MEMBERS,
+} from '@/utils/plannerService';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 // 票種（每個活動可以有多個票種，如全票/早鳥票/優惠票）
@@ -23,7 +33,7 @@ interface Activity {
   color: string;
   notes?: string;
   cost?: number;     // 每人花費 (TWD) — 預設參考（第一個票種價格）
-  costType?: 'ticket' | 'food' | 'transport' | 'accommodation' | 'flight'; // 費用類型，影響上方分類統計
+  costType?: 'ticket' | 'food' | 'transport' | 'accommodation' | 'flight' | 'spot' | 'shopping'; // 費用類型，影響上方分類統計
   tickets?: TicketType[]; // 該活動的票種與購買狀態
 }
 
@@ -94,16 +104,7 @@ const COST_STORAGE_KEY = 'hangzhou-trip-costs';
 const MEMBER_STORAGE_KEY = 'hangzhou-trip-members';
 const TICKET_STORAGE_KEY = 'hangzhou-trip-tickets';
 
-// 預設成員名單
-const PRESET_MEMBERS: Member[] = [
-  { id: 'm1', name: '阿國',   color: 'bg-blue-500'   },
-  { id: 'm2', name: '小珍',   color: 'bg-pink-500'   },
-  { id: 'm3', name: '大雄',   color: 'bg-green-500'  },
-  { id: 'm4', name: '阿美',   color: 'bg-yellow-500' },
-  { id: 'm5', name: '老王',   color: 'bg-purple-500' },
-  { id: 'm6', name: '小李',   color: 'bg-red-500'    },
-  { id: 'm7', name: '阿婷',   color: 'bg-teal-500'   },
-];
+// 預設成員名單（已移至 @/utils/plannerService 中的 PRESET_MEMBERS）
 
 // Day number → display title for sync
 const DAY_TITLES: Record<number, string> = {
@@ -230,18 +231,11 @@ export default function PlannerPage() {
   // 成員管理 Modal
   const [showMemberManager, setShowMemberManager] = useState(false);
 
-  // Load members from localStorage
+  // Load members from Supabase (falls back to preset if unavailable)
   useEffect(() => {
-    const saved = localStorage.getItem(MEMBER_STORAGE_KEY);
-    if (saved) {
-      try {
-        setMembers(JSON.parse(saved));
-      } catch {
-        setMembers(PRESET_MEMBERS);
-      }
-    } else {
-      setMembers(PRESET_MEMBERS);
-    }
+    loadMembers().then(data => {
+      setMembers(data);
+    });
   }, []);
 
   // Load ticket assignments from localStorage
@@ -254,9 +248,10 @@ export default function PlannerPage() {
     }
   }, []);
 
-  // Sync members to localStorage
+  // Sync members to Supabase + localStorage
   useEffect(() => {
     if (members.length > 0) {
+      syncMembers(members);
       localStorage.setItem(MEMBER_STORAGE_KEY, JSON.stringify(members));
     }
   }, [members]);
@@ -268,38 +263,9 @@ export default function PlannerPage() {
     }
   }, [ticketAssignments]);
 
-  // 成員人數從 COST_STORAGE_KEY 讀取初始值（用於初始化 members 數量）
-  // 這個 useEffect 只在第一次執行，之後 members.length 就是人數來源
-  const [membersLoaded, setMembersLoaded] = useState(false);
-  useEffect(() => {
-    const saved = localStorage.getItem(COST_STORAGE_KEY);
-    let targetCount = 7;
-    if (saved) {
-      const n = parseInt(saved);
-      if (!isNaN(n) && n >= 1) targetCount = n;
-    }
-    // 根據 targetCount 生成成員名單
-    const colors = ['bg-blue-500','bg-pink-500','bg-green-500','bg-yellow-500','bg-purple-500','bg-red-500','bg-teal-500','bg-orange-500','bg-indigo-500'];
-    const loadedMembers: Member[] = [];
-    for (let i = 1; i <= targetCount; i++) {
-      if (i <= PRESET_MEMBERS.length) {
-        loadedMembers.push({ ...PRESET_MEMBERS[i - 1] });
-      } else {
-        loadedMembers.push({ id: `m${i}`, name: `成員${i}`, color: colors[(i-1) % colors.length] });
-      }
-    }
-    const savedMembers = localStorage.getItem(MEMBER_STORAGE_KEY);
-    if (savedMembers) {
-      try {
-        setMembers(JSON.parse(savedMembers));
-      } catch {
-        setMembers(loadedMembers);
-      }
-    } else {
-      setMembers(loadedMembers);
-    }
-    setMembersLoaded(true);
-  }, []);
+  // ⚠️ Old localStorage-based member count loading — removed.
+  // Member data now comes from Supabase (via loadMembers above).
+  // COST_STORAGE_KEY is kept only for personCount budget UI, not for member list.
 
   // 增減成員名單（根據 COST_STORAGE_KEY 中的人數來擴充或縮減）
   const handlePersonCountChange = (n: number) => {
@@ -326,6 +292,7 @@ export default function PlannerPage() {
       });
     }
     localStorage.setItem(COST_STORAGE_KEY, String(target));
+    syncCostTarget(target);
   };
 
   const pushHistory = useCallback((current: Activity[]) => {
@@ -353,28 +320,19 @@ export default function PlannerPage() {
     return () => window.removeEventListener('keydown', handler);
   }, [undo]);
 
+  // Load activities from Supabase (falls back to preset if unavailable)
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // 確保有 cost 欄位
-        const withCosts = parsed.map((a: Activity) => ({
-          ...a,
-          cost: a.cost ?? 0,
-          costType: a.costType ?? 'ticket',
-        }));
-        setActivities(withCosts);
-      } catch {
-        setActivities(PRESET_PLANNER_ACTIVITIES);
-      }
-    } else {
-      setActivities(PRESET_PLANNER_ACTIVITIES);
-    }
+    loadActivities().then(data => {
+      setActivities(data);
+    });
   }, []);
 
+  // Sync activities to Supabase + localStorage (supabase on every change, localStorage as backup)
   useEffect(() => {
     if (activities.length > 0) {
+      // Sync to Supabase (async, non-blocking)
+      syncActivities(activities);
+      // Also write localStorage as fallback
       localStorage.setItem(STORAGE_KEY, JSON.stringify(activities));
       // Sync to main page's ItineraryPlanner format
       const plannedDays: { day: string; title: string; description: string; attractions: string[] }[] = [];
