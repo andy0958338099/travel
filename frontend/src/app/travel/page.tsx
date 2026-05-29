@@ -168,6 +168,9 @@ export default function TravelPage() {
             <Link href="/travel/videos" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
               🎬 影片分享牆
             </Link>
+            <Link href="/travel/stickers" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
+              🎨 LINE 貼圖
+            </Link>
           </div>
           <h1 className="text-3xl font-bold mb-2">🗺️ 江南水鄉八日之旅</h1>
           <p className="text-white/80">8天7夜 · 杭州 → 上海 → 西塘 → 烏鎮 → 杭州</p>
