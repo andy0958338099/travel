@@ -126,7 +126,15 @@ export async function loadActivities(): Promise<Activity[]> {
       cost: row.cost ?? 0,
       costType: row.cost_type ?? 'ticket',
       notes: row.notes ?? undefined,
-      tickets: row.tickets ?? [],
+      // Supabase JSON columns return string literals; parse if string
+      tickets: (() => {
+        const v = row.tickets;
+        if (!v) return [];
+        if (typeof v === 'string') {
+          try { return JSON.parse(v); } catch { return []; }
+        }
+        return v as TicketType[];
+      })(),
     }));
   } catch {
     return PRESET_ACTIVITIES;
