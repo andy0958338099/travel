@@ -61,7 +61,7 @@ export const PRESET_ACTIVITIES: Activity[] = [
   { id: 'act-20', title: '河坊街',           day: 5, startHour: 21, duration: 1, color: 'bg-orange-400', cost: 300, costType: 'shopping' },
   { id: 'act-21', title: '游埠豆漿',         day: 6, startHour: 6,  duration: 1, color: 'bg-yellow-400', cost: 60, costType: 'food' },
   { id: 'act-22', title: '宋城千古情',       day: 6, startHour: 10, duration: 5, color: 'bg-purple-400', cost: 1600, costType: 'ticket' },
-  { id: 'act-23', title: '馬驚興餐廳',       day: 6, startHour: 17, duration: 2, color: 'bg-orange-400', cost: 200, costType: 'food' },
+  { id: 'act-23', title: '馬鴻興川小館',  day: 6, startHour: 18, duration: 2, color: 'bg-orange-400', cost: 200, costType: 'food' },
   { id: 'act-24', title: '大馬弄',           day: 7, startHour: 6,  duration: 2, color: 'bg-yellow-400', cost: 80,  costType: 'food' },
   { id: 'act-25', title: '京杭大運河遊船',   day: 7, startHour: 10, duration: 3, color: 'bg-cyan-400',  cost: 267, costType: 'ticket' },
   { id: 'act-26', title: '宮宴',             day: 7, startHour: 18, duration: 3, color: 'bg-red-400',   cost: 2500, costType: 'food' },

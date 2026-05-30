@@ -162,14 +162,14 @@ const DEFAULT_SONGS: Record<number, SongData> = {
   6: {
     title: "宋城千古一場夢",
     mood: "🎭 大型史詩 · 實景秀",
-    description: "宋城千古情，大型實景歷史秀。用現代科技重現大宋王朝的繁華勝景，張藝謀風格的視覺震撼，配上馬鴻興餐廳的地道杭州味。",
+    description: "宋城千古情，大型實景歷史秀。用現代科技重現大宋王朝的繁華勝景，張藝謀風格的視覺震撼，配上馬鴻興川小館的正宗川辣味。",
     lyrics: [
       "🥣 清晨的杭州白粥，配上小籠包最對味",
       "☕ 慢步走過南山路，梧桐樹葉在頭頂交錯",
       "🎭 宋城的城門緩緩打開，時光倒流一千年",
       "千古情的大幕拉開，燈光秀震撼全場",
       "🏮 實景秀的演員陣容浩大，戰馬奔騰火焰沖天",
-      "🍜 馬鴻興餐廳的東坡肉，入口即化",
+      "🍜 馬鴻興川小館的水煮魚，辣得過癮",
       "🌃 杭州大酒店的窗外，西湖的夜色靜靜流淌",
     ],
     imagePrompt: "Song Cheng theme park grand historical show, Song Dynasty epic performance with thousands of performers, traditional Chinese costumes and pyrotechnics, ancient capital Kaifeng re-enactment, dramatic stage lighting, red and gold color scheme, no text, cinematic grandeur style",
@@ -254,7 +254,7 @@ const DEFAULT_ITINERARY: ItineraryEvent[] = [
   { day:6, period:"morning",   title:"早餐",                category:"food" },
   { day:6, period:"morning",   title:"杭州慢步調",           category:"spot" },
   { day:6, period:"afternoon", title:"宋城千古情",           category:"spot",     location:"大型歷史實景秀 · 杭州代表演出" },
-  { day:6, period:"night",     title:"馬鴻興餐廳",           category:"food",     location:"杭州" },
+  { day:6, period:"night",     title:"馬鴻興川小館",       category:"food",     location:"杭州" },
   { day:6, period:"night",     title:"杭州大酒店",           category:"hotel" },
 
   { day:7, period:"morning",   title:"大馬弄早餐",           category:"food" },
