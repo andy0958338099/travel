@@ -1,10 +1,18 @@
 /**
  * Sticker Service for Travel LINE Sticker Generator
  * 移植自貼圖大亨 sticker-styles.js，適配 MiniMax 圖片生成
- * 成員照片上傳至 Supabase Storage（bucket: member-photos）
+ * 成員資料：讀寫統一走 plannerService（Supabase），所有頁面一致
+ * 照片上傳：Supabase Storage（bucket: member-photos）
+ * LINE 貼圖尺寸：生成 1024x1024 + 白邊過渡（canvas 後處理）
  */
 
 import { createClient } from '@/utils/supabase/client';
+
+// ── Supabase client ───────────────────────────────────────────────────────────
+
+const supabase = createClient();
+
+// ── STICKER_STYLES ────────────────────────────────────────────────────────────
 
 export const STICKER_STYLES = {
   realistic: {
@@ -57,6 +65,8 @@ export const STICKER_STYLES = {
   }
 };
 
+// ── EXPRESSION_SETS ──────────────────────────────────────────────────────────
+
 export const EXPRESSION_SETS = {
   basic: { id: 'basic', name: '基本日常', emoji: '😊', expressions: ['早安', 'Hi', 'OK', '讚讚', '加油', '謝謝', '晚安', '掰掰'] },
   cute: { id: 'cute', name: '可愛撒嬌', emoji: '🥺', expressions: ['撒嬌', '害羞', '噓', '啾啾', '抱抱', '好可愛', '愛你', '比心'] },
@@ -88,49 +98,51 @@ export const EXPRESSION_DESCRIPTIONS: Record<string, string> = {
   '開心': 'arms raised in celebration, jumping pose, radiating joy expression',
   '大笑': 'holding stomach laughing, tears of joy, body shaking with laughter',
   '哭哭': 'covering face with hands, tears streaming down, sobbing pose',
-  '生氣': 'stomping foot, clenched fists, angry red face, steam from ears',
-  '驚訝': 'hands on cheeks, wide open mouth, shocked jump back pose',
-  '傻眼': 'rolling eyes up, exasperated expression, done with it pose',
-  '緊張': 'fidgeting hands, nervous expression, anxious pose',
-  '期待': 'sparkling eyes, excited expression, anticipation pose',
-  '你好': 'friendly wave, warm smile, welcoming gesture',
-  '對不起': 'apologetic deep bow, regretful puppy eyes, hands pressed together',
-  '沒關係': 'gentle wave off, understanding smile, forgiving pose',
-  '再見': 'waving goodbye, bittersweet smile, farewell hand gesture',
-  '好久不見': 'excited wave, surprised happy expression, reunion pose',
-  '好喔': 'casual thumbs up, relaxed smile, agreeable pose',
-  '加班中': 'exhausted at desk, coffee cup, late night working expression',
-  '下班': 'stretching arms, relieved smile, freedom pose',
-  '喝咖啡': 'holding coffee cup, satisfied sip, relaxed pose',
-  '開會中': 'serious expression, holding documents, professional pose',
-  '忙碌': 'multitasking pose, stressed expression, busy hands',
-  '週五了': 'excited celebration, arms up, weekend joy pose',
-  '辛苦了': 'gentle bow, appreciative smile, respectful gesture',
-  '沒問題': 'confident thumbs up, reassuring smile, reliable pose',
-  '出發': 'pointing forward, determined expression, adventure pose',
-  '到了': 'arms spread wide, relieved smile, arrival pose',
-  '好餓': 'drooling expression, hands on cheeks, craving food pose',
-  '好美': 'hands on cheeks, sparkling eyes, amazed expression',
-  '好累': 'drooping shoulders, tired eyes, exhausted slumped pose',
-  '我來了': 'running pose, excited expression, arriving gesture',
-  '等我': 'running with hand up, urgent expression, rushing pose',
-  '衝啊': 'fist pump forward, determined fierce expression, running pose',
-  '生日快樂': 'holding birthday cake, party hat, celebration pose',
-  '恭喜': 'clapping hands, excited congratulating smile, celebration pose',
-  '新年快樂': 'festive celebration, red envelope, new year pose',
-  '聖誕快樂': 'santa hat, gift giving, christmas joy pose',
-  '情人節': 'holding heart, romantic expression, love pose',
-  '中秋快樂': 'holding mooncake, moon gazing, festival pose',
-  '畢業': 'throwing graduation cap, proud expression, achievement pose',
-  '萬事如意': 'blessing gesture, peaceful expression, wishing pose',
-  '崩潰': 'hands on head, screaming expression, breakdown pose',
-  '無奈': 'shrugging shoulders, helpless expression, resigned pose',
-  '翻白眼': 'rolling eyes hard, exasperated expression, done with it pose',
-  '放空': 'blank stare, zoned out expression, empty mind pose',
-  '爆炸': 'steam from ears, furious expression, explosive anger pose',
-  '不爽': 'crossed arms, annoyed expression, displeased pose',
-  '心碎': 'clutching chest, heartbroken expression, devastated pose'
+  '生氣': 'fists clenched, angry red cheeks, stomping pose',
+  '驚訝': 'hands on open mouth, wide starry eyes, jumped back pose',
+  '傻眼': 'deadpan half-lidded eyes, flat mouth, resigned shrug',
+  '緊張': 'hands gripping shirt, worried brow, pacing pose',
+  '期待': 'clasped hands with sparkle eyes, hopping excitement pose',
+  '你好': 'hand wave with bright smile, welcoming greeting pose',
+  '對不起': 'hands together in apology,诚恳的低头, sincere apology pose',
+  '沒關係': 'both hands open palm up, gentle reassuring smile',
+  '再見': 'wave with soft smile, friendly farewell pose',
+  '好久不見': 'hand on heart with warm smile, joyful reunion pose',
+  '好喔': 'casual shrug with slight smile, easy-going pose',
+  '加班中': 'head down on desk with coffee cup, tired but working pose',
+  '下班': 'fist pump with bag on shoulder, freed from work pose',
+  '喝咖啡': 'holding large coffee mug, relaxed satisfied smile',
+  '開會中': 'serious expression with clipboard, formal meeting pose',
+  '忙碌': 'arms spinning with multiple tasks, hurried busy pose',
+  '週五了': 'arms in air celebration, TGIF dance pose',
+  '辛苦了': 'thumbs up with tired but satisfied smile, hard work acknowledged',
+  '沒問題': 'OK hand with confident grin, assured pose',
+  '出發': 'pointing forward with determined smile, adventure begins pose',
+  '到了': "standing with arms wide at destination, we've arrived pose",
+  '好餓': 'hand on stomach with hungry eyes, drooling anticipation pose',
+  '好美': 'hands on cheeks in awe, breathtaking beauty reaction pose',
+  '好累': 'leaning on bag with exhausted sigh, weary traveler pose',
+  '我來了': 'running forward with excitement, arrival energy pose',
+  '等我': 'waving for attention, wait for me pose',
+  '衝啊': 'running with fist pump, rushing forward excitement pose',
+  '生日快樂': 'holding birthday cake with sparkler, celebration pose',
+  '恭喜': 'bowing with fan, congratulatory respectful pose',
+  '新年快樂': 'new year celebration with firework, festive pose',
+  '聖誕快樂': 'wearing santa hat, holiday greeting pose',
+  '情人節': 'heart eyes with love gesture, romantic pose',
+  '中秋快樂': 'holding mooncake with family, reunion pose',
+  '畢業': 'holding diploma with graduation cap, achievement pose',
+  '萬事如意': 'hands in prayer with blessing smile, wishes granted pose',
+  '崩潰': 'hands on head with exasperated face, breakdown pose',
+  '無奈': 'arms spread wide with flat expression, whatever pose',
+  '翻白眼': 'looking up with eye roll, exasperated with hands on hips',
+  '放空': 'blank staring into distance, zoning out pose',
+  '爆炸': 'explosion behind with shocked expression, mind blown pose',
+  '不爽': 'scowl with arms crossed, disgruntled pose',
+  '心碎': 'hands over broken heart, heartbreak pose'
 };
+
+// ── Prompt builder ────────────────────────────────────────────────────────────
 
 export function buildStickerPrompt(characterName: string, styleId: string, expression: string): string {
   const style = STICKER_STYLES[styleId as keyof typeof STICKER_STYLES];
@@ -139,11 +151,11 @@ export function buildStickerPrompt(characterName: string, styleId: string, expre
   return `${characterBase}, ${expressionDesc}, transparent background PNG format, centered, no text or watermark`;
 }
 
-// ── Member types ────────────────────────────────────────────────────────────────
+// ── Member types ──────────────────────────────────────────────────────────────
 
 export interface MemberPhoto {
-  url: string;       // Supabase Storage public URL
-  filename: string;  // stored filename in bucket
+  url: string;
+  filename: string;
 }
 
 export interface TripMember {
@@ -151,17 +163,20 @@ export interface TripMember {
   photo?: MemberPhoto;
 }
 
-// ── Member persistence (localStorage + Supabase Storage) ───────────────────────
+// ── Member persistence ────────────────────────────────────────────────────────
+// 成員資料統一走 plannerService（Supabase）。
+// stickerService 僅提供給不需要 async 的情境（如元件初始化）。
+// stickers/page.tsx 應直接使用 plannerService.loadMembers() / syncMembers()。
 
 const LS_MEMBERS = 'hangzhou-trip-members';
 
 export function loadTripMembers(): TripMember[] {
+  // 同步读取 localStorage 作为快速回退；实际成员从 plannerService 异步加载
   try {
     const raw = localStorage.getItem(LS_MEMBERS);
     if (!raw) return defaultMembers();
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      // Support both old string[] and new TripMember[]
       return parsed.map((m: string | TripMember) =>
         typeof m === 'string' ? { name: m } : m
       );
@@ -172,8 +187,8 @@ export function loadTripMembers(): TripMember[] {
 
 function defaultMembers(): TripMember[] {
   return [
-    { name: '小明' }, { name: '小美' }, { name: '小華' },
-    { name: '阿呆' }, { name: '阿瓜' }, { name: '小琳' }, { name: '阿強' }
+    { name: '阿國' }, { name: '小珍' }, { name: '大雄' },
+    { name: '阿美' }, { name: '老王' }, { name: '小李' }, { name: '阿婷' }
   ];
 }
 
@@ -181,17 +196,16 @@ export function saveTripMembers(members: TripMember[]): void {
   localStorage.setItem(LS_MEMBERS, JSON.stringify(members));
 }
 
-// ── Supabase Storage ────────────────────────────────────────────────────────────
+// ── Supabase Storage ─────────────────────────────────────────────────────────
 
 const BUCKET = 'member-photos';
-const supabase = createClient();
 
 export async function uploadMemberPhoto(memberName: string, file: File): Promise<MemberPhoto> {
   const ext = file.name.split('.').pop() || 'jpg';
   const safeName = memberName.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
   const filename = `${safeName}_${Date.now()}.${ext}`;
 
-  const { data: _uploadData, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from(BUCKET)
     .upload(filename, file, { contentType: file.type, upsert: true });
 
@@ -206,7 +220,8 @@ export async function deleteMemberPhoto(filename: string): Promise<void> {
   if (error) console.warn('刪除照片失敗:', error.message);
 }
 
-// ── Sticker image generation with reference photo ─────────────────────────────
+// ── Sticker image generation ──────────────────────────────────────────────────
+// MiniMax image-01 native resolution is 1024×1024 → 直接滿足 LINE 貼圖尺寸需求。
 
 export async function generateStickerImage(
   prompt: string,
@@ -215,15 +230,14 @@ export async function generateStickerImage(
   const apiKey = process.env.NEXT_PUBLIC_MINIMAX_API_KEY;
   if (!apiKey) throw new Error('缺少 MiniMax API Key');
 
-  // Build request — MiniMax image-01 supports reference image via base64
   const body: Record<string, unknown> = {
     model: 'image-01',
     prompt,
+    // 1:1 → 1024×1024，LINE 官方尺寸，剛好
     aspect_ratio: '1:1',
     num_images: 1
   };
 
-  // If we have a reference photo URL, fetch it and convert to base64
   if (referencePhotoUrl) {
     try {
       const res = await fetch(referencePhotoUrl);
@@ -250,29 +264,82 @@ export async function generateStickerImage(
   }
 
   const data = await response.json();
-  // image-01 returns base64 directly in data.data[0].image_base64
   const base64 = data.data?.image_base64?.[0];
   if (!base64) throw new Error('生成失敗：無圖片資料');
   return `data:image/png;base64,${base64}`;
 }
 
-function blobToBase64(blob: Blob): Promise<string> {
+// ── LINE Sticker post-processing ─────────────────────────────────────────────
+// LINE 官方要求：1024×1024px，白邊過渡（白色邊框由邊緣向內 30px），
+// 四角圓弧半徑約 160px。
+// 我們用 canvas 讀取 AI 生成的圖，裁切後疊上白色圓角矩形當邊框，
+// 然後回傳 base64 PNG。
+
+export async function applyLineStickerFormat(imageUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const SIZE = 1024;
+      const BORDER = 30;       // 白邊寬度
+      const RADIUS = 160;      // LINE 官方角落半徑
+
+      const canvas = document.createElement('canvas');
+      canvas.width = SIZE;
+      canvas.height = SIZE;
+      const ctx = canvas.getContext('2d')!;
+
+      // 白色背景（邊框底色）
+      ctx.fillStyle = '#FFFFFF';
+      roundRect(ctx, 0, 0, SIZE, SIZE, RADIUS);
+      ctx.fill();
+
+      // 裁切主圖區域（白邊內側）
+      const innerSize = SIZE - BORDER * 2;
+      // 繪製透明裁切區（作為遮罩）
+      ctx.save();
+      roundRect(ctx, BORDER, BORDER, innerSize, innerSize, Math.max(0, RADIUS - BORDER));
+      ctx.clip();
+      // 將原圖縮放fit進inner區域（置中）
+      const scale = Math.max(innerSize / img.width, innerSize / img.height);
+      const scaledW = img.width * scale;
+      const scaledH = img.height * scale;
+      const dx = BORDER + (innerSize - scaledW) / 2;
+      const dy = BORDER + (innerSize - scaledH) / 2;
+      ctx.drawImage(img, dx, dy, scaledW, scaledH);
+      ctx.restore();
+
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('圖片載入失敗'));
+    img.src = imageUrl;
   });
 }
 
-// ── Generated stickers (localStorage) ────────────────────────────────────────
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  if (r < 0) r = 0;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// ── Generated stickers (localStorage) ─────────────────────────────────────────
 
 export interface GeneratedSticker {
   id: string;
   memberName: string;
   styleId: string;
   expression: string;
-  imageUrl: string;
+  imageUrl: string;     // 已處理成 LINE 格式（白邊）
+  rawImageUrl?: string;  // 原始 AI 圖（可選）
   createdAt: number;
 }
 
@@ -288,4 +355,15 @@ export function loadGeneratedStickers(): GeneratedSticker[] {
 
 export function saveGeneratedStickers(stickers: GeneratedSticker[]): void {
   localStorage.setItem(LS_STICKERS, JSON.stringify(stickers));
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }

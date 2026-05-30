@@ -9,12 +9,14 @@ import {
   saveTripMembers,
   loadGeneratedStickers,
   saveGeneratedStickers,
+  applyLineStickerFormat,
   uploadMemberPhoto,
   deleteMemberPhoto,
   generateStickerImage,
-  TripMember,
-  GeneratedSticker
+  GeneratedSticker,
+  TripMember
 } from '@/utils/stickerService';
+import { loadMembers, syncMembers } from '@/utils/plannerService';
 
 interface StickerJob {
   id: string;
@@ -48,13 +50,36 @@ export default function StickersPage() {
   const [uploadingPhotoIdx, setUploadingPhotoIdx] = useState<number | null>(null);
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
-  // Load members and generated stickers on mount
+  // Load members from plannerService (Supabase) + preserve local TripMember photos
   useEffect(() => {
-    const loaded = loadTripMembers();
-    setMembers(loaded);
-    if (loaded.length > 0) setSelectedMember(loaded[0].name);
-    setGeneratedStickers(loadGeneratedStickers());
+    Promise.all([
+      loadMembers(),
+      loadGeneratedStickers()
+    ]).then(([plannerMembers, savedStickers]) => {
+      // Merge: plannerService names + local photo references
+      const loaded = loadTripMembers(); // has photo data from localStorage
+      const merged: TripMember[] = plannerMembers.map(pm => {
+        const existing = loaded.find(m => m.name === pm.name);
+        return { name: pm.name, photo: existing?.photo };
+      });
+      setMembers(merged);
+      setGeneratedStickers(savedStickers);
+      if (merged.length > 0) setSelectedMember(merged[0].name);
+    });
   }, []);
+
+  // Sync members back to Supabase when changed (names only, photos stay local)
+  useEffect(() => {
+    if (members.length === 0) return;
+    // Map TripMember → Member for sync (names + preset colors)
+    const syncable = members.map((m, i) => ({
+      id: `m${i + 1}`,
+      name: m.name,
+      color: ['bg-blue-500','bg-pink-500','bg-green-500','bg-yellow-500','bg-purple-500','bg-red-500','bg-teal-500'][i % 7]
+    }));
+    syncMembers(syncable).catch(console.warn);
+    saveTripMembers(members);
+  }, [members]);
 
   // Sync generated stickers to localStorage
   useEffect(() => {
@@ -109,7 +134,9 @@ export default function StickersPage() {
       setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'generating' as const } : j));
 
       try {
-        const imageUrl = await generateStickerImage(job.prompt, job.photoUrl);
+        const rawImageUrl = await generateStickerImage(job.prompt, job.photoUrl);
+        // Post-process: apply LINE sticker format (white border + rounded corners)
+        const imageUrl = await applyLineStickerFormat(rawImageUrl);
         setJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'done' as const, imageUrl } : j));
       } catch {
         const retry = (job.retryCount || 0) + 1;
