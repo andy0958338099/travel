@@ -854,12 +854,19 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
   return (
     <div className="space-y-2">
       {/* Main large image */}
-      <div className="relative rounded-xl overflow-hidden aspect-[16/9] bg-gray-100">
-        <img
-          src={images[active]}
-          alt={`${name} - ${active + 1}`}
-          className="w-full h-full object-cover transition-all duration-300"
-        />
+      <div className="relative rounded-xl overflow-hidden aspect-[16/9] bg-gray-100 flex items-center justify-center">
+        {images.length > 0 ? (
+          <img
+            src={images[active]}
+            alt={`${name} - ${active + 1}`}
+            className="w-full h-full object-cover transition-all duration-300"
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-gray-400">
+            <span className="text-4xl">🍽️</span>
+            <span className="text-sm mt-1">等待照片</span>
+          </div>
+        )}
         {/* Image counter */}
         <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
           {active + 1} / {images.length}
@@ -882,7 +889,7 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
           </>
         )}
       </div>
-      {/* Thumbnails */}
+      {images.length > 1 && (
       <div className="flex gap-2 overflow-x-auto pb-1">
         {images.map((img, i) => (
           <button
@@ -894,6 +901,7 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }
