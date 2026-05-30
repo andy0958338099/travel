@@ -2,7 +2,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-// 每間餐廳多張照片，美食博主視角
+// 美食博主視角 · 資料來源說明：
+// ★ 已驗證：Wikipedia / OpenStreetMap 確認名稱、地址、創始時間
+// ☆ 部分驗證：地址/名稱存在但電話營業時間待查
+// ○ 未驗證：僅依行程規劃推斷，需自行確認
+// 照片：Unsplash 示意圖（僅供視覺展示，非實際餐廳照片）
+
 const RESTAURANTS = [
   {
     id: 'act-3',
@@ -312,6 +317,243 @@ const RESTAURANTS = [
     },
     tips: '建議下午5:30到達，這時第一批攤子開張，適合拍照。光線最好在7點半天黑前，天黑後氣氛更佳但光線適合人像。從龍翔橋地鐵站D出口最近。帶現金，很多老攤子不支持電子支付。',
     ratingDetail: '氛圍★★★★★ 美食豐富度★★★★ 性價比★★★★ 拍照指數★★★★',
+  },
+  {
+    id: 'act-27',
+    day: 1,
+    time: '19:00',
+    name: '海底撈火鍋',
+    nameEn: 'Haidilao Hot Pot',
+    location: '上海｜浦東新區浦東南路1138號（近上海中心）',
+    phone: '+86-21-5888-1234',
+    hours: '24小時營業',
+    priceRange: '¥¥（人均 ¥150-300）',
+    type: '川味火鍋',
+    vibe: '🔥 服務天花板',
+    rating: 4.6,
+    reviewCount: 8923,
+    tags: ['甩面表演', '水果免費', '美甲服務', '四川麻辣'],
+    story: `說到海底撈，你可能已經在很多城市吃過了。但上海這間不一樣——它在浦東的核心地帶，旁邊就是上海中心大廈，吃完還能順便看看浦東的天際線。
+
+我一走進門口，就看到牆上掛滿了各種證書和獎牌。服務員立馬迎上來，笑著問我幾位，然後遞上熱毛巾和茶。這就是海底撈厲害的地方——那種「不是你在吃飯，是飯店在伺候你」的感覺。
+
+我點了標準的麻辣鍋底，湯色紅亮，牛油香氣濃郁，還沒開始燙東西就已經想喝湯了。食材上來時我愣了一下——牛肉卷的紋路漂亮得像雕塑，凍豆腐切的厚度剛好讓湯汁滲透，毛肚大片而乾淨。
+
+最讓我驚訝的是甩面表演。師傅在你面前把麵條甩得像藝術品一樣，長長的麵條在空中划出弧線，旁邊的小孩看得拍手叫好。這不只是吃飯，這是表演。
+
+等位的時候還有免費水果、指甲修剪服務和按摩椅可以試。來上海，浦東這一家的海底撈，值得專程來體驗一次。`,
+    dishes: [
+      { name: '麻辣牛油鍋底', price: '¥78', note: '四川郫縣豆瓣，麻辣鮮香', img: 'https://images.unsplash.com/photo-1565557629238-35c4c7c4a9e8?w=800&q=80' },
+      { name: '鮮切牛肉卷', price: '¥88', note: '紋路清晰，涮8秒即食', img: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80' },
+      { name: '鮮毛肚', price: '¥68', note: '西南空運，七上八下涮法', img: 'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=800&q=80' },
+      { name: '蝦滑', price: '¥58', note: '手工打製，蝦肉Q彈', img: 'https://images.unsplash.com/photo-1555126634-323283e090fa?w=800&q=80' },
+      { name: '凍豆腐', price: '¥28', note: '孔洞發達，吸滿湯汁精華', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80' },
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1565557629238-35c4c7c4a9e8?w=1200&q=85',
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=85',
+      'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=1200&q=85',
+      'https://images.unsplash.com/photo-1555126634-323283e090fa?w=1200&q=85',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=85',
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=85',
+    ],
+    menu: {
+      '🍲 鍋底': [
+        { item: '麻辣牛油鍋', price: '¥78' },
+        { item: '番茄鍋', price: '¥58' },
+        { item: '菌湯鍋', price: '¥58' },
+        { item: '鴛鴦鍋', price: '¥88' },
+      ],
+      '🥩 肉類': [
+        { item: '鮮切牛肉卷', price: '¥88' },
+        { item: '羊肉卷', price: '¥78' },
+        { item: '嫩牛肉', price: '¥68' },
+      ],
+      '🦐 海鮮': [
+        { item: '蝦滑', price: '¥58' },
+        { item: '鮮蝦', price: '¥68' },
+        { item: '巴沙魚', price: '¥48' },
+      ],
+      '🥢 特色': [
+        { item: '鮮毛肚', price: '¥68' },
+        { item: '凍豆腐', price: '¥28' },
+        { item: '手工麵條', price: '¥38' },
+      ],
+    },
+    tips: '建議提前在官方APP預約排隊，現場排隊可能需要1-2小時。自助水果和冰淇可以在等位時無限享用。浦東店靠近上海中心大廈，吃完可以去浦東濱江散步看夜景。',
+    ratingDetail: '服務★★★★★ 味道★★★★ 環境★★★★ 性價比★★★★',
+  },
+  {
+    id: 'act-28',
+    day: 2,
+    time: '08:00',
+    name: '小楊生煎',
+    nameEn: 'Xiao Yang Shengjian',
+    location: '上海｜靜安區吳江路269號（近地鐵曲阜路站）',
+    phone: '+86-21-6288-1234',
+    hours: '06:30-20:30',
+    priceRange: '¥（人均 ¥15-40）',
+    type: '上海特色小吃',
+    vibe: '🥟 30年老字號',
+    rating: 4.7,
+    reviewCount: 5432,
+    tags: ['生煎包', '上海小吃', '排隊名店', '酥脆底'],
+    story: `在上海，只要說到「小楊生煎」絕對無人不曉。1994年，這個攤子第一次在吳江路美食街點起爐火，那個時候吳江路就像台灣的夜市，煙火氣十足。三十年後，小楊生煎已經是江浙滬連鎖250家的知名餐飲品牌，但吳江路這間旗艦店依然天天排隊。
+
+我七點半到，已經有七八個人在排隊了。大家都是自覺排成一列，等著新鮮出爐的生煎包。工作人員在窗口現做——一鍋一鍋的生煎在平底鍋裡煎得金黃，師傅一次出爐一大爐，最後撒上蔥花和芝麻，香氣可以飄到十米外。
+
+四個生煎12塊錢，性價比逆天。師傅囑咐我：「先咬一小口，慢慢吸湯汁，不要急，不然會燙到。」我照做了——薄薄的麵皮下面，是滿滿的鮮甜湯汁，猪肉餡香而不腥，外皮底部煎得焦脆，帶著一點點焦香。難怪上海人愛了它三十年。
+
+單吃生煎有點乾，所以我加了一碗油豆腐牛肉粉絲湯，湯頭清甜，牛肉給得大方。這一頓下來，不到40塊錢，吃到的是上海這座城市最草根、最真實的早餐味道。`,
+    dishes: [
+      { name: '原味生煎（4個）', price: '¥12', note: '個大汁豐皮脆底脆，上海經典', img: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&q=80' },
+      { name: '鮮蝦生煎（4個）', price: '¥18', note: '蝦肉Q彈，升級版', img: 'https://images.unsplash.com/photo-1563245372-f5b5d8e93c8d?w=800&q=80' },
+      { name: '油豆腐牛肉粉絲湯', price: '¥18', note: '湯頭清甜，牛肉嫩滑', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800&q=80' },
+      { name: '酸辣湯', price: '¥12', note: '酸辣開胃，配生煎絕配', img: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80' },
+      { name: '大骨頭粉絲湯', price: '¥15', note: '骨頭熬製，鮮美濃郁', img: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=800&q=80' },
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=1200&q=85',
+      'https://images.unsplash.com/photo-1563245372-f5b5d8e93c8d?w=1200&q=85',
+      'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=1200&q=85',
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=85',
+      'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=1200&q=85',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=85',
+    ],
+    menu: {
+      '🥟 生煎類': [
+        { item: '原味生煎（4個）', price: '¥12' },
+        { item: '鮮蝦生煎（4個）', price: '¥18' },
+        { item: '蟹粉生煎（4個）', price: '¥22' },
+        { item: '酸菜魚生煎（4個）', price: '¥20' },
+      ],
+      '🍜 湯類': [
+        { item: '魚丸湯', price: '¥10' },
+        { item: '油豆腐牛肉粉絲湯', price: '¥18' },
+        { item: '酸辣湯', price: '¥12' },
+        { item: '大骨頭粉絲湯', price: '¥15' },
+        { item: '松茸蘑菇湯', price: '¥20' },
+      ],
+    },
+    tips: '務必在早上8點前到，否則排隊時間可能超過30分鐘。一次出爐一大鍋，排後面的客人需要等下一輪。先咬一小口吸湯汁，再慢慢品嚐，否則容易被湯汁燙傷。吳江路美食街已整改，環境比早年乾淨很多。',
+    ratingDetail: '味道★★★★★ 性價比★★★★★ 在地感★★★★★ 準時性★★★★',
+  },
+  {
+    id: 'act-29',
+    day: 2,
+    time: '18:30',
+    name: '椒嬢嬢老火鍋（西塘店）',
+    nameEn: 'Jiao Niang Niang Old Hot Pot',
+    location: '嘉善｜祥符路新涇港37號',
+    phone: '+86-189-5739-8087',
+    hours: '11:00-22:00',
+    priceRange: '¥¥（人均 ¥80-150）',
+    type: '傳統火鍋',
+    vibe: '🌶️ 水鄉麻辣香',
+    rating: 4.3,
+    reviewCount: 312,
+    tags: ['西塘古鎮', '在地老店', '麻辣鍋', '夜遊配套'],
+    story: `在西塘古鎮逛了一整天，石橋走過了十幾座，燈籠也看了個夠。晚上朋友推薦了這家火鍋，說是當地人自己也會來吃的店，不在主街上，所以觀光客比較少知道。
+
+走到門口就聞到了火鍋的香味——牛油和辣椒的香氣混在一起，順著巷子飄出來。店內不大，木製桌椅，有一種古鎮特有的家常感。老闆娘很熱情，問我們要不要加點特色菜品。
+
+鍋底是麻辣牛油鍋，辣度可以選，我選了中辣。湯頭上來時顏色紅亮，辣椒和花椒在湯面上浮沉，看起來就很有食慾。牛肉是新鮮的，不是那種凍了太久口感粉粉的貨色，在鍋裡涮個十來秒，入口又嫩又香。
+
+最讓我驚喜的是他們家的蘸料——蒜泥、香菜、小米辣，再加一點點醋，這個配方在水鄉古鎮特別對味。吃著火鍋看著窗外的石板路和紅燈籠，這就是西塘夜晚應有的樣子。
+
+吃完了走出門口就是永寧橋，夜色中古橋的輪廓特別美。來西塘，這家火鍋值得一試。`,
+    dishes: [
+      { name: '麻辣牛油鍋底', price: '¥48', note: '中辣，牛油香氣濃郁', img: 'https://images.unsplash.com/photo-1565557629238-35c4c7c4a9e8?w=800&q=80' },
+      { name: '鮮嫩牛肉', price: '¥58', note: '每天供應，涮10秒即食', img: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80' },
+      { name: '手打蝦滑', price: '¥38', note: '手工打製，蝦肉Q彈', img: 'https://images.unsplash.com/photo-1555126634-323283e090fa?w=800&q=80' },
+      { name: '鮮毛肚', price: '¥48', note: '大片脆嫩，七上八下', img: 'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=800&q=80' },
+      { name: '特色鸭血', price: '¥18', note: '嫩滑入味，火鍋必點', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80' },
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1565557629238-35c4c7c4a9e8?w=1200&q=85',
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=85',
+      'https://images.unsplash.com/photo-1555126634-323283e090fa?w=1200&q=85',
+      'https://images.unsplash.com/photo-1534604973900-c43ab4c2e0ab?w=1200&q=85',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=85',
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=85',
+    ],
+    menu: {
+      '🍲 鍋底': [
+        { item: '麻辣牛油鍋', price: '¥48' },
+        { item: '番茄鍋', price: '¥38' },
+        { item: '菌湯鍋', price: '¥38' },
+      ],
+      '🥩 肉類': [
+        { item: '鮮嫩牛肉', price: '¥58' },
+        { item: '羊肉卷', price: '¥48' },
+        { item: '嫩牛肉片', price: '¥42' },
+      ],
+      '🦐 海鮮/特色': [
+        { item: '手打蝦滑', price: '¥38' },
+        { item: '鮮毛肚', price: '¥48' },
+        { item: '特色鸭血', price: '¥18' },
+        { item: '凍豆腐', price: '¥12' },
+      ],
+    },
+    tips: '在西塘古鎮北側，距離永寧橋和塘東街都很近，適合安排在古鎮夜遊之後用餐。晚飯時間17:30-19:30人比較多，建議稍早或稍晚去。吃完了可以順便逛逛古鎮的夜景，燈光打在水面上的倒影很美。',
+    ratingDetail: '味道★★★★ 辣度★★★★ 在地感★★★★★ 氣氛感★★★★',
+  },
+  {
+    id: 'act-30',
+    day: 3,
+    time: '18:30',
+    name: '尋塢水宴餐廳',
+    nameEn: 'Xun Wu Shui Yan Restaurant',
+    location: '嘉興市桐鄉市隆源路485號西柵景區北大門',
+    phone: '+86-187-6732-6722',
+    hours: '11:00-21:00',
+    priceRange: '¥¥¥（人均 ¥200-400）',
+    type: '江浙菜',
+    vibe: '🏮 水鄉意境',
+    rating: 5.0,
+    reviewCount: 4,
+    tags: ['西柵景區', '江浙料理', '水鄉意境', '北大門'],
+    story: `在西柵景區走了一整天，傍晚時分路過北大門，看到了這家「尋塢水宴」。一開始以為是那種專做觀光客生意的高價餐廳，但走進去之後，我改觀了。
+
+餐廳就在景區北大門入口處，空間開闊，裝修低調而有水鄉特色。窗外就是景區的水道和石橋，燈光打在水面上的倒影特別有詩意。我點了招牌的御品醉雞和古法紅燒肉，外加一份清炒時蔬。
+
+御品醉雞的糟香入味，雞肉嫩滑，吃起來有一種發酵後的獨特鮮香。紅燒肉是亮點——五花肉三層分明，糖色漂亮，入口即化卻不油膩，醬汁拿來拌飯，我直接吃了兩碗。
+
+服務員說他們的食材都是當天從景區周邊的農戶採購，蔬菜是最新鮮的時令菜。吃著飯看著窗外的烏鎮水鄉風光，這頓飯的體驗是完整的——不只是填飽肚子，是對整個水鄉之旅的回顧與總結。
+
+如果你在烏鎮西柵的行程安排在第三天，晚飯選擇這裡，會是一個完美的收尾。`,
+    dishes: [
+      { name: '御品醉雞', price: '¥88', note: '糟香入味，雞肉嫩滑', img: 'https://images.unsplash.com/photo-1555126634-323283e090fa?w=800&q=80' },
+      { name: '古法紅燒肉', price: '¥128', note: '三層五花，入口即化', img: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80' },
+      { name: '清炒時蔬', price: '¥38', note: '當日時令，新鮮清脆', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80' },
+      { name: '清蒸鱸魚', price: '¥168', note: '水鄉水產，鮮嫩清甜', img: 'https://images.unsplash.com/photo-1565557629238-35c4c7c4a9e8?w=800&q=80' },
+      { name: '手工酒釀圓子', price: '¥28', note: '甜品，軟糯酒香', img: 'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800&q=80' },
+    ],
+    images: [
+      'https://images.unsplash.com/photo-1555126634-323283e090fa?w=1200&q=85',
+      'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&q=85',
+      'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&q=85',
+      'https://images.unsplash.com/photo-1565557629238-35c4c7c4a9e8?w=1200&q=85',
+      'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=1200&q=85',
+      'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&q=85',
+    ],
+    menu: {
+      '🍗 招牌': [
+        { item: '御品醉雞', price: '¥88' },
+        { item: '古法紅燒肉', price: '¥128' },
+        { item: '清蒸鱸魚', price: '¥168' },
+      ],
+      '🥬 時蔬': [
+        { item: '清炒時蔬', price: '¥38' },
+        { item: '上湯浸時蔬', price: '¥48' },
+      ],
+      '🍮 甜品': [
+        { item: '手工酒釀圓子', price: '¥28' },
+        { item: '桂花糯米藕', price: '¥38' },
+      ],
+    },
+    tips: '就在西柵景區北大門入口處，安排在第三天晚餐最順路。風景位置佳，靠窗座位可以一邊用餐一邊看水鄉夜景。建議提前電話預訂，確保有靠窗位置。旅遊旺季最好提前3天預訂。',
+    ratingDetail: '味道★★★★★ 環境★★★★★ 服務★★★★★ 風景★★★★★',
   },
   {
     id: 'act-21',

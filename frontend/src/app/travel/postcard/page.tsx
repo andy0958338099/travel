@@ -220,20 +220,20 @@ const DEFAULT_ITINERARY: ItineraryEvent[] = [
   { day:1, period:"afternoon", title:"廣場嘉廷飯店 Check-in", category:"hotel" },
   { day:1, period:"afternoon", title:"南京東路步行街",      category:"shopping",  location:"上海最熱鬧商圈" },
   { day:1, period:"night",     title:"外灘夜景",            category:"spot",     location:"黃浦江經典景色 · 建議夜拍" },
-  { day:1, period:"night",     title:"海底撈宵夜",          category:"food",     location:"上海外攤" },
+  { day:1, period:"night",     title:"海底撈火鍋",          category:"food",     location:"上海外攤" },
 
-  { day:2, period:"morning",   title:"小楊生煎早餐",        category:"food" },
+  { day:2, period:"morning",   title:"小楊生煎",            category:"food" },
   { day:2, period:"morning",   title:"豫園",               category:"spot",     location:"明代江南園林" },
   { day:2, period:"morning",   title:"城隍廟",             category:"spot",     location:"上海經典老街" },
   { day:2, period:"afternoon", title:"中巴包車前往西塘",    category:"transport" },
   { day:2, period:"night",     title:"西塘古鎮夜遊",        category:"spot",     location:"水鄉燈景 · 石橋河道" },
-  { day:2, period:"night",     title:"椒頭辣火鍋",          category:"food",     location:"西塘" },
+  { day:2, period:"night",     title:"椒嬢嬢老火鍋",        category:"food",     location:"西塘" },
   { day:2, period:"night",     title:"西塘住宿",            category:"hotel" },
 
   { day:3, period:"morning",   title:"西塘古鎮散步",        category:"spot",     location:"古街拍照 · 水鄉晨景" },
   { day:3, period:"afternoon", title:"打滴前往烏鎮",         category:"transport" },
   { day:3, period:"afternoon", title:"烏鎮西柵",            category:"spot",     location:"江南戲服街景 · 古鎮水道" },
-  { day:3, period:"night",     title:"水宴餐廳",            category:"food" },
+  { day:3, period:"night",     title:"尋塢水宴餐廳",        category:"food" },
   { day:3, period:"night",     title:"烏鎮夜景",            category:"spot",     location:"水岸倒影 · 夜色燈光" },
   { day:3, period:"night",     title:"烏鎮住宿",            category:"hotel" },
 
@@ -515,7 +515,7 @@ export default function PostcardPage() {
     setGeneratingDay(day);
     try {
       const eventsText = dayEvents.map(e => e.title).join(", ");
-      const prompt = `Cute flat kawaii travel illustration, ${meta.theme}. ${eventsText}. ${meta.icons.join(" ")} Pastel colors, no text, horizontal postcard`;
+      const prompt = `Cute flat kawaii travel illustration, ${meta.theme}. ${eventsText}. ${meta.icons.join(" ")} Pastel colors, no text, vertical portrait postcard, 9:16 aspect ratio`;
       const img = await generateMiniMaxImage(prompt);
       if (img) {
         localStorage.setItem(`${IMG_STORAGE_KEY}${day}`, JSON.stringify({ url: img, prompt }));
