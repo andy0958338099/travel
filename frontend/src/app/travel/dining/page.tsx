@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 
 // 美食博主視角 · 資料來源說明：
@@ -1037,6 +1037,18 @@ export default function DiningPage() {
                 {/* Story (food blogger style) */}
                 <div className="px-4 pb-3">
                   <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-4 border-l-4 border-orange-400">
+                    {/* Audio narration button */}
+                    {typeof window !== 'undefined' && (
+                      <button
+                        onClick={() => {
+                          const audio = new Audio(`/audio/${item.id}.mp3`);
+                          audio.play().catch(() => {});
+                        }}
+                        className="mb-2 flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium"
+                      >
+                        <span className="text-lg">🔊</span> 聆聽語音故事
+                      </button>
+                    )}
                     <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{item.story}</p>
                   </div>
                 </div>
@@ -1099,6 +1111,18 @@ export default function DiningPage() {
             <div className="px-5 py-4">
               <h3 className="text-sm font-bold text-gray-700 mb-2">✍️ 我的食記</h3>
               <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl p-4 border-l-4 border-orange-400">
+                {/* Audio narration button */}
+                {typeof window !== 'undefined' && (
+                  <button
+                    onClick={() => {
+                      const audio = new Audio(`/audio/${selected.id}.mp3`);
+                      audio.play().catch(() => {});
+                    }}
+                    className="mb-3 flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium"
+                  >
+                    <span className="text-lg">🔊</span> 聆聽語音故事
+                  </button>
+                )}
                 <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{selected.story}</p>
               </div>
             </div>
