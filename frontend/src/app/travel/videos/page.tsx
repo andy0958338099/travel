@@ -1,6 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import {
+  loadMembers,
+  type Member,
+} from '@/utils/plannerService';
 import { createClient } from '@/utils/supabase/client';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -22,12 +26,6 @@ type Comment = {
   author: string;
   text: string;
   created_at: string;
-};
-
-type Member = {
-  id: string;
-  name: string;
-  color: string;
 };
 
 // ─── Visitor ID ──────────────────────────────────────────────────────────────
@@ -207,27 +205,7 @@ async function callUnlikeVideo(videoId: string, visitorId: string): Promise<numb
 function useMembers(): Member[] {
   const [members, setMembers] = useState<Member[]>([]);
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hangzhou-trip-members');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) { setMembers(parsed); return; }
-      }
-    } catch {}
-    setMembers([
-      { id: 'm1', name: '阿喜', color: 'bg-blue-500' },
-      { id: 'm2', name: '黃阿分', color: 'bg-pink-500' },
-      { id: 'm3', name: '阿美', color: 'bg-green-500' },
-      { id: 'm4', name: '宸瑋', color: 'bg-yellow-500' },
-      { id: 'm5', name: '恩齊', color: 'bg-purple-500' },
-      { id: 'm6', name: '黃倩', color: 'bg-teal-500' },
-      { id: 'm7', name: '吳董', color: 'bg-red-500' },
-      { id: 'm8', name: '大宇', color: 'bg-orange-500' },
-      { id: 'm9', name: '小宇', color: 'bg-indigo-500' },
-      { id: 'm10', name: '宇橋', color: 'bg-cyan-500' },
-      { id: 'm11', name: '雅茹', color: 'bg-rose-500' },
-      { id: 'm12', name: '義伸', color: 'bg-amber-500' },
-    ]);
+    loadMembers().then(setMembers);
   }, []);
   return members;
 }
