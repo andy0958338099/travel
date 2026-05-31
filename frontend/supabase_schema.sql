@@ -158,3 +158,15 @@ create table if not exists public.attraction_gallery_attractions (
   attraction_name text primary key,
   hidden_at        timestamptz default now()
 );
+
+-- ── Attraction Gallery RLS ──────────────────────────────────────
+alter table public.attraction_gallery_hidden      enable row level security;
+alter table public.attraction_gallery_attractions enable row level security;
+
+create policy "Allow anon read attraction_gallery_hidden"      on public.attraction_gallery_hidden      for select using (true);
+create policy "Allow anon upsert attraction_gallery_hidden"     on public.attraction_gallery_hidden      for insert with check (true);
+create policy "Allow anon upsert attraction_gallery_hidden"     on public.attraction_gallery_hidden      for update using (true);
+
+create policy "Allow anon read attraction_gallery_attractions"  on public.attraction_gallery_attractions for select using (true);
+create policy "Allow anon upsert attraction_gallery_attractions" on public.attraction_gallery_attractions for insert with check (true);
+create policy "Allow anon upsert attraction_gallery_attractions" on public.attraction_gallery_attractions for update using (true);
