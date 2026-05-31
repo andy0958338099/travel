@@ -6,7 +6,7 @@ type ToyStore = {
   id: string;
   name: string;
   address: string;
-  category: 'model' | 'anime' | 'educational' | 'remote' | 'wholesale' | 'department';
+  category: 'model' | 'anime' | 'educational' | 'remote' | 'wholesale' | 'department' | 'cards';
   priceRange: '¥' | '¥¥' | '¥¥¥' | '¥¥¥¥';
   hours: string;
   description: string;
@@ -147,6 +147,32 @@ const SH_TOYS: ToyStore[] = [
     distanceFromRoute: '虹口足球場，步行約20分鐘或地鐵3分鐘',
     imageUrl: 'https://images.unsplash.com/photo-1531259683007-016a7b628fc3?w=800&q=80',
   },
+  {
+    id: 'sh-11',
+    name: '安利美特（Animate）上海南京路店',
+    address: '上海市黃浦區南京東路558號近福建南路',
+    category: 'cards',
+    priceRange: '¥¥¥',
+    hours: '10:00-22:00',
+    description: '日本最大動漫精品連鎖の中國旗艦店。3樓卡牌遊戲區有齊全的寶可夢TCG、遊戲王OCG商品，以及萬代卡牌戰士系列。4樓動漫周邊和角色扮演用品齊全，是二次元愛好者必訪之地。',
+    highlight: '寶可夢TCG、游戏王OCG、動漫周邊、角色扮演',
+    tips: '南京東路558號，從南京東路地鐵站步行約5分鐘。2樓有輕食區可以休息。中國限定商品較多，適合購買限定周邊。支付寶/微信/銀行卡均可。',
+    distanceFromRoute: '南京東路558號，步行約5分鐘',
+    imageUrl: '/toys-tour/pokemon_tcg_booster.jpg',
+  },
+  {
+    id: 'sh-12',
+    name: '百聯ZX造趣場 卡牌專區',
+    address: '上海市楊浦區國濟路100號百聯ZX造趣場（近五角場）',
+    category: 'cards',
+    priceRange: '¥¥',
+    hours: '10:00-21:30',
+    description: '2024年12月新開幕的ACG主題商場，前身是百聯奧特萊斯。商場內有多家卡牌專賣店，集中銷售寶可夢TCG、遊戲王、NBA卡牌等熱門集換式卡牌遊戲商品。商場還有動漫周邊、模型、手辦等專區。',
+    highlight: '多家卡牌店匯聚、寶可夢/遊戲王/MLB卡、動漫周邊',
+    tips: '地鐵10號線五角場站步行約8分鐘，或8號線直達。商場1樓有咖啡輕食。B1層卡牌專區店鋪最集中，建議先逛這層。節假日人流量大，建議避開週末下午。',
+    distanceFromRoute: '國濟路100號五角場，步行約15分鐘或地鐵10分鐘',
+    imageUrl: '/toys-tour/yugioh_collection.jpg',
+  },
 ];
 
 const HZ_TOYS: ToyStore[] = [
@@ -280,6 +306,32 @@ const HZ_TOYS: ToyStore[] = [
     distanceFromRoute: '龍翔橋地鐵站站內，步行約3分鐘',
     imageUrl: 'https://images.unsplash.com/photo-1531259683007-016a7b628fc3?w=800&q=80',
   },
+  {
+    id: 'hz-11',
+    name: '杭州安利美特（Animate）門店',
+    address: '杭州市拱墅區武林廣場10號杭州大廈C座1樓',
+    category: 'cards',
+    priceRange: '¥¥¥',
+    hours: '10:00-21:30',
+    description: '日本安利美特在杭州的門市，毗鄰武林廣場商圈。店內有齊全的動漫精品和卡牌遊戲專區，包括寶可夢TCG、遊戲王OCG等熱門卡牌遊戲商品，以及動漫周邊、手辦模型。',
+    highlight: '寶可夢TCG、游戏王OCG、動漫周邊、手辦模型',
+    tips: '武林廣場站步行約3分鐘。商場地下有餐飲區域可以用餐休息。杭州大廈停車不便，建議地鐵或公車前往。節假日期間人流量大。',
+    distanceFromRoute: '武林廣場10號杭州大廈，步行約5分鐘',
+    imageUrl: '/toys-tour/pokemon_tcg_booster.jpg',
+  },
+  {
+    id: 'hz-12',
+    name: '杭州工聯玩具城 卡牌專區',
+    address: '杭州市拱墅區武林廣場地鐵商場B2層（近武林廣場）',
+    category: 'cards',
+    priceRange: '¥¥',
+    hours: '09:30-21:00',
+    description: '杭州最大型玩具批發市場的卡牌專區，集中了多家卡牌遊戲專賣店。涵蓋寶可夢TCG、遊戲王OCG、NBA卡牌等熱門集換式卡牌遊戲商品，價格實惠齊全。',
+    highlight: '多家卡牌店匯聚、批發價格、款式齊全',
+    tips: '武林廣場地鐵站A出口直達B2層。建議上午去人較少，批發價格可以議價。中庭電梯直達，週末下午人流最大建議避開。',
+    distanceFromRoute: '武林廣場B2層，步行約3分鐘',
+    imageUrl: '/toys-tour/yugioh_collection.jpg',
+  },
 ];
 
 function StarDisplay({ level }: { level: string }) {
@@ -304,6 +356,7 @@ function CategoryBadge({ cat }: { cat: ToyStore['category'] }) {
     remote: { label: '🚗 遙控玩具', color: 'bg-green-100 text-green-700' },
     wholesale: { label: '🏪 批發/市集', color: 'bg-amber-100 text-amber-700' },
     department: { label: '🏬 百貨專區', color: 'bg-indigo-100 text-indigo-700' },
+    cards: { label: '🃏 卡牌遊戲', color: 'bg-rose-100 text-rose-700' },
   };
   const { label, color } = config[cat];
   return (
@@ -426,7 +479,7 @@ export default function ToysTourPage() {
                 : 'bg-white text-gray-500 border border-gray-200 hover:bg-purple-50'
             }`}
           >
-            🏙️ 上海 · 10處
+            🏙️ 上海 · 12處
           </button>
           <button
             onClick={() => { setSelectedCity('hangzhou'); setFilterCat('all'); }}
@@ -436,7 +489,7 @@ export default function ToysTourPage() {
                 : 'bg-white text-gray-500 border border-gray-200 hover:bg-green-50'
             }`}
           >
-            🌿 杭州 · 10處
+            🌿 杭州 · 12處
           </button>
         </div>
 
@@ -448,7 +501,7 @@ export default function ToysTourPage() {
               <h2 className="text-base sm:text-lg font-bold">上海 · 親子玩具尋寶地圖</h2>
             </div>
             <p className="text-white/80 text-xs sm:text-sm leading-relaxed mb-1">
-              從四行倉庫沿南京東路到外灘、豫園，精選10處適合小男孩的玩具店：國際品牌旗艦店、傳統批發市場、文創精品店，主題多元，價格從平價到高端全覆盖。
+              從四行倉庫沿南京東路到外灘、豫園，精選12處適合小男孩的玩具店：國際品牌旗艦店、傳統批發市場、卡牌專賣店、文創精品店，主題多元，價格從平價到高端全覆盖。
             </p>
             <p className="text-white/60 text-xs">
               共收錄 {SH_TOYS.length} 處玩具尋寶地點 · 價格💰-💰💰💰💰
@@ -461,7 +514,7 @@ export default function ToysTourPage() {
               <h2 className="text-base sm:text-lg font-bold">杭州 · 武林廣場 ↔ 河坊街玩具地圖</h2>
             </div>
             <p className="text-white/80 text-xs sm:text-sm leading-relaxed mb-1">
-              武林廣場商場群 → 河坊街歷史街區 → 吳山廣場地鐵商場。從高端百貨到傳統市集，從日系精品到國產平價，10處多元類型玩具店，適合不同預算和喜好。
+              武林廣場商場群 → 河坊街歷史街區 → 吳山廣場地鐵商場。從高端百貨到傳統市集，從日系精品到國產平價，卡牌專賣店到傳統玩具，12處多元類型玩具店，適合不同預算和喜好。
             </p>
             <p className="text-white/60 text-xs">
               共收錄 {HZ_TOYS.length} 處玩具尋寶地點 · 價格💰-💰💰💰💰
@@ -477,6 +530,7 @@ export default function ToysTourPage() {
             { id: 'educational', label: '🧩 益智玩具', count: currentToys.filter(t => t.category === 'educational').length },
             { id: 'wholesale', label: '🏪 批發/市集', count: currentToys.filter(t => t.category === 'wholesale').length },
             { id: 'department', label: '🏬 百貨專區', count: currentToys.filter(t => t.category === 'department').length },
+            { id: 'cards', label: '🃏 卡牌', count: currentToys.filter(t => t.category === 'cards').length },
           ].map(f => (
             <button
               key={f.id}
