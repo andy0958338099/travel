@@ -4,6 +4,18 @@ import { useState, useEffect } from 'react';
 import { ATTRACTIONS, type Attraction } from './data';
 import { getHiddenImages, hideImage, getHiddenAttractions, hideAttraction } from '@/utils/attractionGalleryService';
 
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="h-40 bg-gray-200 animate-pulse" />
+      <div className="p-3 space-y-2">
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
+        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
+      </div>
+    </div>
+  );
+}
+
 function AttractionCard({
   attraction,
   onDelete,
@@ -187,9 +199,13 @@ function AttractionCard({
 export default function AttractionGallery() {
   const [filter, setFilter] = useState<'all' | 'westLake' | 'wuzhen' | 'other'>('all');
   const [hiddenAttractions, setHiddenAttractions] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getHiddenAttractions().then(setHiddenAttractions);
+    getHiddenAttractions().then((attrs) => {
+      setHiddenAttractions(attrs);
+      setIsLoading(false);
+    });
   }, []);
 
   const categories = [
@@ -232,18 +248,20 @@ export default function AttractionGallery() {
 
       {/* 統計 */}
       <p className="text-sm text-gray-500">
-        共 {visible.length} 個景點
+        {isLoading ? '載入中…' : `共 ${visible.length} 個景點`}
       </p>
 
       {/* 照片網格 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {visible.map((attraction) => (
-          <AttractionCard
-            key={attraction.name}
-            attraction={attraction}
-            onDelete={handleDeleteAttraction}
-          />
-        ))}
+        {isLoading
+          ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
+          : visible.map((attraction) => (
+              <AttractionCard
+                key={attraction.name}
+                attraction={attraction}
+                onDelete={handleDeleteAttraction}
+              />
+            ))}
       </div>
     </div>
   );
