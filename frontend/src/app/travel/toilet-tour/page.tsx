@@ -8,7 +8,7 @@ type Toilet = {
   address: string;
   type: 'public' | 'mall' | 'metro' | 'park' | 'hotel';
   cleanliness: 4 | 5;
-  fee: '免費' | '¥1-2' | '¥5';
+  fee: '免費' | '¥1-2' | '¥5' | '免費（需消費）';
   hours: string;
   entranceNote: string;
   tips: string;
@@ -82,6 +82,88 @@ const TOILETS: Toilet[] = [
     distanceFromRoute: '豫園商城核心區域內，步行約2分鐘',
     imagePath: '/toilet-tour/sh07-豫园商城.jpg',
   },
+  {
+    id: 'sh-08',
+    name: '和平飯店洗手間',
+    address: '南京東路20號和平飯店大堂1樓（近外灘側）',
+    type: 'hotel',
+    cleanliness: 5,
+    fee: '免費（需消費）',
+    hours: '全天開放',
+    entranceNote: '和平飯店貴賓可直接使用一樓大堂洗手間，需由禮賓部引導。非住客可在咖啡廳消費後使用，或請禮賓部協助。飯店裝修為1930年代Art Deco風格，洗手間保持五星級標準。',
+    tips: '和平飯店毗鄰外灘，與南京東路步行街相連。推薦在外灘看完夜景後順路使用，是上海最高規格的洗手間之一。的非住客請在咖啡廳消費後使用，洗手間乾淨程度五星級。',
+    distanceFromRoute: '外灘南京東路路口，步行約3分鐘',
+    imagePath: '/toilet-tour/hangzhou-peace-1.jpg',
+  },
+];
+
+// ── 杭州區塊（武林夜市 ↔ 吳山廣場 ↔ 河坊街 ↔ 南宋御街）────────────────────
+const HANGZHOU_TOILETS: Toilet[] = [
+  {
+    id: 'hz-01',
+    name: '武林夜市公共洗手間',
+    address: '杭州市拱墅區武林路87號（武林夜市入口廣場東側）',
+    type: 'public',
+    cleanliness: 4,
+    fee: '免費',
+    hours: '16:00-23:00',
+    entranceNote: '洗手間位於武林夜市入口左側，認準藍色公廁指示牌。夜間人潮洶湧，建議趁夜市剛開始（16:00-18:00）錯峰使用，否則平均排隊15分鐘。',
+    tips: '武林夜市是杭州最熱鬧的夜市之一，美食攤位多達200家。洗手間數量有限，建議在進入夜市前先解決。附近沒有商場，公共洗手間是唯一選擇。',
+    distanceFromRoute: '武林夜市入口左側約20公尺',
+    imagePath: '/toilet-tour/hangzhou-hefang-1.jpg',
+  },
+  {
+    id: 'hz-02',
+    name: '河坊街/清河坊歷史街區公共洗手間',
+    address: '杭州市上城區河坊街117號（胡慶余堂斜對面）',
+    type: 'public',
+    cleanliness: 4,
+    fee: '免費',
+    hours: '08:00-22:00',
+    entranceNote: '洗手間在河坊街中段，藍色指示牌顯示「公共廁所」。街區為石板路面，略窄，春節期間人流密集時排隊可達20分鐘以上。胡慶余堂是中醫藥博物館，可順路參觀。',
+    tips: '河坊街是杭州歷史文化的縮影，保存了大量明清建築。洗手間在胡雪巖故居（胡慶余堂）對面，建議參觀完博物館後直接使用。街道兩側有多處小型餐飲店，可順路購買小龍包或定勝糕。',
+    distanceFromRoute: '河坊街中段，胡慶余堂對面，步行約2分鐘',
+    imagePath: '/toilet-tour/hangzhou-huqingyu-1.jpg',
+  },
+  {
+    id: 'hz-03',
+    name: '南宋御街地下公共洗手間',
+    address: '杭州市上城區中山中路62號（南宋御街地下商街南入口）',
+    type: 'public',
+    cleanliness: 4,
+    fee: '免費',
+    hours: '09:00-21:00',
+    entranceNote: '南宋御街是南宋時期的皇宮專用道路，現為地下商街。洗手間在南入口右側，明清民國三朝石板路展示區旁。地下商街有空調，空氣流通，環境舒適。',
+    tips: '南宋御街連接河坊街和城站火車站，是杭州老城區的中軸線。建議與河坊街一併遊覽，先逛河坊街再到御街。御街地下有很多老字號零食店，如知味觀、樓外樓。',
+    distanceFromRoute: '南宋御街南入口，步行約5分鐘可達河坊街',
+    imagePath: '/toilet-tour/hangzhou-songcity-1.jpg',
+  },
+  {
+    id: 'hz-04',
+    name: '吳山廣場公共洗手間',
+    address: '杭州市上城區吳山廣場（吳山天風石刻旁，近河坊街出口）',
+    type: 'public',
+    cleanliness: 4,
+    fee: '免費',
+    hours: '06:00-22:00',
+    entranceNote: '吳山廣場洗手間位於廣場東側，吳山天風大石刻旁。廣場每日06:00開放到22:00，早晨常有廣場舞和太極拳愛好者。節假日時廣場可聚集數萬人，此時排隊時間會大幅增加。',
+    tips: '吳山廣場是杭州老城區的心臟，登上吳山可俯瞰西湖。廣場連接河坊街、十里皇城塔遺址，步行可達西湖音樂噴泉。推薦黄昏前登吳山看完日落，再下來使用洗手間。',
+    distanceFromRoute: '吳山廣場東側，步行約3分鐘',
+    imagePath: '/toilet-tour/hangzhou-songcity-2.jpg',
+  },
+  {
+    id: 'hz-05',
+    name: '胡慶余堂（胡雪巖故居）附設洗手間',
+    address: '杭州市上城區河坊街大井巷95號（胡慶余堂園區內）',
+    type: 'public',
+    cleanliness: 5,
+    fee: '免費（需消費）',
+    hours: '08:30-17:00（胡慶余堂開放時間）',
+    entranceNote: '胡雪巖創建的胡慶余堂是中醫藥博物館，園區內洗手間在入口兩側。洗手間保持五星級清潔程度，有專人打掃。門票30元，可免費使用園區洗手間。參觀時間約1小時。',
+    tips: '胡慶余堂是中國最完整的民辦中醫藥博物館，展示了清代工商業文明。園區內有專人導覽服務（另收費），建議預留1.5-2小時。洗手間質量是整條河坊街最高者。',
+    distanceFromRoute: '河坊街大井巷內，步行約3分鐘',
+    imagePath: '/toilet-tour/hangzhou-hefang-3.jpg',
+  },
 ];
 
 function StarRating({ value }: { value: number }) {
@@ -97,8 +179,8 @@ function ToiletCard({ toilet }: { toilet: Toilet }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
-      {/* Image */}
-      <div className="relative w-full h-48 overflow-hidden bg-gray-100">
+      {/* Image - 2x height */}
+      <div className="relative w-full h-96 overflow-hidden bg-gray-100">
         <img
           src={toilet.imagePath}
           alt={toilet.name}
@@ -178,11 +260,13 @@ function ToiletCard({ toilet }: { toilet: Toilet }) {
 }
 
 export default function ToiletTourPage() {
+  const [selectedCity, setSelectedCity] = useState<'shanghai' | 'hangzhou'>('shanghai');
   const [filterType, setFilterType] = useState<string>('all');
 
+  const currentToilets = selectedCity === 'shanghai' ? TOILETS : HANGZHOU_TOILETS;
   const filteredToilets = filterType === 'all'
-    ? TOILETS
-    : TOILETS.filter(t => t.type === filterType);
+    ? currentToilets
+    : currentToilets.filter(t => t.type === filterType);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -200,33 +284,75 @@ export default function ToiletTourPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Hero */}
-        <div className="bg-gradient-to-r from-blue-800 to-blue-600 rounded-2xl p-6 mb-6 text-white">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-3xl">🏙️</span>
-            <h2 className="text-lg font-bold">上海 · 歷史建築沿線</h2>
-          </div>
-          <p className="text-white/80 text-sm leading-relaxed mb-1">
-            從四行倉庫沿西藏北路往南，途經南京東路步行街，延伸到外灘萬國建築博覽群，再到豫園商城。精選清潔度4星以上洗手間，只推薦真正值得使用的地點。
-          </p>
-          <p className="text-white/60 text-xs">
-            共收錄 {TOILETS.length} 處高評價洗手間 · 清潔度4-5星
-          </p>
+        {/* City Tabs */}
+        <div className="flex gap-3 mb-5">
+          <button
+            onClick={() => { setSelectedCity('shanghai'); setFilterType('all'); }}
+            className={`flex-1 py-3 rounded-2xl font-bold text-base transition-all ${
+              selectedCity === 'shanghai'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'bg-white text-gray-500 border border-gray-200 hover:bg-blue-50'
+            }`}
+          >
+            🏙️ 上海 · 6處
+          </button>
+          <button
+            onClick={() => { setSelectedCity('hangzhou'); setFilterType('all'); }}
+            className={`flex-1 py-3 rounded-2xl font-bold text-base transition-all ${
+              selectedCity === 'hangzhou'
+                ? 'bg-green-600 text-white shadow-md'
+                : 'bg-white text-gray-500 border border-gray-200 hover:bg-green-50'
+            }`}
+          >
+            🌿 杭州 · 5處
+          </button>
         </div>
+
+        {/* City-specific Hero */}
+        {selectedCity === 'shanghai' ? (
+          <div className="bg-gradient-to-r from-blue-800 to-blue-600 rounded-2xl p-6 mb-5 text-white">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl">🏙️</span>
+              <h2 className="text-lg font-bold">上海 · 歷史建築沿線</h2>
+            </div>
+            <p className="text-white/80 text-sm leading-relaxed mb-1">
+              從四行倉庫沿西藏北路往南，途經南京東路步行街，延伸到外灘萬國建築博覽群，再到豫園商城。精選清潔度4星以上洗手間，只推薦真正值得使用的地點。
+            </p>
+            <p className="text-white/60 text-xs">
+              共收錄 {TOILETS.length} 處高評價洗手間 · 清潔度4-5星
+            </p>
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-green-700 to-green-500 rounded-2xl p-6 mb-5 text-white">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-3xl">🌿</span>
+              <h2 className="text-lg font-bold">杭州 · 武林夜市 ↔ 吳山廣場 ↔ 河坊街</h2>
+            </div>
+            <p className="text-white/80 text-sm leading-relaxed mb-1">
+              武林夜市 → 河坊街/清河坊 → 南宋御街 → 吳山廣場。杭州老城區核心步行區，清新乾淨的洗手間分佈均勻，涵蓋夜市、歷史街區和景區。胡慶余堂提供五星級洗手間體驗。
+            </p>
+            <p className="text-white/60 text-xs">
+              共收錄 {HANGZHOU_TOILETS.length} 處高評價洗手間 · 清潔度4-5星
+            </p>
+          </div>
+        )}
 
         {/* Filter */}
         <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
           {[
-            { id: 'all', label: '全部', count: TOILETS.length },
-            { id: 'public', label: '🏛️ 公共', count: TOILETS.filter(t => t.type === 'public').length },
-            { id: 'mall', label: '🏬 商場', count: TOILETS.filter(t => t.type === 'mall').length },
+            { id: 'all', label: '全部', count: currentToilets.length },
+            { id: 'public', label: '🏛️ 公共', count: currentToilets.filter(t => t.type === 'public').length },
+            { id: 'mall', label: '🏬 商場', count: currentToilets.filter(t => t.type === 'mall').length },
+            ...(selectedCity === 'shanghai' && TOILETS.some(t => t.type === 'hotel')
+              ? [{ id: 'hotel', label: '🏨 飯店', count: TOILETS.filter(t => t.type === 'hotel').length }]
+              : []),
           ].map(f => (
             <button
               key={f.id}
               onClick={() => setFilterType(f.id)}
               className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                 filterType === f.id
-                  ? 'bg-blue-600 text-white'
+                  ? selectedCity === 'shanghai' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'
                   : 'bg-white text-gray-500 border border-gray-200 hover:bg-blue-50'
               }`}
             >
@@ -260,35 +386,69 @@ export default function ToiletTourPage() {
           ))}
         </div>
 
-        {/* Route summary */}
-        <div className="mt-8 bg-blue-50 rounded-2xl p-5 border border-blue-100">
-          <h3 className="text-base font-bold text-blue-700 mb-3 flex items-center gap-2">
-            <span className="text-xl">📋</span> 上海段路線使用建議
-          </h3>
-          <div className="space-y-3 text-sm text-blue-800 leading-relaxed">
-            <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-              <span className="text-xl">1️⃣</span>
-              <div>
-                <p className="font-bold text-gray-800">四行倉庫 → 南京東路</p>
-                <p className="text-gray-600 text-xs mt-1">約2.5公里，步行約35分鐘。建議在四行倉庫紀念館或南京東路東段公共洗手間處理。</p>
+        {/* Route summary - Shanghai only */}
+        {selectedCity === 'shanghai' && (
+          <div className="mt-8 bg-blue-50 rounded-2xl p-5 border border-blue-100">
+            <h3 className="text-base font-bold text-blue-700 mb-3 flex items-center gap-2">
+              <span className="text-xl">📋</span> 上海段路線使用建議
+            </h3>
+            <div className="space-y-3 text-sm text-blue-800 leading-relaxed">
+              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                <span className="text-xl">1️⃣</span>
+                <div>
+                  <p className="font-bold text-gray-800">四行倉庫 → 南京東路</p>
+                  <p className="text-gray-600 text-xs mt-1">約2.5公里，步行約35分鐘。建議在四行倉庫紀念館或南京東路東段公共洗手間處理。</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-              <span className="text-xl">2️⃣</span>
-              <div>
-                <p className="font-bold text-gray-800">南京東路 → 外灘</p>
-                <p className="text-gray-600 text-xs mt-1">約1公里，步行約15分鐘。外灘情人牆沿線洗手間極少，<strong>外灘源商場B1</strong>是最靠譜的選項（清洗度5星）。</p>
+              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                <span className="text-xl">2️⃣</span>
+                <div>
+                  <p className="font-bold text-gray-800">南京東路 → 外灘</p>
+                  <p className="text-gray-600 text-xs mt-1">約1公里，步行約15分鐘。外灘沿線洗手間極少，<strong>外灘源商場B1</strong>是最靠譜的選項（清潔度5星）。和平飯店洗手間需消費或入住。的最佳選擇。</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-              <span className="text-xl">3️⃣</span>
-              <div>
-                <p className="font-bold text-gray-800">外灘 → 豫園商城</p>
-                <p className="text-gray-600 text-xs mt-1">約2公里，步行約25分鐘。進入豫園商城前建議先在商城B1地下洗手間處理，節假日排隊時間可達30分鐘。</p>
+              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                <span className="text-xl">3️⃣</span>
+                <div>
+                  <p className="font-bold text-gray-800">外灘 → 豫園商城</p>
+                  <p className="text-gray-600 text-xs mt-1">約2公里，步行約25分鐘。進入豫園商城前建議先在商城B1地下洗手間處理，節假日排隊時間可達30分鐘。</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Route summary - Hangzhou */}
+        {selectedCity === 'hangzhou' && (
+          <div className="mt-8 bg-green-50 rounded-2xl p-5 border border-green-100">
+            <h3 className="text-base font-bold text-green-700 mb-3 flex items-center gap-2">
+              <span className="text-xl">📋</span> 杭州段路線使用建議
+            </h3>
+            <div className="space-y-3 text-sm text-green-800 leading-relaxed">
+              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                <span className="text-xl">1️⃣</span>
+                <div>
+                  <p className="font-bold text-gray-800">武林夜市 → 河坊街</p>
+                  <p className="text-gray-600 text-xs mt-1">武林夜市（傍晚16:00-18:00）→ 步行10分鐘至河坊街。武林夜市洗手間排隊時間波動大，建議一出夜市就處理。</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                <span className="text-xl">2️⃣</span>
+                <div>
+                  <p className="font-bold text-gray-800">河坊街 → 南宋御街</p>
+                  <p className="text-gray-600 text-xs mt-1">河坊街中段（胡慶余堂）→ 步行5分鐘至南宋御街南入口。南宋御街地下商街有空調，環境舒適，是河坊街的最佳補充。</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
+                <span className="text-xl">3️⃣</span>
+                <div>
+                  <p className="font-bold text-gray-800">南宋御街 → 吳山廣場</p>
+                  <p className="text-gray-600 text-xs mt-1">南宋御街南入口 → 吳山廣場（步行約5分鐘）。建議黄昏前登吳山看完日落，下山時在廣場洗手間處理。吳山天風視野開闊，是杭州最佳夜景拍攝點之一。</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tips */}
         <div className="mt-6 bg-yellow-50 rounded-2xl p-5 border border-yellow-100">
@@ -299,17 +459,8 @@ export default function ToiletTourPage() {
             <li>· <strong>隨身帶紙巾/濕紙巾</strong>，地鐵站和商場洗手間有時紙巾缺貨。</li>
             <li>· <strong>長時間徒步建議隨身攜帶一瓶水</strong>，既可補水亦可簡單清潔。</li>
             <li>· <strong>節假日</strong>（五一、國慶、春節）排隊時間可能增加3-5倍，建議提前一站在人少的點解決。</li>
+            <li>· <strong>杭州胡慶余堂</strong>洗手間為五星級，清潔程度最高，建議與河坊街一同遊覽。</li>
           </ul>
-        </div>
-
-        {/* Next zones teaser */}
-        <div className="mt-6 bg-gray-100 rounded-xl p-4 text-center">
-          <p className="text-sm text-gray-500">
-            🚧 更多城市洗手間數據即將上線
-          </p>
-          <p className="text-xs text-gray-400 mt-1">
-            杭州 · 烏鎮 · 西塘 · 嘉興 · 後續新增
-          </p>
         </div>
       </div>
     </div>
