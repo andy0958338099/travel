@@ -95,6 +95,32 @@ const TOILETS: Toilet[] = [
     distanceFromRoute: '外灘南京東路路口，步行約3分鐘',
     imagePath: '/toilet-tour/hangzhou-peace-1.jpg',
   },
+  {
+    id: 'sh-09',
+    name: '人民廣場地鐵站洗手間',
+    address: '上海市黃浦區人民廣場地鐵站1號線/2號線/8號線換乘大廳（近14號出口）',
+    type: 'metro',
+    cleanliness: 4,
+    fee: '免費',
+    hours: '05:30-23:00（地鐵營運時間）',
+    entranceNote: '人民廣場站是上海地鐵最大的換乘站之一，洗手間位於地下一層換乘通道北側近14號出口位置。指示牌清晰，但節假日換乘人流極大，建議錯峰使用。高峰期排隊時間可達20分鐘。',
+    tips: '人民廣場站連接1/2/8號線，是上海地鐵網絡的心臟。站內有多家便利店和餐飲店，可順路購買零食和飲水。從這裡步行至南京東路步行街約8分鐘，至外灘約15分鐘。',
+    distanceFromRoute: '人民廣場地鐵站換乘大廳，步行約5分鐘',
+    imagePath: '/toilet-tour/sh-peoplesquare.jpg',
+  },
+  {
+    id: 'sh-10',
+    name: '豫園老街公共洗手間',
+    address: '上海市黃浦區豫園老街（近福佑路/方浜中路路口）',
+    type: 'public',
+    cleanliness: 4,
+    fee: '免費',
+    hours: '08:00-21:00',
+    entranceNote: '豫園老街是連接豫園商城和城隍廟的重要步行街，洗手間在老街中段近方浜中路路口位置。路面為石板路，節假日人流密集，建議在進入老街前先在商城B1處理。老街洗手間空間有限，高峰期排隊可達15分鐘。',
+    tips: '豫園老街是上海老城廂文化的代表，街兩側有大量小吃和手工藝品店。建議與豫園商城一同遊覽，先遊商城再逛老街，最後在老街上洗手間處理後離開。從老街可步行至上海古城公園。',
+    distanceFromRoute: '豫園老街中段，步行約3分鐘',
+    imagePath: '/toilet-tour/sh-yuyuan-oldstreet.jpg',
+  },
 ];
 
 // ── 杭州區塊（武林夜市 ↔ 吳山廣場 ↔ 河坊街 ↔ 南宋御街）────────────────────
@@ -163,6 +189,32 @@ const HANGZHOU_TOILETS: Toilet[] = [
     tips: '胡慶余堂是中國最完整的民辦中醫藥博物館，展示了清代工商業文明。園區內有專人導覽服務（另收費），建議預留1.5-2小時。洗手間質量是整條河坊街最高者。',
     distanceFromRoute: '河坊街大井巷內，步行約3分鐘',
     imagePath: '/toilet-tour/hangzhou-hefang-3.jpg',
+  },
+  {
+    id: 'hz-06',
+    name: '定安路地鐵站洗手間',
+    address: '杭州市上城區定安路地鐵站D出口（近西湖大道/吳山廣場方向）',
+    type: 'metro',
+    cleanliness: 4,
+    fee: '免費',
+    hours: '06:00-23:00（地鐵營運時間）',
+    entranceNote: '定安路站是杭州地鐵1號線站點，洗手間位於地下一層站台區外側近D出口位置。站內指示牌清晰，有專人定期清潔。地鐵站洗手間比路面公共洗手間保持更穩定的清潔度。',
+    tips: '定安路站人流相對較少，不像龍翔橋那般擁擠。從這裡往西走600米可達吳山廣場，東走500米可達河坊街南端。是杭州老城區地鐵網絡中較乾淨且少排隊的選項。',
+    distanceFromRoute: '地鐵站站廳層，步行約2分鐘',
+    imagePath: '/toilet-tour/hangzhou-dinganlu.jpg',
+  },
+  {
+    id: 'hz-07',
+    name: '龍翔橋地鐵站洗手間',
+    address: '杭州市拱墅區龍翔橋地鐵站A出口（近延安路/西湖大道）',
+    type: 'metro',
+    cleanliness: 4,
+    fee: '免費',
+    hours: '06:00-23:00（地鐵營運時間）',
+    entranceNote: '龍翔橋站是杭州地鐵1號線和龍翔橋公交樞紐的交匯站，洗手間在地下二層站台端頭近扶梯位置。站內人流量大，節假日經常排長隊，建議錯峰使用。早晚高峰（7:30-9:00、17:30-19:00）排隊時間可達15分鐘。',
+    tips: '龍翔橋站是杭州地鐵最繁忙的站點之一，連接西湖大道和延安路。站內有商場和餐飲區，是武林商圈和西湖景區的中轉樞紐。從這裡步行至西湖斷橋約15分鐘，至靈隱寺有直達公交。',
+    distanceFromRoute: '龍翔橋地鐵站站廳層，步行約3分鐘',
+    imagePath: '/toilet-tour/hangzhou-longxiangqiao.jpg',
   },
 ];
 
@@ -294,7 +346,7 @@ export default function ToiletTourPage() {
                 : 'bg-white text-gray-500 border border-gray-200 hover:bg-blue-50'
             }`}
           >
-            🏙️ 上海 · 6處
+            🏙️ 上海 · 10處
           </button>
           <button
             onClick={() => { setSelectedCity('hangzhou'); setFilterType('all'); }}
@@ -304,7 +356,7 @@ export default function ToiletTourPage() {
                 : 'bg-white text-gray-500 border border-gray-200 hover:bg-green-50'
             }`}
           >
-            🌿 杭州 · 5處
+            🌿 杭州 · 7處
           </button>
         </div>
 
