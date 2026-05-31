@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import ItineraryPlanner from "./ItineraryPlanner";
 import WeatherWidget from "./WeatherWidget";
 import SmartDropZone, { ExtractedData } from "./SmartDropZone";
+import { loadNavOrder, saveNavOrder, DEFAULT_NAV_ITEMS, NavItem } from "@/utils/navOrderService";
 
 const CNY_RATE = 4.5;
 const TRIP_START = new Date("2026-07-17");
@@ -55,8 +56,13 @@ export default function TravelPage() {
   const [packingData, setPackingData] = useState({ packed: 0, total: 0 });
   const [realFlight, setRealFlight] = useState<ExtractedData | null>(null);
   const [realHotel, setRealHotel] = useState<ExtractedData | null>(null);
+  const [navOrder, setNavOrder] = useState<NavItem[]>(DEFAULT_NAV_ITEMS);
+  const [isEditingOrder, setIsEditingOrder] = useState(false);
 
-  // Real flight/hotel extracted from SmartDropZone
+  // Load nav order from Supabase
+  useEffect(() => {
+    loadNavOrder().then(setNavOrder);
+  }, []);
 
   // Load flight/hotel from localStorage on mount
   useEffect(() => {
@@ -149,32 +155,68 @@ export default function TravelPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-teal-600 to-blue-600 text-white">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Link href="/" className="text-white/80 hover:text-white">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link href="/" className="text-white/80 hover:text-white text-sm">
               ← 返回首頁
             </Link>
-            <Link href="/travel/planner" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
-              🗓️ 行程規劃器
-            </Link>
-            <Link href="/travel/journal" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
-              📖 旅程日誌
-            </Link>
-            <Link href="/travel/stories" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
-              📚 地理歷史
-            </Link>
-            <Link href="/travel/room-tour" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
-              🏨 Room Tour
-            </Link>
-            <Link href="/travel/videos" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
-              🎬 影片分享牆
-            </Link>
-            <Link href="/travel/dining" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
-              🍜 餐食評論
-            </Link>
-            <Link href="/travel/toilet-tour" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
-              🚻 Toilet Tour
-            </Link>
-
+            {navOrder.map(item => (
+              <Link key={item.key} href={item.href} className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
+                {item.label}
+              </Link>
+            ))}
+            {isEditingOrder ? (
+              <>
+                <button
+                  onClick={() => { setIsEditingOrder(false); saveNavOrder(navOrder); }}
+                  className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded-full text-sm font-medium"
+                >
+                  ✓ 儲存順序
+                </button>
+                <button
+                  onClick={() => { setIsEditingOrder(false); setNavOrder(DEFAULT_NAV_ITEMS); }}
+                  className="bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full text-sm"
+                >
+                  ✕ 取消
+                </button>
+                <div className="w-full" />
+                <div className="flex flex-wrap gap-1 mt-2 w-full">
+                  {navOrder.map((item, idx) => (
+                    <div key={item.key} className="flex items-center gap-1 bg-white/10 rounded-full px-2 py-1">
+                      <button
+                        onClick={() => {
+                          const next = [...navOrder];
+                          [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                          setNavOrder(next.filter(Boolean));
+                        }}
+                        disabled={idx === 0}
+                        className="text-white/60 hover:text-white disabled:opacity-30 text-xs px-1"
+                      >
+                        ↑
+                      </button>
+                      <span className="text-xs text-white/80">{item.label}</span>
+                      <button
+                        onClick={() => {
+                          const next = [...navOrder];
+                          [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                          setNavOrder(next.filter(Boolean));
+                        }}
+                        disabled={idx === navOrder.length - 1}
+                        className="text-white/60 hover:text-white disabled:opacity-30 text-xs px-1"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => setIsEditingOrder(true)}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded-full text-sm font-medium"
+              >
+                ✏️ 排序
+              </button>
+            )}
           </div>
           <h1 className="text-3xl font-bold mb-2">🗺️ 江南水鄉八日之旅</h1>
           <p className="text-white/80">8天7夜 · 杭州 → 上海 → 西塘 → 烏鎮 → 杭州</p>
