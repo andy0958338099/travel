@@ -22,6 +22,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'videos',      label: '🎬 影片分享牆',   href: '/travel/videos'      },
   { key: 'dining',      label: '🍜 餐食評論',     href: '/travel/dining'      },
   { key: 'toilet-tour', label: '🚻 Toilet Tour',  href: '/travel/toilet-tour' },
+  { key: 'toys-tour',   label: '🧸 Toys Tour',    href: '/travel/toys-tour'   },
 ];
 
 const SETTINGS_KEY = 'nav_order_v1';
