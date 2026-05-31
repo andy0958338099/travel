@@ -1,13 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ATTRACTIONS, type Attraction } from './data';
+import { getHiddenImages, hideImage } from '@/utils/attractionGalleryService';
 
 function AttractionCard({ attraction }: { attraction: Attraction }) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const images = attraction.images || [];
+  const [images, setImages] = useState<string[]>(attraction.images || []);
+  const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
 
-  if (images.length === 0) {
+  // Load hidden images from Supabase on mount
+  useEffect(() => {
+    getHiddenImages().then(setHiddenSet);
+  }, []);
+
+  const visibleImages = images.filter((img) => !hiddenSet.has(img));
+
+  if (visibleImages.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="h-40 bg-gray-100 flex items-center justify-center text-gray-400">
@@ -30,16 +39,16 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
         {/* 主圖 */}
         <div className="relative h-40 overflow-hidden bg-gray-50">
           <img
-            src={images[0]}
+            src={visibleImages[0]}
             alt={attraction.name}
             className="w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
             }}
           />
-          {images.length > 1 && (
+          {visibleImages.length > 1 && (
             <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-              +{images.length - 1}
+              +{visibleImages.length - 1}
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -59,19 +68,36 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setSelectedIdx(null)}
         >
+          {/* 刪除按鈕 */}
           <button
-            className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300"
+            className="absolute top-4 right-4 z-10 w-9 h-9 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-lg shadow-lg"
+            onClick={async (e) => {
+              e.stopPropagation();
+              const imgToDelete = visibleImages[selectedIdx];
+              await hideImage(imgToDelete);
+              setHiddenSet((prev) => new Set([...prev, imgToDelete]));
+              if (selectedIdx >= visibleImages.length - 1) {
+                setSelectedIdx(null);
+              }
+            }}
+            title="刪除此照片"
+          >
+            🗑️
+          </button>
+
+          <button
+            className="absolute top-4 left-4 text-white text-3xl hover:text-gray-300 z-10"
             onClick={() => setSelectedIdx(null)}
           >
             ×
           </button>
 
-          {images.length > 1 && (
+          {visibleImages.length > 1 && (
             <button
               className="absolute left-4 text-white text-4xl hover:text-gray-300"
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedIdx((prev) => (prev! > 0 ? prev! - 1 : images.length - 1));
+                setSelectedIdx((prev) => (prev! > 0 ? prev! - 1 : visibleImages.length - 1));
               }}
             >
               ‹
@@ -80,7 +106,7 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
 
           <div className="max-w-4xl max-h-[85vh] w-full" onClick={(e) => e.stopPropagation()}>
             <img
-              src={images[selectedIdx]}
+              src={visibleImages[selectedIdx]}
               alt={`${attraction.name} ${selectedIdx + 1}`}
               className="w-full h-full object-contain rounded-lg"
               style={{ maxHeight: '80vh' }}
@@ -88,15 +114,15 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
             <div className="text-center mt-3 text-white">
               <p className="font-medium">{attraction.name}</p>
               <p className="text-sm text-gray-300">
-                {selectedIdx + 1} / {images.length}
+                {selectedIdx + 1} / {visibleImages.length}
                 {attraction.nameEn && ` · ${attraction.nameEn}`}
               </p>
             </div>
 
             {/* 縮圖列 */}
-            {images.length > 1 && (
+            {visibleImages.length > 1 && (
               <div className="flex justify-center gap-2 mt-3">
-                {images.map((img, i) => (
+                {visibleImages.map((img, i) => (
                   <button
                     key={i}
                     className={`w-16 h-12 rounded overflow-hidden border-2 transition-all ${
@@ -114,12 +140,12 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
             )}
           </div>
 
-          {images.length > 1 && (
+          {visibleImages.length > 1 && (
             <button
               className="absolute right-4 text-white text-4xl hover:text-gray-300"
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedIdx((prev) => (prev! < images.length - 1 ? prev! + 1 : 0));
+                setSelectedIdx((prev) => (prev! < visibleImages.length - 1 ? prev! + 1 : 0));
               }}
             >
               ›
@@ -167,7 +193,7 @@ export default function AttractionGallery() {
 
       {/* 統計 */}
       <p className="text-sm text-gray-500">
-        共 {filtered.length} 個景點 · {filtered.reduce((acc, a) => acc + (a.images?.length || 0), 0)} 張照片
+        共 {filtered.length} 個景點
       </p>
 
       {/* 照片網格 */}

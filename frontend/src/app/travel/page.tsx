@@ -51,7 +51,7 @@ const DynamicAttractionGallery = dynamic(() => import("./AttractionGallery"), {
 
 export default function TravelPage() {
   const [plannedAttractions, setPlannedAttractions] = useState<string[]>([]);
-  const [daysUntil, setDaysUntil] = useState(0);
+  const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [budgetData, setBudgetData] = useState({ budget: 50000, spent: 0, percent: 0 });
   const [packingData, setPackingData] = useState({ packed: 0, total: 0 });
   const [realFlight, setRealFlight] = useState<ExtractedData | null>(null);
@@ -89,8 +89,12 @@ export default function TravelPage() {
   useEffect(() => {
     const update = () => {
       const now = new Date();
-      const days = Math.ceil((TRIP_START.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      setDaysUntil(Math.max(0, days));
+      const diff = Math.max(0, TRIP_START.getTime() - now.getTime());
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setCountdown({ days, hours, minutes, seconds });
 
       // Read planned attractions from ItineraryPlanner (PlannedDay format)
       // Priority: planner key (hangzhou-trip-planner) > old itinerary key
@@ -238,7 +242,9 @@ export default function TravelPage() {
               <div>
                 <div className="text-xs text-gray-500">距離出發</div>
                 <div className="font-bold text-lg leading-tight">
-                  {daysUntil > 0 ? `${daysUntil} 天` : "✨ 旅途中"}
+                  {countdown.days > 0 || countdown.hours > 0 || countdown.minutes > 0 || countdown.seconds > 0
+                    ? `${countdown.days} 天 ${String(countdown.hours).padStart(2,'0')} : ${String(countdown.minutes).padStart(2,'0')} : ${String(countdown.seconds).padStart(2,'0')}`
+                    : "✨ 旅途中"}
                 </div>
               </div>
             </div>
@@ -364,29 +370,52 @@ export default function TravelPage() {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* Flight Info */}
+            {/* Attractions */}
             <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                ✈️ 航班資訊
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-500">去程 7/17</span>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">建議航班</span>
-                  </div>
-                  <div className="font-bold text-lg"> TPE → HGH</div>
-                  <div className="text-gray-600">桃園TPE 11:15 → 杭州HGH 13:20</div>
-                  <div className="text-sm text-gray-500 mt-1">飛行約2小時05分</div>
+              <h2 className="text-xl font-bold mb-4">🏛️ 景點門票總覽</h2>
+              
+              <div className="mb-6">
+                <h3 className="font-bold text-lg mb-3 text-teal-700">西湖風景區</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {ATTRACTIONS.westLake.map((spot) => (
+                    <div key={spot.name} className="border rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <span className="font-medium">{spot.name}</span>
+                        <span className="text-teal-600 font-bold text-sm">{spot.ticket}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
+                    </div>
+                  ))}
                 </div>
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-500">回程 7/24</span>
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">建議航班</span>
-                  </div>
-                  <div className="font-bold text-lg"> HGH → TPE</div>
-                  <div className="text-gray-600">杭州HGH 19:50 → 桃園TPE 21:50</div>
-                  <div className="text-sm text-gray-500 mt-1">飛行約2小時10分</div>
+              </div>
+
+              <div className="mb-6">
+                <h3 className="font-bold text-lg mb-3 text-amber-700">烏鎮水鄉</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {ATTRACTIONS.wuzhen.map((spot) => (
+                    <div key={spot.name} className="border rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <span className="font-medium">{spot.name}</span>
+                        <span className="text-amber-600 font-bold text-sm">{spot.ticket}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-bold text-lg mb-3 text-blue-700">杭州其他景點</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {ATTRACTIONS.other.map((spot) => (
+                    <div key={spot.name} className="border rounded-lg p-3">
+                      <div className="flex justify-between items-start">
+                        <span className="font-medium">{spot.name}</span>
+                        <span className="text-blue-600 font-bold text-sm">{spot.ticket}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
@@ -451,52 +480,29 @@ export default function TravelPage() {
               <ItineraryPlanner onUpdateAttractions={setPlannedAttractions} />
             </section>
 
-            {/* Attractions */}
+            {/* Flight Info */}
             <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4">🏛️ 景點門票總覽</h2>
-              
-              <div className="mb-6">
-                <h3 className="font-bold text-lg mb-3 text-teal-700">西湖風景區</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {ATTRACTIONS.westLake.map((spot) => (
-                    <div key={spot.name} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{spot.name}</span>
-                        <span className="text-teal-600 font-bold text-sm">{spot.ticket}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
-                    </div>
-                  ))}
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                ✈️ 航班資訊
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-500">去程 7/17</span>
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">建議航班</span>
+                  </div>
+                  <div className="font-bold text-lg"> TPE → HGH</div>
+                  <div className="text-gray-600">桃園TPE 11:15 → 杭州HGH 13:20</div>
+                  <div className="text-sm text-gray-500 mt-1">飛行約2小時05分</div>
                 </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="font-bold text-lg mb-3 text-amber-700">烏鎮水鄉</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {ATTRACTIONS.wuzhen.map((spot) => (
-                    <div key={spot.name} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{spot.name}</span>
-                        <span className="text-amber-600 font-bold text-sm">{spot.ticket}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-lg mb-3 text-blue-700">杭州其他景點</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {ATTRACTIONS.other.map((spot) => (
-                    <div key={spot.name} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{spot.name}</span>
-                        <span className="text-blue-600 font-bold text-sm">{spot.ticket}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
-                    </div>
-                  ))}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-500">回程 7/24</span>
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">建議航班</span>
+                  </div>
+                  <div className="font-bold text-lg"> HGH → TPE</div>
+                  <div className="text-gray-600">杭州HGH 19:50 → 桃園TPE 21:50</div>
+                  <div className="text-sm text-gray-500 mt-1">飛行約2小時10分</div>
                 </div>
               </div>
             </section>

@@ -146,3 +146,10 @@ on conflict (id) do nothing;
 insert into public.planner_settings (key, value) values
   ('cost_target', '20000')
 on conflict (key) do nothing;
+
+-- ── Attraction Gallery: Hidden Images ───────────────────────────
+-- Tracks deleted images so all users see them hidden
+create table if not exists public.attraction_gallery_hidden (
+  image_url   text primary key,
+  hidden_at   timestamptz default now()
+);
