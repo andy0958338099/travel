@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ATTRACTIONS, type Attraction } from './data';
-import { getHiddenImages, hideImage, getHiddenAttractions, hideAttraction } from '@/utils/attractionGalleryService';
+import { getHiddenImages, hideImage } from '@/utils/attractionGalleryService';
 
 function SkeletonCard() {
   return (
@@ -18,10 +18,8 @@ function SkeletonCard() {
 
 function AttractionCard({
   attraction,
-  onDelete,
 }: {
   attraction: Attraction;
-  onDelete: (name: string) => void;
 }) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [images, setImages] = useState<string[]>(attraction.images || []);
@@ -43,17 +41,6 @@ function AttractionCard({
           <h3 className="font-semibold text-gray-800 text-sm">{attraction.name}</h3>
           <p className="text-xs text-gray-500">{attraction.nameEn || ''}</p>
         </div>
-        {/* 刪除景點按鈕 */}
-        <button
-          className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm shadow"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(attraction.name);
-          }}
-          title="刪除此景點"
-        >
-          🗑️
-        </button>
       </div>
     );
   }
@@ -83,17 +70,6 @@ function AttractionCard({
           <div className="absolute bottom-2 left-2">
             <span className="text-white text-xs font-medium drop-shadow">{attraction.name}</span>
           </div>
-          {/* 刪除景點按鈕 */}
-          <button
-            className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm shadow"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(attraction.name);
-            }}
-            title="刪除此景點"
-          >
-            🗑️
-          </button>
         </div>
         <div className="p-3">
           <p className="text-xs text-gray-500">{attraction.nameEn || ''}</p>
@@ -198,14 +174,12 @@ function AttractionCard({
 
 export default function AttractionGallery() {
   const [filter, setFilter] = useState<'all' | 'westLake' | 'wuzhen' | 'other'>('all');
-  const [hiddenAttractions, setHiddenAttractions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getHiddenAttractions().then((attrs) => {
-      setHiddenAttractions(attrs);
-      setIsLoading(false);
-    });
+    // Give skeleton time to render before hiding loading
+    const timer = setTimeout(() => setIsLoading(false), 100);
+    return () => clearTimeout(timer);
   }, []);
 
   const categories = [
@@ -219,13 +193,6 @@ export default function AttractionGallery() {
     filter === 'all'
       ? [...ATTRACTIONS.westLake, ...ATTRACTIONS.wuzhen, ...ATTRACTIONS.other]
       : ATTRACTIONS[filter];
-
-  const visible = allFiltered.filter((a) => !hiddenAttractions.has(a.name));
-
-  const handleDeleteAttraction = async (name: string) => {
-    await hideAttraction(name);
-    setHiddenAttractions((prev) => new Set([...prev, name]));
-  };
 
   return (
     <div className="space-y-4">
@@ -248,18 +215,17 @@ export default function AttractionGallery() {
 
       {/* 統計 */}
       <p className="text-sm text-gray-500">
-        {isLoading ? '載入中…' : `共 ${visible.length} 個景點`}
+        {isLoading ? '載入中…' : `共 ${allFiltered.length} 個景點`}
       </p>
 
       {/* 照片網格 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
         {isLoading
           ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
-          : visible.map((attraction) => (
+          : allFiltered.map((attraction) => (
               <AttractionCard
                 key={attraction.name}
                 attraction={attraction}
-                onDelete={handleDeleteAttraction}
               />
             ))}
       </div>
