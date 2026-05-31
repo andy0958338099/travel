@@ -153,3 +153,8 @@ create table if not exists public.attraction_gallery_hidden (
   image_url   text primary key,
   hidden_at   timestamptz default now()
 );
+
+create table if not exists public.attraction_gallery_attractions (
+  attraction_name text primary key,
+  hidden_at        timestamptz default now()
+);

@@ -2,14 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { ATTRACTIONS, type Attraction } from './data';
-import { getHiddenImages, hideImage } from '@/utils/attractionGalleryService';
+import { getHiddenImages, hideImage, getHiddenAttractions, hideAttraction } from '@/utils/attractionGalleryService';
 
-function AttractionCard({ attraction }: { attraction: Attraction }) {
+function AttractionCard({
+  attraction,
+  onDelete,
+}: {
+  attraction: Attraction;
+  onDelete: (name: string) => void;
+}) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [images, setImages] = useState<string[]>(attraction.images || []);
   const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
 
-  // Load hidden images from Supabase on mount
   useEffect(() => {
     getHiddenImages().then(setHiddenSet);
   }, []);
@@ -18,7 +23,7 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
 
   if (visibleImages.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative">
         <div className="h-40 bg-gray-100 flex items-center justify-center text-gray-400">
           <span className="text-sm">📷 照片待補</span>
         </div>
@@ -26,6 +31,17 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
           <h3 className="font-semibold text-gray-800 text-sm">{attraction.name}</h3>
           <p className="text-xs text-gray-500">{attraction.nameEn || ''}</p>
         </div>
+        {/* 刪除景點按鈕 */}
+        <button
+          className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm shadow"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(attraction.name);
+          }}
+          title="刪除此景點"
+        >
+          🗑️
+        </button>
       </div>
     );
   }
@@ -33,7 +49,7 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
   return (
     <>
       <div
-        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md transition-shadow relative"
         onClick={() => setSelectedIdx(0)}
       >
         {/* 主圖 */}
@@ -55,6 +71,17 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
           <div className="absolute bottom-2 left-2">
             <span className="text-white text-xs font-medium drop-shadow">{attraction.name}</span>
           </div>
+          {/* 刪除景點按鈕 */}
+          <button
+            className="absolute top-2 right-2 w-7 h-7 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-sm shadow"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(attraction.name);
+            }}
+            title="刪除此景點"
+          >
+            🗑️
+          </button>
         </div>
         <div className="p-3">
           <p className="text-xs text-gray-500">{attraction.nameEn || ''}</p>
@@ -68,23 +95,7 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
           className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setSelectedIdx(null)}
         >
-          {/* 刪除按鈕 */}
-          <button
-            className="absolute top-4 right-4 z-10 w-9 h-9 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-lg shadow-lg"
-            onClick={async (e) => {
-              e.stopPropagation();
-              const imgToDelete = visibleImages[selectedIdx];
-              await hideImage(imgToDelete);
-              setHiddenSet((prev) => new Set([...prev, imgToDelete]));
-              if (selectedIdx >= visibleImages.length - 1) {
-                setSelectedIdx(null);
-              }
-            }}
-            title="刪除此照片"
-          >
-            🗑️
-          </button>
-
+          {/* 關閉按鈕 */}
           <button
             className="absolute top-4 left-4 text-white text-3xl hover:text-gray-300 z-10"
             onClick={() => setSelectedIdx(null)}
@@ -123,18 +134,34 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
             {visibleImages.length > 1 && (
               <div className="flex justify-center gap-2 mt-3">
                 {visibleImages.map((img, i) => (
-                  <button
-                    key={i}
-                    className={`w-16 h-12 rounded overflow-hidden border-2 transition-all ${
-                      i === selectedIdx ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedIdx(i);
-                    }}
-                  >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                  </button>
+                  <div key={i} className="relative">
+                    <button
+                      className={`w-16 h-12 rounded overflow-hidden border-2 transition-all ${
+                        i === selectedIdx ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedIdx(i);
+                      }}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                    {/* 刪除該照片按鈕 */}
+                    <button
+                      className="absolute top-0 right-0 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await hideImage(img);
+                        setHiddenSet((prev) => new Set([...prev, img]));
+                        if (selectedIdx >= visibleImages.length - 1) {
+                          setSelectedIdx((prev) => Math.max(0, (prev || 1) - 1));
+                        }
+                      }}
+                      title="刪除此照片"
+                    >
+                      ×
+                    </button>
+                  </div>
                 ))}
               </div>
             )}
@@ -159,6 +186,11 @@ function AttractionCard({ attraction }: { attraction: Attraction }) {
 
 export default function AttractionGallery() {
   const [filter, setFilter] = useState<'all' | 'westLake' | 'wuzhen' | 'other'>('all');
+  const [hiddenAttractions, setHiddenAttractions] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    getHiddenAttractions().then(setHiddenAttractions);
+  }, []);
 
   const categories = [
     { key: 'all', label: '全部景點', emoji: '🗺️' },
@@ -167,10 +199,17 @@ export default function AttractionGallery() {
     { key: 'other', label: '其他景點', emoji: '🎭' },
   ] as const;
 
-  const filtered =
+  const allFiltered =
     filter === 'all'
       ? [...ATTRACTIONS.westLake, ...ATTRACTIONS.wuzhen, ...ATTRACTIONS.other]
       : ATTRACTIONS[filter];
+
+  const visible = allFiltered.filter((a) => !hiddenAttractions.has(a.name));
+
+  const handleDeleteAttraction = async (name: string) => {
+    await hideAttraction(name);
+    setHiddenAttractions((prev) => new Set([...prev, name]));
+  };
 
   return (
     <div className="space-y-4">
@@ -193,13 +232,17 @@ export default function AttractionGallery() {
 
       {/* 統計 */}
       <p className="text-sm text-gray-500">
-        共 {filtered.length} 個景點
+        共 {visible.length} 個景點
       </p>
 
       {/* 照片網格 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-        {filtered.map((attraction) => (
-          <AttractionCard key={attraction.name} attraction={attraction} />
+        {visible.map((attraction) => (
+          <AttractionCard
+            key={attraction.name}
+            attraction={attraction}
+            onDelete={handleDeleteAttraction}
+          />
         ))}
       </div>
     </div>
