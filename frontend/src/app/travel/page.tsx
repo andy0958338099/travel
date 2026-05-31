@@ -369,56 +369,17 @@ export default function TravelPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            
-            {/* Attractions */}
+
             <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4">🏛️ 景點門票總覽</h2>
-              
-              <div className="mb-6">
-                <h3 className="font-bold text-lg mb-3 text-teal-700">西湖風景區</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {ATTRACTIONS.westLake.map((spot) => (
-                    <div key={spot.name} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{spot.name}</span>
-                        <span className="text-teal-600 font-bold text-sm">{spot.ticket}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="font-bold text-lg mb-3 text-amber-700">烏鎮水鄉</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {ATTRACTIONS.wuzhen.map((spot) => (
-                    <div key={spot.name} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{spot.name}</span>
-                        <span className="text-amber-600 font-bold text-sm">{spot.ticket}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-bold text-lg mb-3 text-blue-700">杭州其他景點</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {ATTRACTIONS.other.map((spot) => (
-                    <div key={spot.name} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start">
-                        <span className="font-medium">{spot.name}</span>
-                        <span className="text-blue-600 font-bold text-sm">{spot.ticket}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">{spot.hours}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                📷 景點寫真
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                點擊照片可放大查看，一起感受最美的杭州風景
+              </p>
+              <DynamicAttractionGallery />
             </section>
+
 
             {/* Interactive Map */}
             <section className="bg-white rounded-xl shadow-sm p-6">
@@ -465,15 +426,6 @@ export default function TravelPage() {
             </section>
 
             {/* Attraction Gallery */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                📷 景點寫真
-              </h2>
-              <p className="text-sm text-gray-600 mb-4">
-                點擊照片可放大查看，一起感受最美的杭州風景
-              </p>
-              <DynamicAttractionGallery />
-            </section>
 
             {/* Itinerary Planner */}
             <section className="bg-white rounded-xl shadow-sm p-6">
