@@ -88,8 +88,8 @@ export default function WeatherWidget() {
 
         // Daily forecast - map to our trip dates July 17-24
         const daily = data.daily;
-        const tripStart = new Date("2025-07-17");
-        const tripEnd = new Date("2025-07-24");
+        const tripStart = new Date("2026-07-17");
+        const tripEnd = new Date("2026-07-24");
         
         const tripForecast: DayWeather[] = [];
         for (let i = 0; i < daily.time.length; i++) {
@@ -123,7 +123,7 @@ export default function WeatherWidget() {
   // Generate mock forecast as fallback
   function generateMockForecast(): DayWeather[] {
     const days: DayWeather[] = [];
-    const startDate = new Date("2025-07-17");
+    const startDate = new Date("2026-07-17");
     const weatherPatterns = [0, 2, 61, 63, 2, 3, 1, 2]; // Mix of sunny, cloudy, rainy
     const temps = [
       { max: 34, min: 26 },

@@ -75,7 +75,7 @@ const _PRESET_PLANNER_ACTIVITIES: Activity[] = [
   { id: 'act-7',  title: '南翔饅頭',        day: 2, startHour: 14, duration: 1, color: 'bg-orange-400',  cost: 120 },
   { id: 'act-8',  title: '西塘古鎮',        day: 2, startHour: 16, duration: 3, color: 'bg-cyan-400',   cost: 190 },
   { id: 'act-9',  title: '江南戲曲服飾',    day: 3, startHour: 8,  duration: 3, color: 'bg-purple-400', cost: 150 },
-  { id: 'act-10', title: '尋塢水宴餐廳',   day: 3, startHour: 19, duration: 2, color: 'bg-orange-400',  cost: 300 },
+  { id: 'act-10', title: '水宴餐廳',       day: 3, startHour: 19, duration: 2, color: 'bg-orange-400',  cost: 300 },
   { id: 'act-11', title: '烏鎮東柵',        day: 3, startHour: 15, duration: 4, color: 'bg-cyan-400',   cost: 110 },
   { id: 'act-12', title: '烏鎮西柵',        day: 4, startHour: 8,  duration: 5, color: 'bg-green-400',  cost: 150 },
   { id: 'act-13', title: '白蓮塔',          day: 4, startHour: 14, duration: 2, color: 'bg-red-400',    cost: 0 },
@@ -94,7 +94,7 @@ const _PRESET_PLANNER_ACTIVITIES: Activity[] = [
   { id: 'act-26', title: '宮宴',            day: 7, startHour: 18, duration: 3, color: 'bg-red-400',    cost: 2500 },
   { id: 'act-27', title: '西湖（主湖區）',  day: 8, startHour: 8,  duration: 2, color: 'bg-green-400',   cost: 0 },
   { id: 'act-28', title: '龍井茶園',        day: 8, startHour: 11, duration: 2, color: 'bg-green-400',   cost: 300 },
-  { id: 'act-29', title: '椒嬢嬢老火鍋',    day: 2, startHour: 18, duration: 2, color: 'bg-red-400',    cost: 150 },
+  { id: 'act-29', title: '椒鹽醄醄火鍋',    day: 2, startHour: 18, duration: 2, color: 'bg-red-400',    cost: 150 },
 ];
 
 const STORAGE_KEY = 'hangzhou-trip-planner';

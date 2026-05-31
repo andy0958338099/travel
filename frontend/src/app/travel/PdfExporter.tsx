@@ -156,7 +156,7 @@ function buildCoverPage(): string {
         ["✈️", "去程", "CI 581", "08:30 TPE→HGH"],
         ["🏨", "住宿", "7晚", "西湖/烏鎮"],
         ["💰", "預算區間", "NT$40-60K", "含2人來回"],
-        ["🗓️", "出發日期", "2025/7/17", "7天後返程"],
+        ["🗓️", "出發日期", "2026/7/17", "7天後返程"],
       ].map(([emoji, label, val, sub]) => `
       <div style="background:rgba(255,255,255,0.12); padding:20px 12px; text-align:center;">
         <div style="font-size:24px; margin-bottom:8px;">${emoji}</div>

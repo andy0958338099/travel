@@ -24,7 +24,7 @@ export const ATTRACTIONS: { westLake: Attraction[]; wuzhen: Attraction[]; other:
     { name: "三潭印月", nameEn: "Three Pools Mirroring the Moon", ticket: "¥55(含遊船)", hours: "視船班", highlight: "西湖最大島，需搭船前往", lat: 30.2384, lng: 120.1443, category: 'westLake', images: ["/attractions/wl08-1.jpg", "/attractions/wl08-2.jpg", "/attractions/wl08-3.jpg"] },
     { name: "湖濱步行街", nameEn: "Hubin Pedestrian Street", ticket: "免費", hours: "24小時", highlight: "西湖畔繁華商圈，音樂噴泉必看", lat: 30.2484, lng: 120.1553, category: 'westLake', images: ["/attractions/wl13-best1.jpg", "/attractions/wl13-1.jpg", "/attractions/wl13-2.jpg"] },
     { name: "西湖天地", nameEn: "West Lake Tiandi", ticket: "免費", hours: "視店家", highlight: "時尚餐飲區，網紅打卡點", lat: 30.2454, lng: 120.1523, category: 'westLake', images: ["/attractions/wl09-best1.jpg", "/attractions/wl09-2.jpg", "/attractions/wl09-3.jpg"] },
-    { name: "南高峰", nameEn: "South Longmen Peak", ticket: "免費", hours: "24小時", highlight: "可徒步登山，俯瞰西湖", lat: 30.2314, lng: 120.1183, category: 'westLake', images: ["/attractions/wl10-best1.jpg", "/attractions/wl10-1.jpg", "/attractions/wl10-2.jpg", "/attractions/wl10-3.jpg"] },
+    { name: "南高峰", nameEn: "South Longmen Peak", ticket: "免費", hours: "24小時", highlight: "可徒步登山，俯瞰西湖", lat: 30.2314, lng: 120.1183, category: 'westLake', images: ["/attractions/wl10-1.jpg", "/attractions/wl10-2.jpg", "/attractions/wl10-3.jpg"] },
   ],
   wuzhen: [
     { name: "烏鎮西柵", nameEn: "Wuzhen Xizha", ticket: "¥150", hours: "09:00-22:00", highlight: "夜景必看！燈光秀美，保存最完整的江南水鄉風貌", lat: 30.7442, lng: 120.4875, category: 'wuzhen', images: ["/attractions/wz01-best1.jpg", "/attractions/wz01-2.jpg", "/attractions/wz01-3.jpg"] },
