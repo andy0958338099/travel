@@ -231,8 +231,8 @@ function ToiletCard({ toilet }: { toilet: Toilet }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
-      {/* Image - 2x height */}
-      <div className="relative w-full h-96 overflow-hidden bg-gray-100">
+      {/* Image - 2x height on desktop, compact on mobile */}
+      <div className="relative w-full h-56 sm:h-72 md:h-96 overflow-hidden bg-gray-100">
         <img
           src={toilet.imagePath}
           alt={toilet.name}
@@ -243,66 +243,67 @@ function ToiletCard({ toilet }: { toilet: Toilet }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         {/* Type badge */}
-        <div className="absolute top-3 right-3">
-          <span className={`text-xs px-2 py-1 rounded-full font-bold ${
+        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
+          <span className={`text-xs px-2 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold ${
             toilet.type === 'public' ? 'bg-blue-600 text-white' :
             toilet.type === 'mall' ? 'bg-purple-600 text-white' :
+            toilet.type === 'hotel' ? 'bg-amber-600 text-white' :
             'bg-green-600 text-white'
           }`}>
-            {toilet.type === 'public' ? '🏛️ 公共' : toilet.type === 'mall' ? '🏬 商場' : '🚇 地鐵'}
+            {toilet.type === 'public' ? '🏛️ 公共' : toilet.type === 'mall' ? '🏬 商場' : toilet.type === 'hotel' ? '🏨 飯店' : '🚇 地鐵'}
           </span>
         </div>
         {/* Cleanliness badge */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-white/90 backdrop-blur rounded-full px-3 py-1">
+        <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 flex items-center gap-1 bg-white/90 backdrop-blur rounded-full px-2 py-0.5 sm:px-3 sm:py-1">
           <StarRating value={toilet.cleanliness} />
-          <span className="text-sm font-bold text-gray-800 ml-1">{toilet.cleanliness}/5</span>
+          <span className="text-xs sm:text-sm font-bold text-gray-800 ml-0.5 sm:ml-1">{toilet.cleanliness}/5</span>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <h3 className="font-bold text-gray-800 text-lg leading-snug mb-2">{toilet.name}</h3>
+      {/* Content - compact on mobile */}
+      <div className="p-3 sm:p-4">
+        <h3 className="font-bold text-gray-800 text-base sm:text-lg leading-snug mb-1.5 sm:mb-2">{toilet.name}</h3>
 
         {/* Address - LARGE AND PROMINENT */}
-        <div className="bg-amber-50 rounded-xl p-3 mb-3 border-l-4 border-amber-400">
-          <p className="text-sm font-bold text-amber-800 leading-relaxed">
+        <div className="bg-amber-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3 mb-2.5 sm:mb-3 border-l-4 border-amber-400">
+          <p className="text-xs sm:text-sm font-bold text-amber-800 leading-relaxed">
             📍 {toilet.address}
           </p>
         </div>
 
-        {/* Fee & Hours */}
-        <div className="flex gap-3 mb-3">
-          <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+        {/* Fee & Hours - stack on very small screens */}
+        <div className="flex flex-wrap gap-2 mb-2 sm:mb-3">
+          <span className="text-xs sm:text-sm bg-green-100 text-green-700 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium">
             💰 {toilet.fee}
           </span>
-          <span className="text-sm bg-gray-100 text-gray-600 px-3 py-1 rounded-full font-medium">
+          <span className="text-xs sm:text-sm bg-gray-100 text-gray-600 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full font-medium">
             🕐 {toilet.hours}
           </span>
         </div>
 
         {/* Distance hint */}
-        <p className="text-sm text-gray-500 mb-3 leading-relaxed">
-          ↗️ 距離觀光路線：{toilet.distanceFromRoute}
+        <p className="text-xs sm:text-sm text-gray-500 mb-2.5 sm:mb-3 leading-relaxed">
+          ↗️ {toilet.distanceFromRoute}
         </p>
 
         {/* Expand button */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="w-full py-2 text-sm text-blue-600 hover:text-blue-700 font-semibold border border-blue-100 rounded-xl hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
+          className="w-full py-1.5 sm:py-2 text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-semibold border border-blue-100 rounded-lg sm:rounded-xl hover:bg-blue-50 transition-colors flex items-center justify-center gap-1"
         >
-          {expanded ? '▲ 收起詳細資訊' : '▼ 查看進入方式與注意事項'}
+          {expanded ? '▲ 收起' : '▼ 詳情'}
         </button>
 
         {/* Expanded content */}
         {expanded && (
-          <div className="mt-3 space-y-3">
-            <div className="bg-amber-50 rounded-xl p-3">
+          <div className="mt-2.5 sm:mt-3 space-y-2.5 sm:space-y-3">
+            <div className="bg-amber-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3">
               <h4 className="text-xs font-bold text-amber-700 mb-1">🚪 進入方式</h4>
-              <p className="text-sm text-amber-900 leading-relaxed">{toilet.entranceNote}</p>
+              <p className="text-xs sm:text-sm text-amber-900 leading-relaxed">{toilet.entranceNote}</p>
             </div>
-            <div className="bg-blue-50 rounded-xl p-3">
+            <div className="bg-blue-50 rounded-lg sm:rounded-xl p-2.5 sm:p-3">
               <h4 className="text-xs font-bold text-blue-700 mb-1">💡 使用建議</h4>
-              <p className="text-sm text-blue-900 leading-relaxed">{toilet.tips}</p>
+              <p className="text-xs sm:text-sm text-blue-900 leading-relaxed">{toilet.tips}</p>
             </div>
           </div>
         )}
@@ -336,11 +337,11 @@ export default function ToiletTourPage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* City Tabs */}
-        <div className="flex gap-3 mb-5">
+        {/* City Tabs - taller on mobile for easier tap */}
+        <div className="flex gap-2 sm:gap-3 mb-4 sm:mb-5">
           <button
             onClick={() => { setSelectedCity('shanghai'); setFilterType('all'); }}
-            className={`flex-1 py-3 rounded-2xl font-bold text-base transition-all ${
+            className={`flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base transition-all ${
               selectedCity === 'shanghai'
                 ? 'bg-blue-600 text-white shadow-md'
                 : 'bg-white text-gray-500 border border-gray-200 hover:bg-blue-50'
@@ -350,7 +351,7 @@ export default function ToiletTourPage() {
           </button>
           <button
             onClick={() => { setSelectedCity('hangzhou'); setFilterType('all'); }}
-            className={`flex-1 py-3 rounded-2xl font-bold text-base transition-all ${
+            className={`flex-1 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base transition-all ${
               selectedCity === 'hangzhou'
                 ? 'bg-green-600 text-white shadow-md'
                 : 'bg-white text-gray-500 border border-gray-200 hover:bg-green-50'
@@ -360,28 +361,28 @@ export default function ToiletTourPage() {
           </button>
         </div>
 
-        {/* City-specific Hero */}
+        {/* City-specific Hero - compact on mobile */}
         {selectedCity === 'shanghai' ? (
-          <div className="bg-gradient-to-r from-blue-800 to-blue-600 rounded-2xl p-6 mb-5 text-white">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-3xl">🏙️</span>
-              <h2 className="text-lg font-bold">上海 · 歷史建築沿線</h2>
+          <div className="bg-gradient-to-r from-blue-800 to-blue-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-4 sm:mb-5 text-white">
+            <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+              <span className="text-2xl sm:text-3xl">🏙️</span>
+              <h2 className="text-base sm:text-lg font-bold">上海 · 歷史建築沿線</h2>
             </div>
-            <p className="text-white/80 text-sm leading-relaxed mb-1">
-              從四行倉庫沿西藏北路往南，途經南京東路步行街，延伸到外灘萬國建築博覽群，再到豫園商城。精選清潔度4星以上洗手間，只推薦真正值得使用的地點。
+            <p className="text-white/80 text-xs sm:text-sm leading-relaxed mb-1">
+              從四行倉庫沿南京東路步行街，延伸到外灘萬國建築博覽群，再到豫園商城。精選清潔度4星以上洗手間，只推薦真正值得使用的地點。
             </p>
             <p className="text-white/60 text-xs">
               共收錄 {TOILETS.length} 處高評價洗手間 · 清潔度4-5星
             </p>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-green-700 to-green-500 rounded-2xl p-6 mb-5 text-white">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-3xl">🌿</span>
-              <h2 className="text-lg font-bold">杭州 · 武林夜市 ↔ 吳山廣場 ↔ 河坊街</h2>
+          <div className="bg-gradient-to-r from-green-700 to-green-500 rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-4 sm:mb-5 text-white">
+            <div className="flex items-center gap-2 mb-1.5 sm:mb-2">
+              <span className="text-2xl sm:text-3xl">🌿</span>
+              <h2 className="text-base sm:text-lg font-bold">杭州 · 武林夜市 ↔ 吳山廣場 ↔ 河坊街</h2>
             </div>
-            <p className="text-white/80 text-sm leading-relaxed mb-1">
-              武林夜市 → 河坊街/清河坊 → 南宋御街 → 吳山廣場。杭州老城區核心步行區，清新乾淨的洗手間分佈均勻，涵蓋夜市、歷史街區和景區。胡慶余堂提供五星級洗手間體驗。
+            <p className="text-white/80 text-xs sm:text-sm leading-relaxed mb-1">
+              武林夜市 → 河坊街 → 南宋御街 → 吳山廣場。涵蓋夜市、歷史街區和景區，胡慶余堂提供五星級洗手間體驗。
             </p>
             <p className="text-white/60 text-xs">
               共收錄 {HANGZHOU_TOILETS.length} 處高評價洗手間 · 清潔度4-5星
@@ -389,20 +390,22 @@ export default function ToiletTourPage() {
           </div>
         )}
 
-        {/* Filter */}
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
+        {/* Filter - compact on mobile */}
+        <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-2 mb-3 sm:mb-4 -mx-1 px-1">
           {[
             { id: 'all', label: '全部', count: currentToilets.length },
             { id: 'public', label: '🏛️ 公共', count: currentToilets.filter(t => t.type === 'public').length },
             { id: 'mall', label: '🏬 商場', count: currentToilets.filter(t => t.type === 'mall').length },
             ...(selectedCity === 'shanghai' && TOILETS.some(t => t.type === 'hotel')
               ? [{ id: 'hotel', label: '🏨 飯店', count: TOILETS.filter(t => t.type === 'hotel').length }]
+              : selectedCity === 'hangzhou'
+              ? [{ id: 'metro', label: '🚇 地鐵', count: HANGZHOU_TOILETS.filter(t => t.type === 'metro').length }]
               : []),
           ].map(f => (
             <button
               key={f.id}
               onClick={() => setFilterType(f.id)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+              className={`flex-shrink-0 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-colors ${
                 filterType === f.id
                   ? selectedCity === 'shanghai' ? 'bg-blue-600 text-white' : 'bg-green-600 text-white'
                   : 'bg-white text-gray-500 border border-gray-200 hover:bg-blue-50'
@@ -413,20 +416,20 @@ export default function ToiletTourPage() {
           ))}
         </div>
 
-        {/* Cleanliness legend */}
-        <div className="bg-white rounded-xl p-4 mb-4 border border-gray-100">
-          <h3 className="text-xs font-bold text-gray-500 mb-2">清潔度參考標準</h3>
-          <div className="flex flex-wrap gap-4 text-sm">
-            <span className="flex items-center gap-1">
-              <span className="text-green-600 text-lg">★★★★★</span>
-              <span className="text-gray-700 font-medium">非常乾淨（5星）</span>
+        {/* Cleanliness legend - compact on mobile */}
+        <div className="bg-white rounded-xl p-3 sm:p-4 mb-3 sm:mb-4 border border-gray-100">
+          <h3 className="text-xs font-bold text-gray-500 mb-1.5 sm:mb-2">清潔度參考標準</h3>
+          <div className="flex flex-wrap gap-x-3 sm:gap-4 gap-y-1 text-xs sm:text-sm">
+            <span className="flex items-center gap-0.5">
+              <span className="text-green-600 text-sm sm:text-lg">★★★★★</span>
+              <span className="text-gray-700 font-medium">非常乾淨</span>
             </span>
-            <span className="flex items-center gap-1">
-              <span className="text-green-500 text-lg">★★★★☆</span>
-              <span className="text-gray-700 font-medium">乾淨（4星）</span>
+            <span className="flex items-center gap-0.5">
+              <span className="text-green-500 text-sm sm:text-lg">★★★★☆</span>
+              <span className="text-gray-700 font-medium">乾淨</span>
             </span>
           </div>
-          <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+          <p className="text-xs text-gray-400 mt-1.5 sm:mt-2 leading-relaxed">
             ⚠️ 清潔度為主觀體驗評估，可能因時間、天候、節假日人流量而有所變化。已移除清潔度4星以下地點。
           </p>
         </div>
@@ -438,76 +441,76 @@ export default function ToiletTourPage() {
           ))}
         </div>
 
-        {/* Route summary - Shanghai only */}
+        {/* Route summary - Shanghai only - compact on mobile */}
         {selectedCity === 'shanghai' && (
-          <div className="mt-8 bg-blue-50 rounded-2xl p-5 border border-blue-100">
-            <h3 className="text-base font-bold text-blue-700 mb-3 flex items-center gap-2">
-              <span className="text-xl">📋</span> 上海段路線使用建議
+          <div className="mt-6 sm:mt-8 bg-blue-50 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-blue-100">
+            <h3 className="text-sm sm:text-base font-bold text-blue-700 mb-2 sm:mb-3 flex items-center gap-2">
+              <span className="text-base sm:text-xl">📋</span> 上海段路線使用建議
             </h3>
-            <div className="space-y-3 text-sm text-blue-800 leading-relaxed">
-              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-                <span className="text-xl">1️⃣</span>
+            <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-blue-800 leading-relaxed">
+              <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl">
+                <span className="text-base sm:text-xl">1️⃣</span>
                 <div>
                   <p className="font-bold text-gray-800">四行倉庫 → 南京東路</p>
-                  <p className="text-gray-600 text-xs mt-1">約2.5公里，步行約35分鐘。建議在四行倉庫紀念館或南京東路東段公共洗手間處理。</p>
+                  <p className="text-gray-600 text-xs mt-0.5 sm:mt-1">約2.5公里，步行約35分鐘。建議在四行倉庫紀念館或南京東路東段公共洗手間處理。</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-                <span className="text-xl">2️⃣</span>
+              <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl">
+                <span className="text-base sm:text-xl">2️⃣</span>
                 <div>
                   <p className="font-bold text-gray-800">南京東路 → 外灘</p>
-                  <p className="text-gray-600 text-xs mt-1">約1公里，步行約15分鐘。外灘沿線洗手間極少，<strong>外灘源商場B1</strong>是最靠譜的選項（清潔度5星）。和平飯店洗手間需消費或入住。的最佳選擇。</p>
+                  <p className="text-gray-600 text-xs mt-0.5 sm:mt-1">約1公里，步行約15分鐘。外灘沿線洗手間極少，<strong>外灘源商場B1</strong>是最靠譜的選項（清潔度5星）。</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-                <span className="text-xl">3️⃣</span>
+              <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl">
+                <span className="text-base sm:text-xl">3️⃣</span>
                 <div>
                   <p className="font-bold text-gray-800">外灘 → 豫園商城</p>
-                  <p className="text-gray-600 text-xs mt-1">約2公里，步行約25分鐘。進入豫園商城前建議先在商城B1地下洗手間處理，節假日排隊時間可達30分鐘。</p>
+                  <p className="text-gray-600 text-xs mt-0.5 sm:mt-1">約2公里，步行約25分鐘。進入豫園商城前建議先在商城B1地下洗手間處理，節假日排隊時間可達30分鐘。</p>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Route summary - Hangzhou */}
+        {/* Route summary - Hangzhou - compact on mobile */}
         {selectedCity === 'hangzhou' && (
-          <div className="mt-8 bg-green-50 rounded-2xl p-5 border border-green-100">
-            <h3 className="text-base font-bold text-green-700 mb-3 flex items-center gap-2">
-              <span className="text-xl">📋</span> 杭州段路線使用建議
+          <div className="mt-6 sm:mt-8 bg-green-50 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-green-100">
+            <h3 className="text-sm sm:text-base font-bold text-green-700 mb-2 sm:mb-3 flex items-center gap-2">
+              <span className="text-base sm:text-xl">📋</span> 杭州段路線使用建議
             </h3>
-            <div className="space-y-3 text-sm text-green-800 leading-relaxed">
-              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-                <span className="text-xl">1️⃣</span>
+            <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-green-800 leading-relaxed">
+              <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl">
+                <span className="text-base sm:text-xl">1️⃣</span>
                 <div>
                   <p className="font-bold text-gray-800">武林夜市 → 河坊街</p>
-                  <p className="text-gray-600 text-xs mt-1">武林夜市（傍晚16:00-18:00）→ 步行10分鐘至河坊街。武林夜市洗手間排隊時間波動大，建議一出夜市就處理。</p>
+                  <p className="text-gray-600 text-xs mt-0.5 sm:mt-1">武林夜市（傍晚16:00-18:00）→ 步行10分鐘至河坊街。武林夜市洗手間排隊時間波動大，建議一出夜市就處理。</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-                <span className="text-xl">2️⃣</span>
+              <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl">
+                <span className="text-base sm:text-xl">2️⃣</span>
                 <div>
                   <p className="font-bold text-gray-800">河坊街 → 南宋御街</p>
-                  <p className="text-gray-600 text-xs mt-1">河坊街中段（胡慶余堂）→ 步行5分鐘至南宋御街南入口。南宋御街地下商街有空調，環境舒適，是河坊街的最佳補充。</p>
+                  <p className="text-gray-600 text-xs mt-0.5 sm:mt-1">河坊街中段（胡慶余堂）→ 步行5分鐘至南宋御街南入口。南宋御街地下商街有空調，是河坊街的最佳補充。</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-3 bg-white rounded-xl">
-                <span className="text-xl">3️⃣</span>
+              <div className="flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 bg-white rounded-lg sm:rounded-xl">
+                <span className="text-base sm:text-xl">3️⃣</span>
                 <div>
                   <p className="font-bold text-gray-800">南宋御街 → 吳山廣場</p>
-                  <p className="text-gray-600 text-xs mt-1">南宋御街南入口 → 吳山廣場（步行約5分鐘）。建議黄昏前登吳山看完日落，下山時在廣場洗手間處理。吳山天風視野開闊，是杭州最佳夜景拍攝點之一。</p>
+                  <p className="text-gray-600 text-xs mt-0.5 sm:mt-1">南宋御街南入口 → 吳山廣場（步行約5分鐘）。建議黄昏前登吳山看完日落，下山時在廣場洗手間處理。</p>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Tips */}
-        <div className="mt-6 bg-yellow-50 rounded-2xl p-5 border border-yellow-100">
-          <h3 className="text-sm font-bold text-yellow-700 mb-2 flex items-center gap-2">
-            <span className="text-xl">💡</span> 實用提示
+        {/* Tips - compact on mobile */}
+        <div className="mt-6 bg-yellow-50 rounded-xl sm:rounded-2xl p-3 sm:p-5 border border-yellow-100">
+          <h3 className="text-xs sm:text-sm font-bold text-yellow-700 mb-1.5 sm:mb-2 flex items-center gap-2">
+            <span className="text-base sm:text-xl">💡</span> 實用提示
           </h3>
-          <ul className="space-y-2 text-sm text-yellow-800 leading-relaxed">
+          <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-yellow-800 leading-relaxed">
             <li>· <strong>隨身帶紙巾/濕紙巾</strong>，地鐵站和商場洗手間有時紙巾缺貨。</li>
             <li>· <strong>長時間徒步建議隨身攜帶一瓶水</strong>，既可補水亦可簡單清潔。</li>
             <li>· <strong>節假日</strong>（五一、國慶、春節）排隊時間可能增加3-5倍，建議提前一站在人少的點解決。</li>
