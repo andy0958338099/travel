@@ -171,6 +171,9 @@ export default function TravelPage() {
             <Link href="/travel/dining" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
               🍜 餐食評論
             </Link>
+            <Link href="/travel/toilet-tour" className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
+              🚻 Toilet Tour
+            </Link>
 
           </div>
           <h1 className="text-3xl font-bold mb-2">🗺️ 江南水鄉八日之旅</h1>
