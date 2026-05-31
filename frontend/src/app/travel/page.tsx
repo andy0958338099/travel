@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ATTRACTIONS, HOTELS, TRANSPORT, TIPS, ALL_ATTRACTIONS } from "./data";
+import { ATTRACTIONS, HOTELS, TIPS, ALL_ATTRACTIONS } from "./data";
 import dynamic from "next/dynamic";
 import ItineraryPlanner from "./ItineraryPlanner";
 import WeatherWidget from "./WeatherWidget";
@@ -389,39 +389,6 @@ export default function TravelPage() {
                   <div className="text-sm text-gray-500 mt-1">飛行約2小時10分</div>
                 </div>
               </div>
-              <div className="mt-4 text-sm text-gray-600 bg-gray-50 rounded-lg p-3">
-                <div className="font-medium mb-1">其他航空公司選擇：</div>
-                <div>長榮 BR 758 / 廈門航空 MF 890 / 中國航空 CA 150</div>
-                <div className="mt-1 text-gray-500">來回票價參考：NT$8,000-22,000（依艙等而定）</div>
-              </div>
-
-              {/* 智慧航班分析槽 */}
-              <div className="mt-4">
-                <SmartDropZone
-                  type="flight"
-                  label="✈️ 填入真實航班"
-                  placeholder="貼上 Skyscanner / 中華航空 / 任何航班頁面的網址，或直接貼上航班資訊文字\n\n例如：CI 581 08:30 TPE→HGH 10:40 或 https://www.skyscanner.com.tw/..."
-                  hint="支援：航班確認信文字、Skyscanner/中华航空/長榮航空 等航班網址。AI 會自動分析航班號、時間、日期與價格。"
-                  icon="✈️"
-                  accentColor="#0d5c63"
-                  onDataExtracted={(data) => {
-                    setRealFlight(data);
-                    if (data.confirmed) {
-                      localStorage.setItem("hangzhou-trip-flight", JSON.stringify(data));
-                    }
-                  }}
-                />
-                {realFlight?.confirmed && (
-                  <div className="mt-2 p-3 bg-teal-50 border border-teal-200 rounded-lg">
-                    <div className="text-xs text-teal-700 font-medium mb-1">✓ 已填入真實航班資料</div>
-                    <div className="text-xs text-teal-600">
-                      {realFlight.flightNumber && `航班：${realFlight.flightNumber} · `}
-                      {realFlight.departureTime && `${realFlight.departureTime} → ${realFlight.arrivalTime} · `}
-                      {realFlight.price && `價格：${realFlight.price}`}
-                    </div>
-                  </div>
-                )}
-              </div>
             </section>
 
             {/* Interactive Map */}
@@ -537,38 +504,6 @@ export default function TravelPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Transport Info */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-bold mb-4">🚗 交通攻略</h2>
-              
-              <div className="space-y-4">
-                <div>
-                  <div className="font-medium text-teal-700 mb-2">機場 ↔ 市區</div>
-                  <div className="space-y-2 text-sm">
-                    {TRANSPORT.airport.map((t) => (
-                      <div key={t.method} className="bg-gray-50 p-2 rounded">
-                        <div className="font-medium">{t.method}</div>
-                        <div className="text-gray-600">{t.duration} · {t.price}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="font-medium text-teal-700 mb-2">杭州 ↔ 烏鎮</div>
-                  <div className="space-y-2 text-sm">
-                    {TRANSPORT.toWuzhen.map((t) => (
-                      <div key={t.method} className="bg-gray-50 p-2 rounded">
-                        <div className="font-medium">{t.method}</div>
-                        <div className="text-gray-600">{t.duration} · {t.price}</div>
-                        {t.frequency && <div className="text-gray-500 text-xs">{t.frequency}</div>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
-
             {/* Tips */}
             <section className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl shadow-sm p-6">
               <h2 className="text-lg font-bold mb-4">💡 旅遊 tips</h2>
@@ -590,37 +525,6 @@ export default function TravelPage() {
             {/* Packing Checklist */}
             <section className="bg-white rounded-xl shadow-sm p-6">
               <DynamicPackingChecklist />
-            </section>
-
-            {/* Budget Summary */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-bold mb-4">💰 費用預估</h2>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>來回機票（2人）</span>
-                  <span className="font-bold">NT$16,000-44,000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>住宿（7晚）</span>
-                  <span className="font-bold">NT$8,000-20,000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>門票+活動</span>
-                  <span className="font-bold">NT$3,000-6,000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>餐食（8天）</span>
-                  <span className="font-bold">NT$4,000-8,000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>交通</span>
-                  <span className="font-bold">NT$2,000-3,000</span>
-                </div>
-                <div className="border-t pt-2 mt-2 flex justify-between font-bold text-lg">
-                  <span>總計（2人）</span>
-                  <span className="text-teal-600">NT$40,000-60,000</span>
-                </div>
-              </div>
             </section>
 
           </div>
