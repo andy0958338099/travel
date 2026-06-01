@@ -118,7 +118,7 @@ export default function AttractionsMap({ selectedDay, plannedAttractions = [] }:
       </div>
 
       {/* Map container */}
-      <div className="relative rounded-xl overflow-hidden border border-gray-200" style={{ height: "500px" }}>
+      <div className="relative rounded-xl overflow-hidden border border-gray-200 h-[400px] sm:h-[500px]">
         <MapContainer
           center={mapCenter}
           zoom={mapZoom}

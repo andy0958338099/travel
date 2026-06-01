@@ -24,4 +24,12 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  /* 隱藏 scrollbar 但保留滾動功能（手機橫滑 nav/dashboard 用） */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }

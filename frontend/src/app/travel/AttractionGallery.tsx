@@ -196,21 +196,23 @@ export default function AttractionGallery() {
 
   return (
     <div className="space-y-4">
-      {/* 篩選器 */}
-      <div className="flex gap-2 flex-wrap">
-        {categories.map((cat) => (
-          <button
-            key={cat.key}
-            onClick={() => setFilter(cat.key)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              filter === cat.key
-                ? 'bg-orange-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {cat.emoji} {cat.label}
-          </button>
-        ))}
+      {/* 篩選器 — sticky 在手機上跟著捲動 */}
+      <div className="sticky top-0 z-20 bg-white -mx-1 px-1 py-2 sm:static sm:mx-0 sm:px-0 sm:py-0">
+        <div className="flex gap-2 flex-wrap">
+          {categories.map((cat) => (
+            <button
+              key={cat.key}
+              onClick={() => setFilter(cat.key)}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+                filter === cat.key
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {cat.emoji} {cat.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* 統計 */}
@@ -219,7 +221,7 @@ export default function AttractionGallery() {
       </p>
 
       {/* 照片網格 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
         {isLoading
           ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
           : allFiltered.map((attraction) => (

@@ -58,6 +58,7 @@ export default function TravelPage() {
   const [realHotel, setRealHotel] = useState<ExtractedData | null>(null);
   const [navOrder, setNavOrder] = useState<NavItem[]>(DEFAULT_NAV_ITEMS);
   const [isEditingOrder, setIsEditingOrder] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   // Load nav order from Supabase
   useEffect(() => {
@@ -82,6 +83,14 @@ export default function TravelPage() {
         }
       }
     } catch {}
+  }, []);
+
+  // FAB 回到頂部 — 監聽 scroll
+  useEffect(() => {
+    const onScroll = () => setShowScrollTop(window.scrollY > 600);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   // Live countdown + localStorage readers
@@ -158,16 +167,19 @@ export default function TravelPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-teal-600 to-blue-600 text-white">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Link href="/" className="text-white/80 hover:text-white text-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 lg:py-8">
+          {/* Nav row: 返回首頁 + nav scrollable + 排序按鈕 */}
+          <div className="flex items-center gap-2 mb-3">
+            <Link href="/" className="text-white/80 hover:text-white text-sm flex-shrink-0">
               ← 返回首頁
             </Link>
-            {navOrder.map(item => (
-              <Link key={item.key} href={item.href} className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm">
-                {item.label}
-              </Link>
-            ))}
+            <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+              {navOrder.map(item => (
+                <Link key={item.key} href={item.href} className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm flex-shrink-0 whitespace-nowrap">
+                  {item.label}
+                </Link>
+              ))}
+            </div>
             {isEditingOrder ? (
               <>
                 <button
@@ -222,22 +234,23 @@ export default function TravelPage() {
               </button>
             )}
           </div>
-          <h1 className="text-3xl font-bold mb-2">🗺️ 江南水鄉八日之旅</h1>
-          <p className="text-white/80">8天7夜 · 杭州 → 上海 → 西塘 → 烏鎮 → 杭州</p>
-          <div className="flex flex-wrap gap-4 mt-4 text-sm">
-            <span className="bg-white/20 px-3 py-1 rounded-full">📅 7月17日 - 7月24日</span>
-            <span className="bg-white/20 px-3 py-1 rounded-full">👥 2人</span>
-            <span className="bg-white/20 px-3 py-1 rounded-full">💰 預算 NT$40,000-60,000</span>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">🗺️ 江南水鄉八日之旅</h1>
+          <p className="text-sm sm:text-base text-white/80">8天7夜 · 杭州 → 上海 → 西塘 → 烏鎮 → 杭州</p>
+          <div className="flex flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4 text-xs sm:text-sm">
+            <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">📅 7月17日 - 7月24日</span>
+            <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">👥 2人</span>
+            <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">💰 NT$40,000-60,000</span>
           </div>
         </div>
       </div>
 
       {/* Live Overview Dashboard */}
       <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols5 gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+          {/* 手機版：水平滾動 5 個 stat 卡；sm 以上：3 欄 grid；lg 以上：5 欄 grid */}
+          <div className="flex overflow-x-auto scrollbar-hide gap-3 -mx-1 px-1 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 sm:overflow-visible lg:grid-cols-5">
             {/* Countdown */}
-            <div className="flex items-center gap-3 px-3 py-2">
+            <div className="flex items-center gap-3 px-3 py-2 min-w-[150px] sm:min-w-0 flex-shrink-0">
               <div className="text-2xl">⏱️</div>
               <div>
                 <div className="text-xs text-gray-500">距離出發</div>
@@ -249,7 +262,7 @@ export default function TravelPage() {
               </div>
             </div>
             {/* Planned Attractions */}
-            <div className="flex items-center gap-3 px-3 py-2">
+            <div className="flex items-center gap-3 px-3 py-2 min-w-[150px] sm:min-w-0 flex-shrink-0">
               <div className="text-2xl">📍</div>
               <div>
                 <div className="text-xs text-gray-500">已規劃景點</div>
@@ -259,7 +272,7 @@ export default function TravelPage() {
               </div>
             </div>
             {/* Budget */}
-            <div className="flex items-center gap-3 px-3 py-2">
+            <div className="flex items-center gap-3 px-3 py-2 min-w-[180px] sm:min-w-0 flex-shrink-0">
               <div className="text-2xl">💰</div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-gray-500">預算使用</div>
@@ -277,7 +290,7 @@ export default function TravelPage() {
               </div>
             </div>
             {/* Packing */}
-            <div className="flex items-center gap-3 px-3 py-2">
+            <div className="flex items-center gap-3 px-3 py-2 min-w-[160px] sm:min-w-0 flex-shrink-0">
               <div className="text-2xl">🧳</div>
               <div className="flex-1 min-w-0">
                 <div className="text-xs text-gray-500">行李準備</div>
@@ -297,7 +310,7 @@ export default function TravelPage() {
               </div>
             </div>
             {/* Quick Weather */}
-            <div className="flex items-center gap-3 px-3 py-2">
+            <div className="flex items-center gap-3 px-3 py-2 min-w-[140px] sm:min-w-0 flex-shrink-0">
               <div className="text-2xl">🌤️</div>
               <div>
                 <div className="text-xs text-gray-500">杭州天氣</div>
@@ -311,8 +324,8 @@ export default function TravelPage() {
 
       {/* Export / Import JSON */}
       <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-6 py-2 flex items-center gap-3">
-          <span className="text-xs text-gray-400">資料管理：</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2 sm:gap-3 flex-wrap">
+          <span className="text-xs text-gray-400 hidden sm:inline">資料管理：</span>
           <button
             onClick={() => {
               const keys = ['hangzhou-trip-planner', 'hangzhou-trip-budget', 'hangzhou-trip-packing', 'hangzhou-trip-itinerary', 'hangzhou-trip-journal-narratives', 'hangzhou-trip-flight', 'hangzhou-trip-hotel', 'travel-videos'];
@@ -329,11 +342,11 @@ export default function TravelPage() {
               a.click();
               URL.revokeObjectURL(url);
             }}
-            className="text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 py-1 rounded-full border border-teal-200 transition-colors"
+            className="text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 py-1.5 sm:py-1 rounded-full border border-teal-200 transition-colors"
           >
             📤 匯出備份
           </button>
-          <label className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1 rounded-full border border-blue-200 cursor-pointer transition-colors">
+          <label className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 px-3 py-1.5 sm:py-1 rounded-full border border-blue-200 cursor-pointer transition-colors">
             📥 匯入還原
             <input
               type="file"
@@ -361,20 +374,20 @@ export default function TravelPage() {
               }}
             />
           </label>
-          <span className="text-xs text-gray-400">（localStorage ↔ JSON 檔案）</span>
+          <span className="text-xs text-gray-400 hidden sm:inline">（localStorage ↔ JSON 檔案）</span>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
 
-            <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2">
                 📷 景點寫真
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                 點擊照片可放大查看，一起感受最美的杭州風景
               </p>
               <DynamicAttractionGallery />
@@ -382,23 +395,23 @@ export default function TravelPage() {
 
 
             {/* Interactive Map */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2">
                 🗺️ 互動式景點地圖
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                 點擊標記查看景點詳情，或點擊下方列表快速定位
               </p>
               <DynamicAttractionsMap plannedAttractions={plannedAttractions} />
             </section>
 
             {/* PDF Export */}
-            <section className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl shadow-sm p-6">
-              <div className="flex items-start gap-4">
-                <div className="text-3xl">📄</div>
+            <section className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl shadow-sm p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="text-2xl sm:text-3xl">📄</div>
                 <div className="flex-1">
-                  <h2 className="text-lg font-bold mb-1">匯出 PDF 行程表</h2>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <h2 className="text-base sm:text-lg font-bold mb-1">匯出 PDF 行程表</h2>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3">
                     將完整八日行程、景點門票、交通住宿等資訊下載為 PDF，離線隨身攜帶。
                   </p>
                   <DynamicPdfExporter plannedAttractions={plannedAttractions} />
@@ -407,17 +420,17 @@ export default function TravelPage() {
             </section>
 
             {/* Cartoon Postcard Generator */}
-            <section className="bg-gradient-to-br from-pink-50 to-orange-50 rounded-xl shadow-sm p-6">
-              <div className="flex items-start gap-4">
-                <div className="text-3xl">🖼️</div>
+            <section className="bg-gradient-to-br from-pink-50 to-orange-50 rounded-xl shadow-sm p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="text-2xl sm:text-3xl">🖼️</div>
                 <div className="flex-1">
-                  <h2 className="text-lg font-bold mb-1">卡通行程圖卡</h2>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <h2 className="text-base sm:text-lg font-bold mb-1">卡通行程圖卡</h2>
+                  <p className="text-xs sm:text-sm text-gray-600 mb-3">
                     小紅書 / IG 風格卡通時間軸，一鍵生成可分享圖卡，懶人包首選！
                   </p>
                   <Link
                     href="/travel/postcard"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-600 to-orange-600 text-white font-bold rounded-xl hover:from-pink-700 hover:to-orange-700 transition-all shadow-lg"
+                    className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-pink-600 to-orange-600 text-white text-sm sm:text-base font-bold rounded-xl hover:from-pink-700 hover:to-orange-700 transition-all shadow-lg"
                   >
                     🎨 開啟圖卡生成器
                   </Link>
@@ -428,44 +441,44 @@ export default function TravelPage() {
             {/* Attraction Gallery */}
 
             {/* Itinerary Planner */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
+            <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
               <ItineraryPlanner onUpdateAttractions={setPlannedAttractions} />
             </section>
 
             {/* Flight Info */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2">
                 ✈️ 航班資訊
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                <div className="border rounded-lg p-3 sm:p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-500">去程 7/17</span>
+                    <span className="text-xs sm:text-sm text-gray-500">去程 7/17</span>
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">建議航班</span>
                   </div>
-                  <div className="font-bold text-lg"> TPE → HGH</div>
-                  <div className="text-gray-600">桃園TPE 11:15 → 杭州HGH 13:20</div>
-                  <div className="text-sm text-gray-500 mt-1">飛行約2小時05分</div>
+                  <div className="font-bold text-base sm:text-lg"> TPE → HGH</div>
+                  <div className="text-sm sm:text-base text-gray-600">桃園TPE 11:15 → 杭州HGH 13:20</div>
+                  <div className="text-xs sm:text-sm text-gray-500 mt-1">飛行約2小時05分</div>
                 </div>
-                <div className="border rounded-lg p-4">
+                <div className="border rounded-lg p-3 sm:p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-500">回程 7/24</span>
+                    <span className="text-xs sm:text-sm text-gray-500">回程 7/24</span>
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">建議航班</span>
                   </div>
-                  <div className="font-bold text-lg"> HGH → TPE</div>
-                  <div className="text-gray-600">杭州HGH 19:50 → 桃園TPE 21:50</div>
-                  <div className="text-sm text-gray-500 mt-1">飛行約2小時10分</div>
+                  <div className="font-bold text-base sm:text-lg"> HGH → TPE</div>
+                  <div className="text-sm sm:text-base text-gray-600">杭州HGH 19:50 → 桃園TPE 21:50</div>
+                  <div className="text-xs sm:text-sm text-gray-500 mt-1">飛行約2小時10分</div>
                 </div>
               </div>
             </section>
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Tips */}
-            <section className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl shadow-sm p-6">
-              <h2 className="text-lg font-bold mb-4">💡 旅遊 tips</h2>
-              <ul className="space-y-2 text-sm">
+            <section className="bg-gradient-to-br from-teal-50 to-blue-50 rounded-xl shadow-sm p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">💡 旅遊 tips</h2>
+              <ul className="space-y-2 text-xs sm:text-sm">
                 {TIPS.map((tip, i) => (
                   <li key={i} className="flex items-start gap-2">
                     <span className="text-teal-500 mt-0.5">✓</span>
@@ -476,18 +489,29 @@ export default function TravelPage() {
             </section>
 
             {/* Weather Widget */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
+            <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
               <WeatherWidget />
             </section>
 
             {/* Packing Checklist */}
-            <section className="bg-white rounded-xl shadow-sm p-6">
+            <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
               <DynamicPackingChecklist />
             </section>
 
           </div>
         </div>
       </div>
+
+      {/* FAB 回到頂部 */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="回到頂部"
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-teal-600 text-white shadow-lg hover:bg-teal-700 active:scale-95 transition-all flex items-center justify-center text-xl ${
+          showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        }`}
+      >
+        ↑
+      </button>
     </div>
   );
 }

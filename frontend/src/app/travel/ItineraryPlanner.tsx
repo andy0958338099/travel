@@ -269,17 +269,17 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h3 className="text-lg font-bold">📝 我的行程規劃</h3>
-        <div className="flex gap-2">
+        <h3 className="text-base sm:text-lg font-bold">📝 我的行程規劃</h3>
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setShowTextImport(true)}
-            className="px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 transition-colors"
+            className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs sm:text-sm rounded-lg hover:bg-gray-200 transition-colors"
           >
             📋 貼上行程文字
           </button>
           <button
             onClick={() => setShowAddDay(true)}
-            className="px-3 py-1.5 bg-teal-500 text-white text-sm rounded-lg hover:bg-teal-600 transition-colors"
+            className="px-3 py-1.5 bg-teal-500 text-white text-xs sm:text-sm rounded-lg hover:bg-teal-600 transition-colors"
           >
             + 新增天數
           </button>
@@ -333,9 +333,9 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
 
       {/* Add Day Modal */}
       {showAddDay && (
-        <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
-          <h4 className="font-medium mb-3">新增天數</h4>
-          <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="bg-teal-50 border border-teal-200 rounded-lg p-3 sm:p-4">
+          <h4 className="font-medium mb-3 text-sm sm:text-base">新增天數</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
             <input
               placeholder="天數，例如：D1"
               value={newDay.day}
@@ -372,12 +372,12 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
           <div key={day.day} className="border rounded-lg overflow-hidden">
             {/* Day Header */}
             <div
-              className={`p-4 ${editingDay === day.day ? "bg-teal-50" : "bg-gray-50"}`}
+              className={`p-3 sm:p-4 ${editingDay === day.day ? "bg-teal-50" : "bg-gray-50"}`}
             >
               {editingDay === day.day ? (
                 // Edit Mode
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <input
                       placeholder="天數"
                       value={editForm.day || ""}
@@ -414,26 +414,26 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
                 </div>
               ) : (
                 // View Mode
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <span className="bg-teal-500 text-white px-2 py-1 rounded text-sm font-bold">
+                <div className="flex items-start justify-between gap-2 flex-wrap sm:flex-nowrap">
+                  <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                    <span className="bg-teal-500 text-white px-2 py-1 rounded text-xs sm:text-sm font-bold flex-shrink-0">
                       {day.day}
                     </span>
-                    <div>
-                      <h4 className="font-bold">{day.title}</h4>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{day.description}</p>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-sm sm:text-base">{day.title}</h4>
+                      <p className="text-xs sm:text-sm text-gray-600 mt-1 line-clamp-2">{day.description}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-shrink-0">
                     <button
                       onClick={() => handleEditDay(day)}
-                      className="text-teal-600 hover:text-teal-800 text-sm"
+                      className="text-teal-600 hover:text-teal-800 text-xs sm:text-sm px-2 py-1"
                     >
                       編輯
                     </button>
                     <button
                       onClick={() => handleDeleteDay(day.day)}
-                      className="text-red-500 hover:text-red-700 text-sm"
+                      className="text-red-500 hover:text-red-700 text-xs sm:text-sm px-2 py-1"
                     >
                       刪除
                     </button>
@@ -444,14 +444,14 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
 
             {/* Attractions */}
             {editingDay !== day.day && (
-              <div className="p-4 bg-white">
+              <div className="p-3 sm:p-4 bg-white">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-medium text-gray-700">景點：</span>
+                  <span className="text-xs sm:text-sm font-medium text-gray-700">景點：</span>
                   {(!day.attractions || day.attractions.length === 0) && (
-                    <span className="text-sm text-gray-400">尚未添加景點</span>
+                    <span className="text-xs sm:text-sm text-gray-400">尚未添加景點</span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
                   {(day.attractions || []).map((attraction, attrIndex) => (
                     <div
                       key={attraction}
@@ -460,20 +460,20 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
                       onDragOver={(e) => handleDragOver(e, attrIndex)}
                       onDrop={() => handleDrop(day.day, attrIndex)}
                       onDragEnd={handleDragEnd}
-                      className={`group relative bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-full text-sm flex items-center gap-1 cursor-grab active:cursor-grabbing transition-all ${
+                      className={`group relative bg-emerald-100 text-emerald-800 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm flex items-center gap-1 cursor-grab active:cursor-grabbing transition-all ${
                         dragState?.dayKey === day.day && dragState?.fromIndex === attrIndex ? "opacity-40" : ""
                       } ${
                         dragOverIndex === attrIndex && dragState?.dayKey === day.day ? "ring-2 ring-teal-400 ring-offset-1" : ""
                       }`}
                     >
                       {/* Drag handle */}
-                      <span className="text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab mr-0.5 select-none" title="拖曳排序">⋮⋮</span>
+                      <span className="text-emerald-400 sm:opacity-0 group-hover:opacity-100 transition-opacity cursor-grab mr-0.5 select-none" title="拖曳排序">⋮⋮</span>
                       <span>{attraction}</span>
                       <div className="flex items-center gap-0.5">
                         {attrIndex > 0 && (
                           <button
                             onClick={() => handleMoveAttraction(day.day, attrIndex, "up")}
-                            className="text-emerald-600 hover:text-emerald-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="text-emerald-600 hover:text-emerald-800 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                             title="往上移動"
                           >
                             ↑
@@ -482,7 +482,7 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
                         {attrIndex < (day.attractions?.length ?? 0) - 1 && (
                           <button
                             onClick={() => handleMoveAttraction(day.day, attrIndex, "down")}
-                            className="text-emerald-600 hover:text-emerald-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="text-emerald-600 hover:text-emerald-800 sm:opacity-0 group-hover:opacity-100 transition-opacity"
                             title="往下移動"
                           >
                             ↓
@@ -490,7 +490,7 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
                         )}
                         <button
                           onClick={() => handleRemoveAttraction(day.day, attraction)}
-                          className="text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity ml-1"
+                          className="text-red-500 hover:text-red-700 sm:opacity-0 group-hover:opacity-100 transition-opacity ml-1"
                           title="移除"
                         >
                           ×
@@ -501,7 +501,7 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
                 </div>
                 <button
                   onClick={() => setShowAttractionPicker(day.day)}
-                  className="text-sm text-teal-600 hover:text-teal-800 flex items-center gap-1"
+                  className="text-xs sm:text-sm text-teal-600 hover:text-teal-800 flex items-center gap-1"
                 >
                   + 添加景點
                 </button>
