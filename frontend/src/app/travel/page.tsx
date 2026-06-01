@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ATTRACTIONS, HOTELS, TIPS, ALL_ATTRACTIONS } from "./data";
+import { TIPS, ALL_ATTRACTIONS } from "./data";
 import dynamic from "next/dynamic";
 import ItineraryPlanner from "./ItineraryPlanner";
 import WeatherWidget from "./WeatherWidget";
-import SmartDropZone, { ExtractedData } from "./SmartDropZone";
 import { loadNavOrder, saveNavOrder, DEFAULT_NAV_ITEMS, NavItem } from "@/utils/navOrderService";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Toast } from "@/components/Toast";
 
 const CNY_RATE = 4.5;
 const TRIP_START = new Date("2026-07-17");
@@ -14,7 +15,7 @@ const TRIP_START = new Date("2026-07-17");
 const DynamicAttractionsMap = dynamic(() => import("./AttractionsMap"), {
   ssr: false,
   loading: () => (
-    <div className="h-[500px] bg-gray-100 rounded-xl flex items-center justify-center">
+    <div className="h-[400px] sm:h-[500px] bg-gray-100 rounded-xl flex items-center justify-center">
       <div className="text-gray-500">地圖載入中...</div>
     </div>
   ),
@@ -54,35 +55,16 @@ export default function TravelPage() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [budgetData, setBudgetData] = useState({ budget: 50000, spent: 0, percent: 0 });
   const [packingData, setPackingData] = useState({ packed: 0, total: 0 });
-  const [realFlight, setRealFlight] = useState<ExtractedData | null>(null);
-  const [realHotel, setRealHotel] = useState<ExtractedData | null>(null);
   const [navOrder, setNavOrder] = useState<NavItem[]>(DEFAULT_NAV_ITEMS);
   const [isEditingOrder, setIsEditingOrder] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 0 | 1 | 2 }>({
+    show: false, message: "", type: 2,
+  });
 
   // Load nav order from Supabase
   useEffect(() => {
     loadNavOrder().then(setNavOrder);
-  }, []);
-
-  // Load flight/hotel from localStorage on mount
-  useEffect(() => {
-    try {
-      const savedFlight = localStorage.getItem("hangzhou-trip-flight");
-      if (savedFlight) {
-        const parsed = JSON.parse(savedFlight);
-        if (parsed.confirmed) {
-          setRealFlight(parsed);
-        }
-      }
-      const savedHotel = localStorage.getItem("hangzhou-trip-hotel");
-      if (savedHotel) {
-        const parsed = JSON.parse(savedHotel);
-        if (parsed.confirmed) {
-          setRealHotel(parsed);
-        }
-      }
-    } catch {}
   }, []);
 
   // FAB 回到頂部 — 監聽 scroll
@@ -159,8 +141,24 @@ export default function TravelPage() {
     };
 
     update();
-    const interval = setInterval(update, 30000);
-    return () => clearInterval(interval);
+
+    // Storage event: 即時同步同源其他 tab/window 的 localStorage 變更
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key) return;
+      if (e.key.startsWith("hangzhou-trip-")) update();
+    };
+    window.addEventListener("storage", onStorage);
+
+    // 分頁從隱藏變可見時立即同步（涵蓋手機切回瀏覽器、PC 切回視窗）
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") update();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, []);
 
   return (
@@ -364,10 +362,10 @@ export default function TravelPage() {
                       localStorage.setItem(k, v as string);
                       count++;
                     }
-                    alert(`已還原 ${count} 筆資料，請重新整理頁面。`);
-                    window.location.reload();
+                    setToast({ show: true, message: `已還原 ${count} 筆資料，3 秒後自動重新整理...`, type: 1 });
+                    setTimeout(() => window.location.reload(), 3000);
                   } catch {
-                    alert('檔案格式錯誤，請確認是正確的備份檔。');
+                    setToast({ show: true, message: "檔案格式錯誤，請確認是正確的備份檔。", type: 0 });
                   }
                 };
                 reader.readAsText(file);
@@ -390,7 +388,9 @@ export default function TravelPage() {
               <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                 點擊照片可放大查看，一起感受最美的杭州風景
               </p>
-              <DynamicAttractionGallery />
+              <ErrorBoundary name="景點寫真">
+                <DynamicAttractionGallery />
+              </ErrorBoundary>
             </section>
 
 
@@ -402,7 +402,9 @@ export default function TravelPage() {
               <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                 點擊標記查看景點詳情，或點擊下方列表快速定位
               </p>
-              <DynamicAttractionsMap plannedAttractions={plannedAttractions} />
+              <ErrorBoundary name="互動式景點地圖">
+                <DynamicAttractionsMap plannedAttractions={plannedAttractions} />
+              </ErrorBoundary>
             </section>
 
             {/* PDF Export */}
@@ -414,7 +416,9 @@ export default function TravelPage() {
                   <p className="text-xs sm:text-sm text-gray-600 mb-3">
                     將完整八日行程、景點門票、交通住宿等資訊下載為 PDF，離線隨身攜帶。
                   </p>
-                  <DynamicPdfExporter plannedAttractions={plannedAttractions} />
+                  <ErrorBoundary name="PDF 匯出">
+                    <DynamicPdfExporter plannedAttractions={plannedAttractions} />
+                  </ErrorBoundary>
                 </div>
               </div>
             </section>
@@ -512,6 +516,14 @@ export default function TravelPage() {
       >
         ↑
       </button>
+
+      {/* 全站 toast */}
+      <Toast
+        show={toast.show}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast((t) => ({ ...t, show: false }))}
+      />
     </div>
   );
 }

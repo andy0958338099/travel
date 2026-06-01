@@ -7,7 +7,9 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
 export const createClient = (request: NextRequest) => {
   let supabaseResponse = NextResponse.next({ request: { headers: request.headers } });
 
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+  // Side-effect: refreshes session cookies via Supabase auth helper
+  // The client itself isn't returned — caller only needs supabaseResponse
+  const _supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -23,6 +25,7 @@ export const createClient = (request: NextRequest) => {
       },
     },
   });
+  void _supabase;
 
   return supabaseResponse;
 };

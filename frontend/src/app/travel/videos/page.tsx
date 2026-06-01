@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { toast } from '@/components/GlobalToastHost';
 import {
   loadMembers,
   type Member,
@@ -313,8 +314,8 @@ function VideoCard({
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!author) { alert('請選擇留言者'); return; }
-    if (!commentText.trim()) { alert('請填寫留言內容'); return; }
+    if (!author) { toast.error('請選擇留言者'); return; }
+    if (!commentText.trim()) { toast.error('請填寫留言內容'); return; }
     const result = await insertComment({ video_id: video.id, author, text: commentText.trim() });
     if (result) { onAddComment(result); setCommentText(''); }
   };
@@ -446,7 +447,7 @@ function VideoCard({
                 if (e.key === 'Enter') {
                   if ((e.target as HTMLInputElement).value === 'admin') {
                     setAdminUnlocked(true); setShowDeleteConfirm(false); handleDeleteVideo();
-                  } else { alert('密碼錯誤'); (e.target as HTMLInputElement).value = ''; }
+                  } else { toast.error('密碼錯誤'); (e.target as HTMLInputElement).value = ''; }
                 }
               }} autoFocus />
             <div className="flex gap-2">
@@ -455,7 +456,7 @@ function VideoCard({
               <button onClick={() => {
                 const input = document.getElementById('admin-pwd-video') as HTMLInputElement;
                 if (input.value === 'admin') { setAdminUnlocked(true); setShowDeleteConfirm(false); handleDeleteVideo(); }
-                else { alert('密碼錯誤'); input.value = ''; }
+                else { toast.error('密碼錯誤'); input.value = ''; }
               }} className="flex-1 bg-red-500 text-white py-2 rounded-xl text-sm font-semibold hover:bg-red-600">刪除</button>
             </div>
           </div>
@@ -474,7 +475,6 @@ export default function VideosPage() {
   const [commentsMap, setCommentsMap] = useState<Record<string, Comment[]>>({});
   const [likedSet, setLikedSet] = useState<Set<string>>(new Set());
   const [loaded, setLoaded] = useState(false);
-  const [visitorId, setVisitorId] = useState('');
   const members = useMembers();
 
   const loadVideos = useCallback(async () => {
@@ -488,7 +488,6 @@ export default function VideosPage() {
 
   useEffect(() => {
     const vid = getVisitorId();
-    setVisitorId(vid);
     (async () => {
       const [videoData, likedIds] = await Promise.all([
         loadVideos(),

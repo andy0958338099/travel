@@ -53,23 +53,11 @@ interface AttractionsMapProps {
   plannedAttractions?: string[];
 }
 
-export default function AttractionsMap({ selectedDay, plannedAttractions = [] }: AttractionsMapProps) {
+export default function AttractionsMap({ selectedDay: _selectedDay, plannedAttractions = [] }: AttractionsMapProps) {
   const [activeFilter, setActiveFilter] = useState<'all' | 'westLake' | 'wuzhen' | 'other'>('all');
   const [selectedAttraction, setSelectedAttraction] = useState<Attraction | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>([30.25, 120.15]);
   const [mapZoom, setMapZoom] = useState(11);
-
-  // Deduplicate — preserve first-occurrence order
-  const uniqueNames: string[] = [];
-  const seen = new Set<string>();
-  for (const name of plannedAttractions) {
-    if (!seen.has(name)) {
-      seen.add(name);
-      uniqueNames.push(name);
-    }
-  }
-
-  const plannedSet = new Set(uniqueNames);
 
   const filteredAttractions = activeFilter === 'all'
     ? ALL_ATTRACTIONS  // show ALL markers — planned ones get additional red markers below

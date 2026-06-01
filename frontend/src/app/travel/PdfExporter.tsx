@@ -4,7 +4,7 @@ import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
 import { ATTRACTIONS, HOTELS, TRANSPORT, TIPS, ITINERARY } from "./data";
 
-export default function PdfExporter({ plannedAttractions = [] }: { plannedAttractions?: string[] }) {
+export default function PdfExporter({ plannedAttractions: _plannedAttractions = [] }: { plannedAttractions?: string[] }) {
   const [generating, setGenerating] = useState(false);
 
   async function generatePdf() {
@@ -44,7 +44,7 @@ export default function PdfExporter({ plannedAttractions = [] }: { plannedAttrac
         } else {
           // Slice content across multiple pages
           let yOffset = 0;
-          let pageIdx = 0;
+          let _pageIdx = 0;
           while (yOffset < canvas.height) {
             const remaining = canvas.height - yOffset;
             const sliceH = Math.min(PH / scale, remaining);
@@ -56,7 +56,7 @@ export default function PdfExporter({ plannedAttractions = [] }: { plannedAttrac
             const sliceImg = sliceCanvas.toDataURL("image/jpeg", 0.92);
             pdf.addImage(sliceImg, "JPEG", 0, 0, PW, sliceH * scale);
             yOffset += sliceH;
-            pageIdx++;
+            _pageIdx++;
             if (yOffset < canvas.height) pdf.addPage();
           }
         }
@@ -187,7 +187,7 @@ function buildCoverPage(): string {
 // PAGE 2: Itinerary (8 days) - DETAILED
 // ─────────────────────────────────────────────
 function buildItineraryPage(): string {
-  const dayBlocks = ITINERARY.map((day, i) => {
+  const dayBlocks = ITINERARY.map((day, _i) => {
     const attrMap: Record<string, string> = {
       "D1": "wl01-1", "D2": "wz01-1", "D3": "wz02-1",
       "D4": "wl04-3", "D5": "wl01-1", "D6": "wl06-1",
@@ -295,7 +295,7 @@ function buildPhotoGalleryPage(): string {
     rows.push(photos.slice(i, i + 3));
   }
 
-  const rowsHtml = rows.map((row, ri) => `
+  const rowsHtml = rows.map((row, _ri) => `
     <div style="margin-bottom:18px;">
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
         ${row.map(p => `

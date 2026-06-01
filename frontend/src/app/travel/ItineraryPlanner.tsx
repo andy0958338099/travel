@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ALL_ATTRACTIONS, Attraction } from "./data";
+import { toast } from "@/components/GlobalToastHost";
+import { ALL_ATTRACTIONS } from "./data";
 
 interface PlannedDay {
   day: string;        // e.g. "D1", "D2"
@@ -175,36 +176,25 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
   };
 
   const handleDeleteDay = (dayToDelete: string) => {
-    if (confirm(`確定要刪除 ${dayToDelete} 嗎？`)) {
+    if (window.confirm(`確定要刪除 ${dayToDelete} 嗎？`)) {
       setItinerary(prev => prev.filter(d => d.day !== dayToDelete));
+      toast.success(`已刪除 ${dayToDelete}`);
     }
   };
 
   const handleAddDay = () => {
     if (!newDay.day || !newDay.title) {
-      alert("請填寫天數和標題");
+      toast.error("請填寫天數和標題");
       return;
     }
     // Check if day already exists
     if (itinerary.some(d => d.day === newDay.day)) {
-      alert(` ${newDay.day} 已存在`);
+      toast.error(`${newDay.day} 已存在`);
       return;
     }
     setItinerary(prev => [...prev, { ...newDay, description: "", attractions: [] }]);
     setNewDay({ day: "", title: "" });
     setShowAddDay(false);
-  };
-
-  const handleAddAttraction = (dayKey: string) => {
-    if (!selectedAttraction) return;
-    setItinerary(prev => prev.map(d => {
-      if (d.day === dayKey && !d.attractions.includes(selectedAttraction)) {
-        return { ...d, attractions: [...d.attractions, selectedAttraction] };
-      }
-      return d;
-    }));
-    setSelectedAttraction("");
-    setShowAttractionPicker(null);
   };
 
   const handleRemoveAttraction = (dayKey: string, attraction: string) => {
@@ -368,7 +358,7 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
 
       {/* Itinerary List */}
       <div className="space-y-3">
-        {itinerary.map((day, index) => (
+        {itinerary.map((day) => (
           <div key={day.day} className="border rounded-lg overflow-hidden">
             {/* Day Header */}
             <div

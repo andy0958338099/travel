@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import html2canvas from "html2canvas";
+import { toast } from "@/components/GlobalToastHost";
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "hangzhou-trip-postcard";
@@ -956,7 +957,7 @@ export default function PostcardPage() {
                     <button
                       onClick={() => {
                         const full = song.lyrics.join("\n");
-                        navigator.clipboard.writeText(full).then(() => alert("歌詞已複製！"));
+                        navigator.clipboard.writeText(full).then(() => toast.success("歌詞已複製！"));
                       }}
                       style={{ padding: "6px 14px", background: "rgba(245,158,11,0.2)", color: "#f59e0b", borderRadius: 20, border: "1px solid rgba(245,158,11,0.4)", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
                     >
@@ -1029,7 +1030,7 @@ export default function PostcardPage() {
                 <div style={{ padding: "24px" }}>
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
                     <button
-                      onClick={() => navigator.clipboard.writeText(fullLyrics).then(() => alert("歌詞已複製到剪貼簿！"))}
+                      onClick={() => navigator.clipboard.writeText(fullLyrics).then(() => toast.success("歌詞已複製到剪貼簿！"))}
                       style={{ padding: "10px 20px", background: "linear-gradient(135deg,#06b6d4,#8b5cf6)", color: "white", borderRadius: 12, fontWeight: 800, fontSize: 14, border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}
                     >
                       📋 一鍵複製歌詞

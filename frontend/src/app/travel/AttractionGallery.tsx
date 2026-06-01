@@ -22,7 +22,7 @@ function AttractionCard({
   attraction: Attraction;
 }) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
-  const [images, setImages] = useState<string[]>(attraction.images || []);
+  const images = attraction.images || [];
   const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -56,6 +56,10 @@ function AttractionCard({
           <img
             src={visibleImages[0]}
             alt={attraction.name}
+            width={400}
+            height={160}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
@@ -107,6 +111,10 @@ function AttractionCard({
             <img
               src={visibleImages[selectedIdx]}
               alt={`${attraction.name} ${selectedIdx + 1}`}
+              width={1200}
+              height={800}
+              loading="eager"
+              decoding="async"
               className="w-full h-full object-contain rounded-lg"
               style={{ maxHeight: '80vh' }}
             />
@@ -132,7 +140,7 @@ function AttractionCard({
                         setSelectedIdx(i);
                       }}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img src={img} alt="" width={64} height={48} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     </button>
                     {/* 刪除該照片按鈕 */}
                     <button

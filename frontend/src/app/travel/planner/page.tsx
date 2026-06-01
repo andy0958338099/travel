@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from '@/components/GlobalToastHost';
 import Link from 'next/link';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -396,10 +397,10 @@ export default function PlannerPage() {
     setSelectedCell({ day, hour });
   };
 
-  const updateActivity = (id: string, updates: Partial<Activity>) => {
+  const updateActivity = useCallback((id: string, updates: Partial<Activity>) => {
     pushHistory(activities);
     setActivities(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
-  };
+  }, [activities, pushHistory]);
 
   const deleteActivity = (id: string) => {
     pushHistory(activities);
@@ -479,7 +480,7 @@ export default function PlannerPage() {
       pdf.save('杭州行程規劃.pdf');
     } catch (err) {
       console.error('PDF export failed:', err);
-      alert('PDF 匯出失敗，請重試');
+      toast.error('PDF 匯出失敗，請重試');
     }
   };
 
@@ -583,9 +584,9 @@ export default function PlannerPage() {
                         localStorage.setItem(TICKET_STORAGE_KEY, JSON.stringify(data.ticketAssignments));
                       }
                       if (data.costTarget) localStorage.setItem(COST_STORAGE_KEY, data.costTarget);
-                      alert('匯入成功 ✓');
+                      toast.success('匯入成功 ✓');
                     } catch {
-                      alert('匯入失敗，檔案格式錯誤');
+                      toast.error('匯入失敗，檔案格式錯誤');
                     }
                   };
                   reader.readAsText(file);

@@ -962,7 +962,7 @@ export default function DiningPage() {
           >
             全部（{RESTAURANTS.length}間）
           </button>
-          {Object.entries(DAY_TOURS).map(([day, label]) => {
+          {Object.entries(DAY_TOURS).map(([day, _label]) => {
             const count = RESTAURANTS.filter(d => d.day === Number(day)).length;
             return (
               <button

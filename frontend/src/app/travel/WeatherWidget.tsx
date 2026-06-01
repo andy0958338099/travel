@@ -108,7 +108,7 @@ export default function WeatherWidget() {
         
         setForecast(tripForecast);
         setLoading(false);
-      } catch (err) {
+      } catch (_err) {
         setError("無法載入天氣資料");
         setLoading(false);
         // Use mock data as fallback
@@ -194,7 +194,7 @@ export default function WeatherWidget() {
           <div className="border rounded-lg overflow-hidden">
             <div className="bg-gray-50 px-4 py-2 font-medium text-sm">📅 八日天氣預報</div>
             <div className="divide-y">
-              {forecast.map((day, index) => (
+              {forecast.map((day, _index) => (
                 <div key={day.date} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex items-center gap-3">
                     <div className="text-center w-12">

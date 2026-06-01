@@ -364,23 +364,23 @@ function parseSkyscannerUrl(url: string): ExtractedData | null {
   // timeMatches[0] = outbound departure, [1] = outbound arrival, [2] = return departure, [3] = return arrival
   const parseTime = (s: string) => {
     // s is YYMMDDHHMM, e.g. "2607171115"
-    const month = s.slice(0, 2);
-    const day = s.slice(2, 4);
+    const _month = s.slice(0, 2);
+    const _day = s.slice(2, 4);
     const hour = s.slice(6, 8);
     const min = s.slice(8, 10);
     return `${hour}:${min}`;
   };
-  
+
   const parseDate = (s: string) => {
     const month = s.slice(0, 2);
     const day = s.slice(2, 4);
     return `${parseInt(month)}/${parseInt(day)}`;
   };
-  
+
   const outboundDep = timeMatches[0]; // 2607171115
   const outboundArr = timeMatches[1]; // 2607171320
-  const returnDep = timeMatches[2];   // 2607241950
-  const returnArr = timeMatches[3];   // 2607242150
+  const _returnDep = timeMatches[2];  // 2607241950 (預留回程去程)
+  const _returnArr = timeMatches[3];  // 2607242150 (預留回程到達)
   
   // Extract airline codes (first group of digits before the config separator)
   const airlineMatch = url.match(/(\d{5})-(\d{10})/);
@@ -466,7 +466,7 @@ function extractDataFromText(text: string, type: AnalysisType): ExtractedData {
     const airline = extractByRegex(text, /(?:中華航空|長榮|國泰|廈門航空|中國航空|華航|長榮航|星宇)\s*(?:航空)?/i) || "";
     const dep = extractByRegex(text, /(?:TPE|HGH|TSA|TSA)\s*\d{1,2}:\d{2}/) || "";
     const arr = extractByRegex(text, /→\s*([A-Z]{3})\s*\d{1,2}:\d{2}/) || "";
-    const time = extractByRegex(text, /\d{1,2}:\d{2}\s*(?:→|-)\s*\d{1,2}:\d{2}/) || "";
+    const _time = extractByRegex(text, /\d{1,2}:\d{2}\s*(?:→|-)\s*\d{1,2}:\d{2}/) || "";
     const date = extractByRegex(text, /(\d{1,2}[\/\-]\d{1,2})/) || "";
     const price = extractByRegex(text, /(?:NT\$|TWD)\s*([\d,]+)/) || "";
 

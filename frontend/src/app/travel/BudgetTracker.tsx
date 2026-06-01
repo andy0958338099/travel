@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import { toast } from "@/components/GlobalToastHost";
 
 interface Expense {
   id: string;
@@ -92,7 +93,7 @@ export default function BudgetTracker() {
 
   const handleAddExpense = () => {
     if (!newExpense.item || !newExpense.amount) {
-      alert("請填寫項目和金額");
+      toast.error("請填寫項目和金額");
       return;
     }
     setExpenses(prev => [

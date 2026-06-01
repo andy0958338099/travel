@@ -261,7 +261,7 @@ export async function syncAllPhotos(photos: Photo[], hotelKey: string): Promise<
   }
 }
 
-export function hasCustomOverrides(hotelKey: string): boolean {
+export function hasCustomOverrides(_hotelKey: string): boolean {
   // This is called by the React hook to determine if user modifications exist
   return false;
 }
