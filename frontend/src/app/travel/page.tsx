@@ -7,8 +7,10 @@ import ItineraryPlanner from "./ItineraryPlanner";
 import WeatherWidget from "./WeatherWidget";
 import { loadNavOrder, saveNavOrder, applyOrder, DEFAULT_NAV_ITEMS, NAV_ORDER_KEY, NavItem } from "@/utils/navOrderService";
 import { useCloudState } from "@/utils/useCloudState";
+import { exportCloudBackup, importCloudBackup } from "@/utils/cloudBackup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toast } from "@/components/Toast";
+import { SyncIndicator } from "@/components/SyncIndicator";
 
 const CNY_RATE = 4.5;
 const TRIP_START = new Date("2026-07-17");
@@ -334,25 +336,27 @@ export default function TravelPage() {
         </div>
       </div>
 
-      {/* Export / Import JSON */}
+      {/* Sync status + Export / Import JSON */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex items-center gap-2 sm:gap-3 flex-wrap">
+          <SyncIndicator />
           <span className="text-xs text-gray-400 hidden sm:inline">資料管理：</span>
           <button
-            onClick={() => {
-              const keys = ['hangzhou-trip-planner', 'hangzhou-trip-budget', 'hangzhou-trip-packing', 'hangzhou-trip-itinerary', 'hangzhou-trip-journal-narratives', 'hangzhou-trip-flight', 'hangzhou-trip-hotel', 'travel-videos'];
-              const data: Record<string, string> = {};
-              for (const k of keys) {
-                const v = localStorage.getItem(k);
-                if (v) data[k] = v;
+            onClick={async () => {
+              try {
+                setToast({ show: true, message: "正在從雲端拉取最新資料…", type: 2 });
+                const { filename, count, json } = await exportCloudBackup();
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+                setToast({ show: true, message: `已匯出 ${count} 筆雲端資料`, type: 1 });
+              } catch (e: any) {
+                setToast({ show: true, message: e.message || "匯出失敗", type: 0 });
               }
-              const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `hangzhou-trip-backup-${new Date().toISOString().slice(0,10)}.json`;
-              a.click();
-              URL.revokeObjectURL(url);
             }}
             className="text-xs bg-teal-50 hover:bg-teal-100 text-teal-700 px-3 py-1.5 sm:py-1 rounded-full border border-teal-200 transition-colors"
           >
@@ -368,25 +372,26 @@ export default function TravelPage() {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 const reader = new FileReader();
-                reader.onload = (ev) => {
+                reader.onload = async (ev) => {
                   try {
-                    const data = JSON.parse(ev.target?.result as string);
-                    let count = 0;
-                    for (const [k, v] of Object.entries(data)) {
-                      localStorage.setItem(k, v as string);
-                      count++;
-                    }
-                    setToast({ show: true, message: `已還原 ${count} 筆資料，3 秒後自動重新整理...`, type: 1 });
+                    const { count, rejected } = await importCloudBackup(
+                      ev.target?.result as string
+                    );
+                    setToast({
+                      show: true,
+                      message: `已還原 ${count} 筆到雲端${rejected > 0 ? `（略過 ${rejected} 筆未知 key）` : ""}，3 秒後自動重新整理…`,
+                      type: 1,
+                    });
                     setTimeout(() => window.location.reload(), 3000);
-                  } catch {
-                    setToast({ show: true, message: "檔案格式錯誤，請確認是正確的備份檔。", type: 0 });
+                  } catch (e: any) {
+                    setToast({ show: true, message: e.message || "匯入失敗", type: 0 });
                   }
                 };
                 reader.readAsText(file);
               }}
             />
           </label>
-          <span className="text-xs text-gray-400 hidden sm:inline">（localStorage ↔ JSON 檔案）</span>
+          <span className="text-xs text-gray-400 hidden sm:inline">（雲端 ↔ JSON 檔案）</span>
         </div>
       </div>
 

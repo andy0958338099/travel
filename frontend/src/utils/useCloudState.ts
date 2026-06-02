@@ -24,6 +24,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { reportStatus, useStatusReporter } from '@/components/SyncStatusProvider';
 
 export type CloudStateStatus =
   | 'loading'   // initial fetch in progress
@@ -44,11 +45,23 @@ export function useCloudState<T>(key: string, defaultValue: T) {
   const mountedRef = useRef(true);
 
   const [value, setValue] = useState<T>(defaultValue);
-  const [status, setStatus] = useState<CloudStateStatus>('loading');
+  const [status, setStatusRaw] = useState<CloudStateStatus>('loading');
+
+  // Wrap setStatus so every transition also updates the global SyncStatusProvider.
+  const setStatus = useCallback((next: CloudStateStatus) => {
+    setStatusRaw(next);
+    reportStatus(key, next);
+  }, [key]);
 
   // Keep latest value in a ref for the writer closure.
   const valueRef = useRef(value);
   valueRef.current = value;
+  const statusRef = useRef(status);
+  statusRef.current = status;
+
+  // Register / unregister with the global SyncStatusProvider (drives the
+  // header SyncIndicator pill). Status itself is reported via setStatus above.
+  useStatusReporter(key, status);
 
   // ── Initial load + Realtime subscription ──────────────────────────
   useEffect(() => {
@@ -132,7 +145,7 @@ export function useCloudState<T>(key: string, defaultValue: T) {
 
     // 4. Online/offline detection.
     const onOnline = () => {
-      if (status === 'offline' || status === 'error') {
+      if (statusRef.current === 'offline' || statusRef.current === 'error') {
         setStatus('synced');
         // Best-effort re-sync current value to cloud.
         void writeCloud(key, valueRef.current, /* silent */ true);
