@@ -11,6 +11,7 @@ import { exportCloudBackup, importCloudBackup } from "@/utils/cloudBackup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toast } from "@/components/Toast";
 import { SyncIndicator } from "@/components/SyncIndicator";
+import OnboardingTour from "@/components/OnboardingTour";
 
 const CNY_RATE = 4.5;
 const TRIP_START = new Date("2026-07-17");
@@ -543,6 +544,9 @@ export default function TravelPage() {
         type={toast.type}
         onClose={() => setToast((t) => ({ ...t, show: false }))}
       />
+
+      {/* 首次訪問自動導覽（localStorage flag 控制只跑一次） */}
+      <OnboardingTour />
     </div>
   );
 }
