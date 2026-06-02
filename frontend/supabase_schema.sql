@@ -170,3 +170,40 @@ create policy "Allow anon upsert attraction_gallery_hidden"     on public.attrac
 create policy "Allow anon read attraction_gallery_attractions"  on public.attraction_gallery_attractions for select using (true);
 create policy "Allow anon upsert attraction_gallery_attractions" on public.attraction_gallery_attractions for insert with check (true);
 create policy "Allow anon upsert attraction_gallery_attractions" on public.attraction_gallery_attractions for update using (true);
+
+-- ============================================================
+-- P1: user_state table (general-purpose key-value cloud sync)
+-- Replaces localStorage for shared, cross-device state.
+-- last-write-wins by updated_at (Realtime + RLS)
+-- ============================================================
+
+create table if not exists public.user_state (
+  key         text primary key,
+  value       jsonb not null,
+  updated_at  timestamptz default now()
+);
+
+alter table public.user_state enable row level security;
+
+-- Public anon access (matches existing tables)
+create policy "Allow anon read user_state"
+  on public.user_state for select using (true);
+create policy "Allow anon upsert user_state"
+  on public.user_state for insert with check (true);
+create policy "Allow anon update user_state"
+  on public.user_state for update using (true);
+create policy "Allow anon delete user_state"
+  on public.user_state for delete using (true);
+
+-- Realtime: include in the default publication (idempotent)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'user_state'
+  ) then
+    alter publication supabase_realtime add table public.user_state;
+  end if;
+end $$;

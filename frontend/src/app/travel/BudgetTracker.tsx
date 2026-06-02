@@ -1,6 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "@/components/GlobalToastHost";
+import { useCloudState } from "@/utils/useCloudState";
 
 interface Expense {
   id: string;
@@ -40,9 +41,29 @@ const PRESET_EXPENSES: Expense[] = [
 const STORAGE_KEY = "hangzhou-trip-budget";
 const CNY_RATE = 4.5; // 1 CNY ≈ 4.5 TWD
 
+type BudgetData = { budget: number; expenses: Expense[] };
+
 export default function BudgetTracker() {
-  const [budget, setBudget] = useState(50000); // 預設總預算 NT$
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  // Cloud-synced: key is shared with localStorage fallback (cs_ prefix)
+  const [budgetData, setBudgetData, syncStatus] = useCloudState<BudgetData>(
+    STORAGE_KEY,
+    { budget: 50000, expenses: PRESET_EXPENSES }
+  );
+  const budget = budgetData.budget;
+  const expenses = budgetData.expenses;
+  const setBudget = (v: number | ((p: number) => number)) =>
+    setBudgetData((prev) => ({
+      ...prev,
+      budget: typeof v === "function" ? v(prev.budget) : v,
+    }));
+  const setExpenses = (
+    v: Expense[] | ((p: Expense[]) => Expense[])
+  ) =>
+    setBudgetData((prev) => ({
+      ...prev,
+      expenses: typeof v === "function" ? v(prev.expenses) : v,
+    }));
+
   const [showAdd, setShowAdd] = useState(false);
   const [editingBudget, setEditingBudget] = useState(false);
   const [currencyMode, setCurrencyMode] = useState<"TWD" | "CNY">("TWD");
@@ -52,27 +73,6 @@ export default function BudgetTracker() {
     amount: 0,
     paidIn: "TWD",
   });
-
-  // Load from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        setBudget(data.budget || 50000);
-        setExpenses(data.expenses || []);
-      } catch {
-        setExpenses(PRESET_EXPENSES);
-      }
-    } else {
-      setExpenses(PRESET_EXPENSES);
-    }
-  }, []);
-
-  // Save to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ budget, expenses }));
-  }, [budget, expenses]);
 
   // Calculate totals
   const totalSpent = expenses.reduce((sum, e) => {

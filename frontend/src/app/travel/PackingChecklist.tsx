@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useCloudState } from "@/utils/useCloudState";
 
 interface PackingItem {
   id: string;
@@ -104,56 +105,37 @@ const PACKING_LIST: PackingCategory[] = [
 
 const STORAGE_KEY = "hangzhou-trip-packing";
 
+// Default packing items (built once at module load — SSR-safe).
+const DEFAULT_PACKING_ITEMS: PackingItem[] = PACKING_LIST.flatMap(cat =>
+  cat.items.map(item => ({
+    id: `${cat.key}-${item}`,
+    name: item,
+    category: cat.key,
+    checked: false,
+  }))
+);
+
 export default function PackingChecklist() {
-  const [items, setItems] = useState<PackingItem[]>(() => {
-    // Initialize from storage or default
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return buildDefaultItems();
-      }
-    }
-    return buildDefaultItems();
-  });
+  // Cloud-synced packing list. The default is derived from PACKING_LIST,
+  // computed once at module scope below.
+  const [items, setItems] = useCloudState<PackingItem[]>(
+    STORAGE_KEY,
+    DEFAULT_PACKING_ITEMS
+  );
   const [showOnlyUnchecked, setShowOnlyUnchecked] = useState(false);
 
-  function buildDefaultItems(): PackingItem[] {
-    const result: PackingItem[] = [];
-    PACKING_LIST.forEach(cat => {
-      cat.items.forEach(item => {
-        result.push({
-          id: `${cat.key}-${item}`,
-          name: item,
-          category: cat.key,
-          checked: false,
-        });
-      });
-    });
-    return result;
-  }
-
   function toggleItem(id: string) {
-    setItems(prev => {
-      const updated = prev.map(item =>
-        item.id === id ? { ...item, checked: !item.checked } : item
-      );
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+    setItems(prev => prev.map(item =>
+      item.id === id ? { ...item, checked: !item.checked } : item
+    ));
   }
 
   function checkAll() {
-    const updated = items.map(item => ({ ...item, checked: true }));
-    setItems(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setItems(items.map(item => ({ ...item, checked: true })));
   }
 
   function uncheckAll() {
-    const updated = items.map(item => ({ ...item, checked: false }));
-    setItems(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setItems(items.map(item => ({ ...item, checked: false })));
   }
 
   const checkedCount = items.filter(i => i.checked).length;

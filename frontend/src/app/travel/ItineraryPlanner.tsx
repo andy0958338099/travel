@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/components/GlobalToastHost";
 import { ALL_ATTRACTIONS } from "./data";
+import { useCloudState } from "@/utils/useCloudState";
 
 interface PlannedDay {
   day: string;        // e.g. "D1", "D2"
@@ -68,7 +69,18 @@ const PRESET_ITINERARY: PlannedDay[] = [
 ];
 
 export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlannerProps) {
-  const [itinerary, setItinerary] = useState<PlannedDay[]>([]);
+  // Cloud-synced itinerary; PRESET_ITINERARY is shown on first visit.
+  const [itinerary, setItinerary] = useCloudState<PlannedDay[]>(
+    STORAGE_KEY,
+    PRESET_ITINERARY
+  );
+
+  // Notify parent of all current attractions whenever itinerary changes.
+  useEffect(() => {
+    const allAttractions = itinerary.flatMap(d => d.attractions);
+    onUpdateAttractions(allAttractions);
+  }, [itinerary, onUpdateAttractions]);
+
   const [editingDay, setEditingDay] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<PlannedDay>>({});
   const [showAddDay, setShowAddDay] = useState(false);
@@ -125,38 +137,15 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
     
     if (newItinerary.length > 0) {
       setItinerary(newItinerary);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newItinerary));
     }
-    
+
     setShowTextImport(false);
     setImportText("");
   };
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        // Ensure all days have attractions array
-        setItinerary(parsed.map((d: PlannedDay) => ({ ...d, attractions: d.attractions || [] })));
-      } catch {
-        setItinerary(PRESET_ITINERARY);
-      }
-    } else {
-      setItinerary(PRESET_ITINERARY);
-    }
-  }, []);
-
-  // Save to localStorage when itinerary changes
-  useEffect(() => {
-    if (itinerary.length > 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(itinerary));
-    }
-    // Extract all attractions and notify parent
-    const allAttractions = itinerary.flatMap(d => d.attractions);
-    onUpdateAttractions(allAttractions);
-  }, [itinerary, onUpdateAttractions]);
+  // Itinerary is cloud-synced (cs_ prefix in localStorage).
+  // defaultValue is PRESET_ITINERARY so first-time users see it; once
+  // they edit, both cloud and localStorage take over.
 
   const handleEditDay = (day: PlannedDay) => {
     setEditingDay(day.day);
