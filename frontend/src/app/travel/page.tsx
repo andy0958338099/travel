@@ -5,7 +5,8 @@ import { TIPS, ALL_ATTRACTIONS } from "./data";
 import dynamic from "next/dynamic";
 import ItineraryPlanner from "./ItineraryPlanner";
 import WeatherWidget from "./WeatherWidget";
-import { loadNavOrder, saveNavOrder, DEFAULT_NAV_ITEMS, NavItem } from "@/utils/navOrderService";
+import { loadNavOrder, saveNavOrder, applyOrder, DEFAULT_NAV_ITEMS, NAV_ORDER_KEY, NavItem } from "@/utils/navOrderService";
+import { useCloudState } from "@/utils/useCloudState";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toast } from "@/components/Toast";
 
@@ -55,7 +56,20 @@ export default function TravelPage() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [budgetData, setBudgetData] = useState({ budget: 50000, spent: 0, percent: 0 });
   const [packingData, setPackingData] = useState({ packed: 0, total: 0 });
+  // Nav order: cloud-synced, reactive to other-tab updates. The first-load
+  // call below is just an optimisation — the cloud subscription will fill
+  // the value in as soon as the initial fetch returns.
+  const [cloudNavOrder] = useCloudState<string[] | null>(NAV_ORDER_KEY, null);
   const [navOrder, setNavOrder] = useState<NavItem[]>(DEFAULT_NAV_ITEMS);
+  useEffect(() => {
+    // Prefer the cloud value when it arrives; otherwise read directly.
+    if (cloudNavOrder) {
+      setNavOrder(applyOrder(cloudNavOrder));
+      return;
+    }
+    loadNavOrder().then(setNavOrder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cloudNavOrder]);
   const [isEditingOrder, setIsEditingOrder] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 0 | 1 | 2 }>({

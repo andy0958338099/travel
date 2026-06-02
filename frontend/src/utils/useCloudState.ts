@@ -32,7 +32,10 @@ export type CloudStateStatus =
   | 'error'     // last sync failed (data still in localStorage)
   | 'offline';  // navigator.onLine === false
 
-const LS_PREFIX = 'cs_'; // localStorage prefix for cloud-synced keys
+// Use the original key verbatim in localStorage. Callers pass keys
+// that historically lived in localStorage; adding a prefix would have
+// broken any other page that read the same key directly.
+const LS_PREFIX = '';
 
 export function useCloudState<T>(key: string, defaultValue: T) {
   const lsKey = LS_PREFIX + key;

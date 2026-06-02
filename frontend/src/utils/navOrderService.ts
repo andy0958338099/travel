@@ -1,9 +1,16 @@
 /**
  * Navigation Order Service
- * 
+ *
  * Stores and retrieves the travel page navigation item ordering.
- * Uses planner_settings table in Supabase as storage.
- * Falls back to DEFAULT_ORDER if Supabase unavailable.
+ * Backed by the shared `user_state` cloud table (key = 'travel-nav-order'),
+ * which is the single source of truth for personal per-device state.
+ *
+ * Each user gets their own ordering; default = DEFAULT_NAV_ITEMS.
+ *
+ * Realtime: writes are picked up by other tabs/devices via
+ * useCloudState's subscription on the same key. This service is the
+ * imperative write path used by the SortMode UI; read-time uses
+ * useCloudState in the consumer.
  */
 
 import { createClient } from '@/utils/supabase/client';
@@ -25,63 +32,58 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'toys-tour',   label: '🧸 Toys Tour',    href: '/travel/toys-tour'   },
 ];
 
-const SETTINGS_KEY = 'nav_order_v1';
+export const NAV_ORDER_KEY = 'travel-nav-order';
 
-function getSupabase() {
-  return createClient();
+export function applyOrder(keys: string[]): NavItem[] {
+  const ordered = keys
+    .map((k) => DEFAULT_NAV_ITEMS.find((item) => item.key === k))
+    .filter(Boolean) as NavItem[];
+  // Append any new items not in the saved order.
+  const known = new Set(keys);
+  for (const item of DEFAULT_NAV_ITEMS) {
+    if (!known.has(item.key)) ordered.push(item);
+  }
+  return ordered;
 }
 
 export async function loadNavOrder(): Promise<NavItem[]> {
   try {
-    const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from('planner_settings')
+    const { data, error } = await createClient()
+      .from('user_state')
       .select('value')
-      .eq('key', SETTINGS_KEY)
-      .single();
-
-    if (error || !data) {
-      // Try localStorage as fallback
-      const saved = localStorage.getItem('travel-nav-order');
-      if (saved) {
-        const keys: string[] = JSON.parse(saved);
-        return DEFAULT_NAV_ITEMS.filter(item => keys.includes(item.key));
-      }
-      return DEFAULT_NAV_ITEMS;
-    }
-
-    const keys: string[] = data.value.split(',');
-    const ordered = keys
-      .map(k => DEFAULT_NAV_ITEMS.find(item => item.key === k))
-      .filter(Boolean) as NavItem[];
-
-    // Add any new items not in the saved order
-    const savedKeys = new Set(keys);
-    for (const item of DEFAULT_NAV_ITEMS) {
-      if (!savedKeys.has(item.key)) {
-        ordered.push(item);
-      }
-    }
-
-    return ordered;
+      .eq('key', NAV_ORDER_KEY)
+      .maybeSingle();
+    if (error || !data) return DEFAULT_NAV_ITEMS;
+    const raw = data.value as unknown;
+    const keys: string[] = Array.isArray(raw)
+      ? (raw as string[])
+      : typeof raw === 'string'
+        ? raw.split(',')
+        : [];
+    return applyOrder(keys);
   } catch {
     return DEFAULT_NAV_ITEMS;
   }
 }
 
 export async function saveNavOrder(items: NavItem[]): Promise<void> {
-  const keys = items.map(i => i.key).join(',');
-
-  try {
-    const supabase = getSupabase();
-    await supabase.from('planner_settings').upsert(
-      { key: SETTINGS_KEY, value: keys },
-      { onConflict: 'key' }
-    );
-  } catch (e) {
-    console.warn('[NavOrderService] Save failed:', e);
+  const keys = items.map((i) => i.key);
+  const { error } = await createClient()
+    .from('user_state')
+    .upsert({
+      key: NAV_ORDER_KEY,
+      value: keys as unknown as object,
+      updated_at: new Date().toISOString(),
+    });
+  if (error) {
+    console.warn('[NavOrderService] Save failed:', error.message);
   }
-
-  // Also save to localStorage as backup
-  localStorage.setItem('travel-nav-order', JSON.stringify(keys.split(',')));
+  // localStorage fallback for offline reads (mirrors user_state bootstrap).
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(NAV_ORDER_KEY, JSON.stringify(keys));
+    } catch {
+      // ignore quota errors
+    }
+  }
 }

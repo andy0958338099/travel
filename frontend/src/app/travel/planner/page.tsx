@@ -5,6 +5,8 @@ import { toast } from '@/components/GlobalToastHost';
 import Link from 'next/link';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { useCloudState } from '@/utils/useCloudState';
+import { createClient } from '@/utils/supabase/client';
 import {
   loadActivities,
   syncActivities,
@@ -213,7 +215,11 @@ export default function PlannerPage() {
   const [history, setHistory] = useState<Activity[][]>([]);
   const [selectedCell, setSelectedCell] = useState<{ day: number; hour: number } | null>(null);
   const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
-  const [fontSize, setFontSize] = useState(20);
+  // Cloud-synced font size (10–24, default 20).
+  const [fontSize, setFontSize] = useCloudState<number>(
+    'hangzhou-trip-font-size',
+    20
+  );
   const [dragState, setDragState] = useState<{
     activity: Activity;
     mode: 'move' | 'resize';
@@ -326,14 +332,15 @@ export default function PlannerPage() {
     });
   }, []);
 
-  // Sync activities to Supabase + localStorage (supabase on every change, localStorage as backup)
+  // Sync activities to Supabase (its own table) + localStorage (backup).
   useEffect(() => {
     if (activities.length > 0) {
       // Sync to Supabase (async, non-blocking)
       syncActivities(activities);
       // Also write localStorage as fallback
       localStorage.setItem(STORAGE_KEY, JSON.stringify(activities));
-      // Sync to main page's ItineraryPlanner format
+      // Mirror to user_state → hangzhou-trip-itinerary so /travel and
+      // /travel/journal (which read that cloud key) see planner updates.
       const plannedDays: { day: string; title: string; description: string; attractions: string[] }[] = [];
       for (let d = 1; d <= 8; d++) {
         const dayActs = activities.filter(a => a.day === d);
@@ -347,22 +354,21 @@ export default function PlannerPage() {
         }
       }
       if (plannedDays.length > 0) {
-        localStorage.setItem('hangzhou-trip-itinerary', JSON.stringify(plannedDays));
+        void createClient()
+          .from('user_state')
+          .upsert({
+            key: 'hangzhou-trip-itinerary',
+            value: plannedDays as unknown as object,
+            updated_at: new Date().toISOString(),
+          });
       }
     }
   }, [activities]);
 
+  // Clamp the cloud-synced font size into the supported range.
   useEffect(() => {
-    const saved = localStorage.getItem('hangzhou-trip-font-size');
-    if (saved) {
-      const parsed = parseInt(saved);
-      if (!isNaN(parsed) && parsed >= 10 && parsed <= 24) setFontSize(parsed);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('hangzhou-trip-font-size', String(fontSize));
-  }, [fontSize]);
+    if (fontSize < 10 || fontSize > 24) setFontSize(20);
+  }, [fontSize, setFontSize]);
 
   const getActivityAt = useCallback((day: number, hour: number): Activity | null => {
     return activities.find(

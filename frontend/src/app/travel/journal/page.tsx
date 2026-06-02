@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import "leaflet/dist/leaflet.css";
 import { ALL_ATTRACTIONS } from "../data";
+import { useCloudState } from "@/utils/useCloudState";
 
 // Dynamic import for Leaflet (no SSR)
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
@@ -131,6 +132,17 @@ interface DayEntry {
   attractions: string[];
 }
 
+const PRESET_ITINERARY: DayEntry[] = [
+  { day: "D1", title: "台北 ➔ 上海", attractions: ["外灘夜景", "南京東路步行街", "海底撈火鍋"] },
+  { day: "D2", title: "上海 ➔ 西塘", attractions: ["小楊生煎", "豫園", "城隍廟", "南翔饅頭", "西塘古鎮"] },
+  { day: "D3", title: "西塘 ➔ 烏鎮東柵", attractions: ["西塘古鎮", "江南戲曲服飾", "水宴餐廳", "烏鎮東柵"] },
+  { day: "D4", title: "烏鎮西柵深度一日遊", attractions: ["烏鎮西柵", "白蓮塔", "昭明書院", "木心美術館", "搖櫓船"] },
+  { day: "D5", title: "烏鎮 ➔ 杭州西湖", attractions: ["西湖（主湖區）", "斷橋殘雪", "蘇堤", "武林夜市", "河坊街"] },
+  { day: "D6", title: "杭州宋城文化體驗", attractions: ["游埠豆漿", "宋城千古情", "河坊街", "馬鴻興川小館"] },
+  { day: "D7", title: "杭州運河與宮廷晚宴", attractions: ["大馬弄", "京杭大運河遊船", "宮宴"] },
+  { day: "D8", title: "杭州 ➔ 台北", attractions: ["西湖（主湖區）", "龍井茶園"] },
+];
+
 // Countdown Timer Component
 function CountdownTimer({ departureDate }: { departureDate: Date }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -181,68 +193,33 @@ function CountdownTimer({ departureDate }: { departureDate: Date }) {
 }
 
 export default function TravelJournalPage() {
-  const [itinerary, setItinerary] = useState<DayEntry[]>([]);
+  // Itinerary is shared with /travel and /travel/planner via cloud.
+  // DayEntry shape is a subset of PlannedDay (no description needed here).
+  // We only read here; the writer is /travel and /travel/planner.
+  const [itinerary, , itineraryStatus] = useCloudState<DayEntry[]>(
+    "hangzhou-trip-itinerary",
+    PRESET_ITINERARY
+  );
+  // Turn off the initial loading spinner once the cloud fetch settles
+  // (whether it produced data or failed back to defaults).
+  useEffect(() => {
+    if (itineraryStatus !== "loading") setLoading(false);
+  }, [itineraryStatus]);
   const [loading, setLoading] = useState(true);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [editingDay, setEditingDay] = useState<string | null>(null);
   const [editedNarrative, setEditedNarrative] = useState<string>("");
-  const [customNarratives, setCustomNarratives] = useState<Record<string, string>>({});
   const dayRefs = useRef<Record<string, HTMLElement | null>>({});
+  // Cloud-synced custom narratives (replaces localStorage useEffect pair).
+  const [customNarratives, setCustomNarratives] = useCloudState<
+    Record<string, string>
+  >("hangzhou-trip-journal-narratives", {});
 
-  const NARRATIVE_STORAGE_KEY = "hangzhou-trip-journal-narratives";
-
-  useEffect(() => {
-    // Read from localStorage
-    const stored = localStorage.getItem("hangzhou-trip-itinerary");
-    if (stored) {
-      try {
-        const data = JSON.parse(stored);
-        setItinerary(data);
-      } catch {
-        setItinerary([
-          { day: "D1", title: "台北 ➔ 上海", attractions: ["外灘夜景", "南京東路步行街", "海底撈火鍋"] },
-          { day: "D2", title: "上海 ➔ 西塘", attractions: ["小楊生煎", "豫園", "城隍廟", "南翔饅頭", "西塘古鎮"] },
-          { day: "D3", title: "西塘 ➔ 烏鎮東柵", attractions: ["西塘古鎮", "江南戲曲服飾", "水宴餐廳", "烏鎮東柵"] },
-          { day: "D4", title: "烏鎮西柵深度一日遊", attractions: ["烏鎮西柵", "白蓮塔", "昭明書院", "木心美術館", "搖櫓船"] },
-          { day: "D5", title: "烏鎮 ➔ 杭州西湖", attractions: ["西湖（主湖區）", "斷橋殘雪", "蘇堤", "武林夜市", "河坊街"] },
-          { day: "D6", title: "杭州宋城文化體驗", attractions: ["游埠豆漿", "宋城千古情", "河坊街", "馬鴻興川小館"] },
-          { day: "D7", title: "杭州運河與宮廷晚宴", attractions: ["大馬弄", "京杭大運河遊船", "宮宴"] },
-          { day: "D8", title: "杭州 ➔ 台北", attractions: ["西湖（主湖區）", "龍井茶園"] },
-        ]);
-      }
-    } else {
-      setItinerary([
-        { day: "D1", title: "台北 ➔ 上海", attractions: ["外灘夜景", "南京東路步行街", "海底撈火鍋"] },
-        { day: "D2", title: "上海 ➔ 西塘", attractions: ["小楊生煎", "豫園", "城隍廟", "南翔饅頭", "西塘古鎮"] },
-        { day: "D3", title: "西塘 ➔ 烏鎮東柵", attractions: ["西塘古鎮", "江南戲曲服飾", "水宴餐廳", "烏鎮東柵"] },
-        { day: "D4", title: "烏鎮西柵深度一日遊", attractions: ["烏鎮西柵", "白蓮塔", "昭明書院", "木心美術館", "搖櫓船"] },
-        { day: "D5", title: "烏鎮 ➔ 杭州西湖", attractions: ["西湖（主湖區）", "斷橋殘雪", "蘇堤", "武林夜市", "河坊街"] },
-        { day: "D6", title: "杭州宋城文化體驗", attractions: ["游埠豆漿", "宋城千古情", "河坊街", "馬鴻興川小館"] },
-        { day: "D7", title: "杭州運河與宮廷晚宴", attractions: ["大馬弄", "京杭大運河遊船", "宮宴"] },
-        { day: "D8", title: "杭州 ➔ 台北", attractions: ["西湖（主湖區）", "龍井茶園"] },
-      ]);
-    }
-    setLoading(false);
-  }, []);
-
-  // Load custom narratives from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(NARRATIVE_STORAGE_KEY);
-    if (saved) {
-      try {
-        setCustomNarratives(JSON.parse(saved));
-      } catch { /* ignore */ }
-    }
-  }, []);
-
-  // Save custom narratives to localStorage
-  useEffect(() => {
-    if (Object.keys(customNarratives).length > 0) {
-      localStorage.setItem(NARRATIVE_STORAGE_KEY, JSON.stringify(customNarratives));
-    }
-  }, [customNarratives]);
+  // Re-render hook for itinerary — but we also need to load it once on mount.
+  // Use a separate useCloudState so it follows the same cloud source as
+  // /travel and /travel/planner.
 
   const startEditing = (day: string) => {
     const dayEntry = itinerary.find(d => d.day === day);
