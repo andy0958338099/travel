@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * /travel/guidebook — AI 漫畫圖鑑首頁
+ * /travel/guidebook — Q版漫畫圖鑑首頁
  *
  * 來源：56 個景點 + 26 間美食 = 82 個項目
- * 每個項目有 4 格 AI 漫畫 + 短/中/長介紹文
+ * 每個項目有 4 格 Q版漫畫 + 短/中/長介紹文
  *
  * UI:
  *   - Tabs: 全部 / 景點 / 美食
@@ -132,7 +132,7 @@ export default function GuidebookPage() {
             AI Manga Guidebook
           </p>
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black mb-3">
-            江南 8 日 AI 漫畫圖鑑
+            江南 8 日 Q版漫畫圖鑑
           </h1>
           <p className="text-sm sm:text-lg opacity-90 max-w-2xl mx-auto">
             56 個景點 + 26 間美食，每個都有一份 4 格漫畫導覽 + 三段介紹文

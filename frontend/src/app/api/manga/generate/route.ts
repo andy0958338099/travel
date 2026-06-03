@@ -19,7 +19,7 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { createClient } from "@/utils/supabase/server";
 import { generateImage, chat } from "@/lib/ai/minimax";
-import { buildPanelPrompt, buildDescriptionPrompt, PanelIndex } from "@/lib/ai/mangaPrompts";
+import { buildPanelPrompt, buildDescriptionPrompt, buildPanelCaptionPrompt, PanelIndex } from "@/lib/ai/mangaPrompts";
 
 const BUCKET = "travel-manga";
 
@@ -114,11 +114,13 @@ export async function POST(req: NextRequest) {
   await supabase.from("travel_mangas").upsert(upsertData);
 
   // ── 4) 4 個 panel 串行生成 + 上傳 ──
+  // panel_X_caption 由 5) 階段 chat 生成（基於 short_desc）
+  // 這裡先用 placeholder 讓 prompt 編譯能跑
   const panelCaptions: Record<PanelIndex, string> = {
-    1: `歡迎光臨 ${sourceName}！`,
-    2: `${sourceName} 的歷史故事`,
-    3: `${sourceName} 必吃必拍`,
-    4: `${sourceName} 打卡攻略`,
+    1: "",
+    2: "",
+    3: "",
+    4: "",
   };
 
   const panelResults: Record<PanelIndex, { url: string | null; error?: string }> = {
@@ -126,11 +128,11 @@ export async function POST(req: NextRequest) {
   };
 
   for (const panel of [1, 2, 3, 4] as PanelIndex[]) {
+    // 注意：caption 已經從 prompt 移除，純粹由程式疊加（user v3.0 rule）
     const prompt = buildPanelPrompt(
       character.style_prompt,
       sourceName,
-      panel,
-      panelCaptions[panel]
+      panel
     );
 
     let lastError: string | null = null;
@@ -199,6 +201,41 @@ export async function POST(req: NextRequest) {
   } catch (e: any) {
     console.error("[manga] description failed:", e.message);
   }
+
+  // ── 5b) 為 4 個 panel 各生 caption（給程式疊加用，user v3.0 rule） ──
+  // 這段文字絕不會進圖片模型，全部由 HTML/CSS overlay 顯示
+  try {
+    if (shortDesc) {
+      const { system: capSys, user: capUser } = buildPanelCaptionPrompt({
+        sourceName,
+        sourceType,
+        shortDesc,
+      });
+      const capText = await chat(
+        [
+          { role: "system", content: capSys },
+          { role: "user", content: capUser },
+        ],
+        { maxTokens: 600, temperature: 0.7 }
+      );
+      const m = capText.match(/\{[\s\S]*\}/);
+      if (m) {
+        const parsed = JSON.parse(m[0]);
+        panelCaptions[1] = parsed.panel_1 || panelCaptions[1];
+        panelCaptions[2] = parsed.panel_2 || panelCaptions[2];
+        panelCaptions[3] = parsed.panel_3 || panelCaptions[3];
+        panelCaptions[4] = parsed.panel_4 || panelCaptions[4];
+      }
+    }
+  } catch (e: any) {
+    console.error("[manga] panel caption failed:", e.message);
+  }
+
+  // 萬一 caption 還是空，給 fallback
+  if (!panelCaptions[1]) panelCaptions[1] = "歡迎光臨！";
+  if (!panelCaptions[2]) panelCaptions[2] = "歷史人文薈萃";
+  if (!panelCaptions[3]) panelCaptions[3] = "必吃必拍";
+  if (!panelCaptions[4]) panelCaptions[4] = "打卡攻略";
 
   // ── 6) 寫入 travel_mangas ──
   const successCount = [1, 2, 3, 4].filter((p) => panelResults[p as PanelIndex].url).length;

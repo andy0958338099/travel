@@ -10,13 +10,18 @@
  */
 
 const API_BASE = "https://api.minimax.io/v1";
-const API_KEY = process.env.MINIMAX_API_KEY;
 
-if (!API_KEY) {
-  // Don't throw at import time in dev — log so the dev server still boots.
-  // The actual fetch will throw a clearer error.
-  // eslint-disable-next-line no-console
-  console.warn("[minimax] MINIMAX_API_KEY not set in env");
+/**
+ * 每次函式呼叫時再讀 env（不要在 module load 時 freeze）——
+ * 避免 Next.js dev 模式下 module 在 .env.local 載入前就被 cache，
+ * 導致「MINIMAX_API_KEY not configured」誤報。
+ */
+function getApiKey(): string {
+  const key = process.env.MINIMAX_API_KEY;
+  if (!key) {
+    throw new Error("MINIMAX_API_KEY not configured (check .env.local)");
+  }
+  return key;
 }
 
 export interface SubjectReference {
@@ -45,7 +50,7 @@ export interface GeneratedImage {
  * quality for manga, not raw prompt fidelity).
  */
 export async function generateImage(opts: GenerateImageOpts): Promise<GeneratedImage[]> {
-  if (!API_KEY) throw new Error("MINIMAX_API_KEY not configured");
+  const API_KEY = getApiKey();
 
   const body: Record<string, unknown> = {
     model: "image-01",
@@ -114,7 +119,7 @@ export async function chat(
   messages: ChatMessage[],
   opts: ChatOpts = {}
 ): Promise<string> {
-  if (!API_KEY) throw new Error("MINIMAX_API_KEY not configured");
+  const API_KEY = getApiKey();
 
   // OpenAI-compatible: translate any {type,text,image_url} blocks to strings
   // (MiniMax only supports string content; vision is enabled by image_url separately if needed)

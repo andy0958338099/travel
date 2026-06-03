@@ -50,8 +50,8 @@ export async function POST(req: NextRequest) {
   }
 
   const refImageUrl = resolveRefImage(char.reference_image_url);
-  const caption = (manga as any)[`panel_${panel}_caption`] || "";
-  const prompt = buildPanelPrompt(char.style_prompt, manga.source_name, panel, caption);
+  // 注意：caption 已經從 prompt 移除（user v3.0 rule：圖片不生成文字）
+  const prompt = buildPanelPrompt(char.style_prompt, manga.source_name, panel);
 
   try {
     const images = await generateImage({

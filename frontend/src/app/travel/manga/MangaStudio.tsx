@@ -181,13 +181,13 @@ export default function MangaStudio({ attractions }: Props) {
       {/* Hero */}
       <header className="mb-8 text-center">
         <div className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold mb-3">
-          🎨 AI 漫畫圖鑑 · MVP
+          🎨 Q版漫畫圖鑑 · MVP
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
           江南景點 · 4 格漫畫生成
         </h1>
         <p className="text-gray-600 mt-2 text-sm sm:text-base">
-          點 🎨 把每個景點變成 4 格 AI 漫畫，配上導遊風格的短/中/長介紹
+          點 🎨 把每個景點變成 4 格 Q版漫畫，配上導遊風格的短/中/長介紹
         </p>
         <div className="mt-3 text-xs text-gray-500">
           已生成 <span className="font-bold text-indigo-600">{stats.generated}</span> / {stats.total} 個景點
@@ -387,7 +387,7 @@ function AttractionMangaCard({
               : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 shadow-sm"
           }`}
         >
-          {isGenerating ? "⏳ 生成中…" : isReady ? "📖 開啟漫畫" : "🎨 生成 AI 漫畫"}
+          {isGenerating ? "⏳ 生成中…" : isReady ? "📖 開啟漫畫" : "🎨 生成 Q版漫畫"}
         </button>
       </div>
     </div>

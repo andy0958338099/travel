@@ -17,7 +17,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "Manga Studio — 漫劇生成系統",
-  description: "角色與場景一致性的 AI 漫劇生成系統",
+  description: "角色與場景一致性的 Q版漫劇生成系統",
 };
 
 export default function RootLayout({

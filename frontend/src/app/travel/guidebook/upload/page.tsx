@@ -128,7 +128,7 @@ export default function UploadPage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-            📤 上傳照片 → AI 漫畫
+            📤 上傳照片 → Q版漫畫
           </h1>
           <Link
             href="/travel/guidebook"
