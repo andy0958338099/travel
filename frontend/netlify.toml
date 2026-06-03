@@ -8,16 +8,14 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# MiniMax image generation takes ~25s + Supabase upload + DB update.
-# Free plan cap = 26s. Bump to ceiling for all API routes that call MiniMax.
-[functions]
-  [functions."api/manga/regenerate-panel"]
-    timeout = 26
-  [functions."api/manga/generate"]
-    timeout = 26
-  [functions."api/manga/batch-generate"]
-    timeout = 26
-  [functions."api/postcard/generate"]
-    timeout = 26
-  [functions."api/postcard/music"]
-    timeout = 26
+# @netlify/plugin-nextjs bundles ALL API routes into one Lambda function
+# named "___netlify-server-handler". Setting timeout per-route via
+# `api/manga/regenerate-panel` syntax DOES NOT work — must target the
+# actual function name from the build log:
+#   "Packaging Functions from .netlify/functions-internal directory:
+#    - ___netlify-server-handler/___netlify-server-handler.mjs"
+#
+# MiniMax image gen ~25s + Supabase upload + DB update = ~30s total.
+# Free plan max = 26s (tight, will hit edge cases on first call).
+[functions."___netlify-server-handler"]
+  timeout = 26
