@@ -15,7 +15,8 @@
 #   "Packaging Functions from .netlify/functions-internal directory:
 #    - ___netlify-server-handler/___netlify-server-handler.mjs"
 #
-# MiniMax image gen ~25s + Supabase upload + DB update = ~30s total.
-# Free plan max = 26s (tight, will hit edge cases on first call).
+# Free plan allows up to 26s, but cold start (~2s) + MiniMax (~25s) = ~27s,
+# which makes the first request flaky. 30s is the documented free plan ceiling
+# for functions in newer Netlify Runtime versions.
 [functions."___netlify-server-handler"]
-  timeout = 26
+  timeout = 30
