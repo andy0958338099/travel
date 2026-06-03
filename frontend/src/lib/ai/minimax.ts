@@ -24,6 +24,52 @@ function getApiKey(): string {
   return key;
 }
 
+/**
+ * Cloudflare Worker URL（optional）。
+ * 設了 → 全部 MiniMax 呼叫都走 worker，繞過 Netlify free plan 26-30s timeout。
+ * 沒設 → fallback 直接打 MiniMax（給本機 dev 用）。
+ */
+function getWorkerUrl(): string | null {
+  return process.env.CLOUDFLARE_WORKER_URL || null;
+}
+
+/**
+ * 走 Cloudflare Worker 還是直連 MiniMax？
+ * Worker 走法：fetch worker URL, body = { endpoint, payload }, worker 加 Authorization header
+ * 直連走法：fetch API_BASE/endpoint, 自己加 Authorization header
+ */
+async function callUpstream(endpoint: string, payload: Record<string, unknown>): Promise<any> {
+  const workerUrl = getWorkerUrl();
+  if (workerUrl) {
+    // 走 Cloudflare Worker（key 存在 worker secret，不傳到這層）
+    const res = await fetch(workerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint, payload }),
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`Worker ${res.status}: ${text.slice(0, 300)}`);
+    }
+    return JSON.parse(text);
+  }
+  // 直連 MiniMax（本機 dev fallback）
+  const API_KEY = getApiKey();
+  const res = await fetch(`${API_BASE}/${endpoint}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`MiniMax ${endpoint} ${res.status}: ${text.slice(0, 300)}`);
+  }
+  return JSON.parse(text);
+}
+
 export interface SubjectReference {
   type: "character";
   image_file: string;   // public URL or data: URL
@@ -50,12 +96,10 @@ export interface GeneratedImage {
  * quality for manga, not raw prompt fidelity).
  */
 export async function generateImage(opts: GenerateImageOpts): Promise<GeneratedImage[]> {
-  const API_KEY = getApiKey();
-
   const body: Record<string, unknown> = {
     model: "image-01",
     prompt: opts.prompt,
-    aspect_ratio: opts.aspectRatio ?? "4:5",
+    aspect_ratio: opts.aspectRatio ?? "3:4",
     n: opts.n ?? 1,
     response_format: "base64",
     prompt_optimizer: opts.promptOptimizer ?? true,
@@ -65,21 +109,8 @@ export async function generateImage(opts: GenerateImageOpts): Promise<GeneratedI
     body.subject_reference = opts.subjectReference;
   }
 
-  const res = await fetch(`${API_BASE}/image_generation`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  const data = await callUpstream("image_generation", body);
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`MiniMax generateImage ${res.status}: ${text.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
   if (data.base_resp?.status_code !== 0) {
     throw new Error(`MiniMax error: ${data.base_resp?.status_msg || "unknown"}`);
   }
@@ -119,8 +150,6 @@ export async function chat(
   messages: ChatMessage[],
   opts: ChatOpts = {}
 ): Promise<string> {
-  const API_KEY = getApiKey();
-
   // OpenAI-compatible: translate any {type,text,image_url} blocks to strings
   // (MiniMax only supports string content; vision is enabled by image_url separately if needed)
   const normalized = messages.map((m) => {
@@ -132,26 +161,13 @@ export async function chat(
     return { role: m.role, content: text };
   });
 
-  const res = await fetch(`${API_BASE}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: opts.model ?? "MiniMax-M2.7",
-      max_tokens: opts.maxTokens ?? 1024,
-      temperature: opts.temperature ?? 0.7,
-      messages: normalized,
-    }),
+  const data = await callUpstream("chat/completions", {
+    model: opts.model ?? "MiniMax-M2.7",
+    max_tokens: opts.maxTokens ?? 1024,
+    temperature: opts.temperature ?? 0.7,
+    messages: normalized,
   });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`MiniMax chat ${res.status}: ${text.slice(0, 300)}`);
-  }
-
-  const data = await res.json();
   // OpenAI-compatible response: choices[0].message.content
   return data.choices?.[0]?.message?.content ?? "";
 }

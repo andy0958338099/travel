@@ -1,0 +1,11 @@
+name = "minimax-proxy"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Secrets (set via `wrangler secret put MINIMAX_API_KEY`):
+#   MINIMAX_API_KEY
+#
+# Free tier limits:
+#   - 100,000 requests/day
+#   - 10ms CPU per request (I/O wait doesn't count, so MiniMax 25s calls fit)
+#   - 30s wall time per request
