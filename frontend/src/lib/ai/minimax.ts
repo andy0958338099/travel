@@ -26,7 +26,7 @@ export interface SubjectReference {
 
 export interface GenerateImageOpts {
   prompt: string;
-  aspectRatio?: "1:1" | "16:9" | "4:3" | "3:2" | "2:3" | "3:4" | "9:16" | "21:9" | "4:5";
+  aspectRatio?: "1:1" | "16:9" | "4:3" | "3:2" | "2:3" | "3:4" | "9:16" | "21:9";
   n?: number;           // 1-9
   seed?: number;
   subjectReference?: SubjectReference[];  // i2i
@@ -88,19 +88,20 @@ export async function generateImage(opts: GenerateImageOpts): Promise<GeneratedI
 
   return images.map((b64) => ({ base64: b64, success: true }));
 }
-
 /**
- * MiniMax chat completion (Anthropic-compatible endpoint).
+ * MiniMax chat completion (OpenAI-compatible endpoint).
+ * /v1/messages 404 → /v1/chat/completions works (verified 2026-06-03)
  * Used for: 1) vision (analyzing photos), 2) text descriptions.
  */
 export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content:
     | string
-    | Array<
-        | { type: "text"; text: string }
-        | { type: "image_url"; image_url: { url: string } }
-      >;
+    | Array<{
+        type: "text" | "image_url";
+        text?: string;
+        image_url?: { url: string };
+      }>;
 }
 
 export interface ChatOpts {
@@ -115,18 +116,28 @@ export async function chat(
 ): Promise<string> {
   if (!API_KEY) throw new Error("MINIMAX_API_KEY not configured");
 
-  const res = await fetch(`${API_BASE}/messages`, {
+  // OpenAI-compatible: translate any {type,text,image_url} blocks to strings
+  // (MiniMax only supports string content; vision is enabled by image_url separately if needed)
+  const normalized = messages.map((m) => {
+    if (typeof m.content === "string") return m;
+    const text = m.content
+      .map((b) => (b.type === "text" ? b.text ?? "" : ""))
+      .join("\n")
+      .trim();
+    return { role: m.role, content: text };
+  });
+
+  const res = await fetch(`${API_BASE}/chat/completions`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${API_KEY}`,
       "Content-Type": "application/json",
-      "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: opts.model ?? "MiniMax-M2.7",  // any anthropic model name works
+      model: opts.model ?? "MiniMax-M2.7",
       max_tokens: opts.maxTokens ?? 1024,
       temperature: opts.temperature ?? 0.7,
-      messages,
+      messages: normalized,
     }),
   });
 
@@ -136,6 +147,6 @@ export async function chat(
   }
 
   const data = await res.json();
-  // Anthropic-compatible response: content[0].text
-  return data.content?.[0]?.text ?? "";
+  // OpenAI-compatible response: choices[0].message.content
+  return data.choices?.[0]?.message?.content ?? "";
 }

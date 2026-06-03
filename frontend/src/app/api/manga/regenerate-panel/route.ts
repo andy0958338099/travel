@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   try {
     const images = await generateImage({
       prompt,
-      aspectRatio: "4:5",
+      aspectRatio: "3:4",   // 直式 4 格漫畫 panel
       n: 1,
       subjectReference: [{ type: "character", image_file: refImageUrl }],
     });
