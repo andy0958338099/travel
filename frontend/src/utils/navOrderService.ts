@@ -25,6 +25,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'planner',     label: '🗓️ 行程規劃器',  href: '/travel/planner'     },
   { key: 'journal',     label: '📖 旅程日誌',     href: '/travel/journal'     },
   { key: 'stories',     label: '📚 地理歷史',     href: '/travel/stories'     },
+  { key: 'manga',       label: '🎨 AI 漫畫圖鑑',  href: '/travel/manga'       },
   { key: 'room-tour',   label: '🏨 Room Tour',    href: '/travel/room-tour'   },
   { key: 'videos',      label: '🎬 影片分享牆',   href: '/travel/videos'      },
   { key: 'dining',      label: '🍜 餐食評論',     href: '/travel/dining'      },
