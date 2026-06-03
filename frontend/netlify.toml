@@ -7,3 +7,17 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+# MiniMax image generation takes ~25s + Supabase upload + DB update.
+# Free plan cap = 26s. Bump to ceiling for all API routes that call MiniMax.
+[functions]
+  [functions."api/manga/regenerate-panel"]
+    timeout = 26
+  [functions."api/manga/generate"]
+    timeout = 26
+  [functions."api/manga/batch-generate"]
+    timeout = 26
+  [functions."api/postcard/generate"]
+    timeout = 26
+  [functions."api/postcard/music"]
+    timeout = 26

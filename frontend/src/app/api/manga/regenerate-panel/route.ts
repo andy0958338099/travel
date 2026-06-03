@@ -12,6 +12,9 @@ import { buildPanelPrompt, PanelIndex } from "@/lib/ai/mangaPrompts";
 
 const BUCKET = "travel-manga";
 
+// Free plan Netlify cap = 26s. MiniMax ~25s + Supabase ~3s.
+export const maxDuration = 26;
+
 function resolveRefImage(refUrl: string): string {
   if (refUrl.startsWith("data:") || refUrl.startsWith("http")) return refUrl;
   const localPath = join(process.cwd(), "public", refUrl);
