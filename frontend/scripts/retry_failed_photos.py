@@ -14,7 +14,7 @@ import ssl
 import certifi
 import sys
 
-API_KEY = "sk-cp-yJacPqIIDoMTnasMWsTIohn5W_9rVXQoJ9jgr4nD3lVs3o6jLHCDa0gGZOPeAybSH3S_bk0YXYjJSamL-INbz7XlYI2WVUBW7IIeZsgj9gf1DEC_v8N5tEU"
+API_KEY = os.environ["MINIMAX_API_KEY"]
 API_URL = "https://api.minimax.io/v1/image_generation"
 OUTPUT_DIR = "/Volumes/Transcend/manga-studio/frontend/public/attractions"
 

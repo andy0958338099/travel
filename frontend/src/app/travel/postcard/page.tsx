@@ -268,50 +268,35 @@ const DEFAULT_ITINERARY: ItineraryEvent[] = [
   { day:8, period:"afternoon", title:"返回台灣",             category:"transport" },
 ];
 
-// ── MiniMax API ─────────────────────────────────────────────────────────────
-const MINIMAX_KEY = "sk-cp-yJacPqIIDoMTnasMWsTIohn5W_9rVXQoJ9jgr4nD3lVs3o6jLHCDa0gGZOPeAybSH3S_bk0YXYjJSamL-INbz7XlYI2WVUBW7IIeZsgj9gf1DEC_v8N5tEU";
-
-// ── MiniMax image generator ─────────────────────────────────────────────────
+// ── MiniMax image generator (server-side proxy via /api/postcard/generate) ──
+//    Key 留在 server 端（process.env），前端不暴露
 async function generateMiniMaxImage(prompt: string): Promise<string | null> {
   try {
-    const res = await fetch("https://api.minimax.io/v1/image_generation", {
+    const res = await fetch("/api/postcard/generate", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${MINIMAX_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ model: "image-01", prompt, aspect_ratio: "9:16", response_format: "base64" }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const images = data.data?.image_base64 || [];
-    return images?.[0] ?? null;
+    return data.image ?? null;
   } catch { return null; }
 }
 
-// ── MiniMax music generator ──────────────────────────────────────────────────
-// Uses music-2.6 model — requires prompt + lyrics + audio_setting
+// ── MiniMax music generator (server-side proxy via /api/postcard/music) ──
+//    Key 留在 server 端，前端不暴露
 async function generateMiniMaxMusic(prompt: string, lyrics: string): Promise<string | null> {
   try {
-    const res = await fetch("https://api.minimax.io/v1/music_generation", {
+    const res = await fetch("/api/postcard/music", {
       method: "POST",
-      headers: {
-        "Authorization": `Bearer ${MINIMAX_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "music-2.6",
-        prompt,
-        lyrics,
-        audio_setting: { sample_rate: 44100, bitrate: 256000, format: "mp3" },
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, lyrics }),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    // music-2.6 returns audio as hex string in data.audio (not base64!)
-    // Parse hex string to bytes (NOT base64 — atob is wrong for hex)
-    const hexAudio = data.data?.audio ?? null;
+    const hexAudio = data.audio as string | null;
     if (!hexAudio) return null;
+    // Server returns hex string; convert to bytes → blob URL
     try {
       const len = hexAudio.length / 2;
       const bytes = new Uint8Array(len);

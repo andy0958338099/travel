@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Test: generate image and immediately download in same session."""
-import urllib.request, urllib.parse, json, ssl, certifi, sys
+import urllib.request, urllib.parse, json, ssl, certifi, sys, os
 
-API_KEY = "sk-cp-yJacPqIIDoMTnasMWsTIohn5W_9rVXQoJ9jgr4nD3lVs3o6jLHCDa0gGZOPeAybSH3S_bk0YXYjJSamL-INbz7XlYI2WVUBW7IIeZsgj9gf1DEC_v8N5tEU"
+API_KEY = os.environ["MINIMAX_API_KEY"]
 ssl_ctx = ssl.create_default_context(cafile=certifi.where())
 
 prompt = "White Lotus Pagoda tall ancient Chinese tower overlooking traditional water town canals, dusk lighting, Wuzhen"
