@@ -49,11 +49,12 @@ export default {
       );
     }
 
-    // Whitelist allowed endpoints (security: don't let anyone call any API)
+    // Whitelist allowed endpoints (security: don't let anyone call any API).
+    // 接受 short name（client 端不需知道 base path），worker 內部補 v1/
     const ALLOWED = new Set([
-      "v1/image_generation",
-      "v1/chat/completions",
-      "v1/music_generation",
+      "image_generation",
+      "chat/completions",
+      "music_generation",
     ]);
     if (!ALLOWED.has(endpoint)) {
       return new Response(
@@ -63,7 +64,7 @@ export default {
     }
 
     try {
-      const upstream = await fetch(`https://api.minimax.io/${endpoint}`, {
+      const upstream = await fetch(`https://api.minimax.io/v1/${endpoint}`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
