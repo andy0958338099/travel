@@ -23,7 +23,7 @@ export default function Dashboard() {
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">江南水鄉八日之旅</h1>
       <p className="text-gray-600 mb-6">
-        Brian & Mana 2026 夏季旅遊網站 · 含 Q版 4 格漫畫、行程規劃、明信片圖卡、AI 影音日記
+        2026 夏季旅遊網站 · 含 Q版 4 格漫畫、行程規劃、明信片圖卡、AI 影音日記
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card title="角色" href="/characters" count={counts.characters} description="管理角色資產、Lora、Seed" />

@@ -17,7 +17,7 @@ const geistMono = localFont({
 
 export const metadata: Metadata = {
   title: "江南水鄉八日之旅",
-  description: "Brian & Mana 2026 夏季杭州水鄉深度旅遊網站，含 Q版 4 格漫畫、行程規劃、明信片圖卡、AI 影音日記",
+  description: "2026 夏季杭州水鄉深度旅遊網站，含 Q版 4 格漫畫、行程規劃、明信片圖卡、AI 影音日記",
 };
 
 export default function RootLayout({

@@ -52,7 +52,7 @@ export default function EntryCards() {
 
         {/* 副 CTA — 開發中透明說明 */}
         <p className="text-center text-xs sm:text-sm text-slate-400 mt-8 sm:mt-10">
-          💡 Demo by Brian · 雲端同步 · 隨時隨地都能編輯
+          💡 雲端同步 · 隨時隨地都能編輯
         </p>
       </div>
     </section>

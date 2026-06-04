@@ -61,8 +61,6 @@ export default function Hero() {
               Hangzhou · 2026 Summer
             </p>
             <h1 className={`text-3xl sm:text-5xl md:text-6xl font-black leading-tight mb-3 sm:mb-4 transition-all duration-1000 delay-150 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-              Brian & Mana
-              <br />
               <span className="bg-gradient-to-r from-amber-200 via-rose-200 to-pink-200 bg-clip-text text-transparent">
                 江南水鄉八日之旅
               </span>
