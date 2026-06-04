@@ -1,8 +1,13 @@
 /**
  * GET /api/manga/feed
- * Query: ?sourceType=attraction|food&day=1&characterId=...
+ * Query: ?sourceType=attraction|food&day=1&characterId=...&status=ready|generating|all
  *
- * Returns ready/partial travel_mangas, newest first, with optional filters.
+ * Returns travel_mangas (ready/partial/generating/failed), newest first, with
+ * optional filters. Generating is included so the UI can show progress instead
+ * of silently hiding in-flight cards after a page refresh.
+ *
+ * Default status filter: ready + partial + generating (excluding failed).
+ * Pass ?status=ready to show only finished cards, or ?status=all to include failed.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -13,14 +18,26 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const sourceType = searchParams.get("sourceType");
   const characterId = searchParams.get("characterId");
+  const statusParam = searchParams.get("status") || "active"; // active | ready | all
   const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 200);
 
   let q = supabase
     .from("travel_mangas")
     .select("*")
-    .in("status", ["ready", "partial"])
     .order("updated_at", { ascending: false })
     .limit(limit);
+
+  // status filter:
+  //   "ready"    → only finished
+  //   "active"   → ready + partial + generating (default — for normal feed)
+  //   "all"      → include failed too
+  if (statusParam === "ready") {
+    q = q.in("status", ["ready", "partial"]);
+  } else if (statusParam === "active") {
+    q = q.in("status", ["ready", "partial", "generating"]);
+  } else if (statusParam === "all") {
+    // no filter
+  }
 
   if (sourceType) q = q.eq("source_type", sourceType);
   if (characterId) q = q.eq("character_id", characterId);
