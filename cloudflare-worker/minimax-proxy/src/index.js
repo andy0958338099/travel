@@ -497,7 +497,7 @@ async function runMangaGeneratePipeline(payload, env) {
         panel_2_caption: captions[2],
         panel_3_title: "必吃美食",
         panel_3_caption: captions[3],
-        panel_4_title: "打卡 tips",
+        panel_4_title: "打卡攻略",
         panel_4_caption: captions[4],
         status: finalStatus,
         updated_at: new Date().toISOString(),

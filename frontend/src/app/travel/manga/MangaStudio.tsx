@@ -92,6 +92,44 @@ export default function MangaStudio({ attractions }: Props) {
     }
   }, []);
 
+  // ── 從 URL ?open={mangaId} 自動打開 modal（分享連結接收者用）──
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const openId = new URLSearchParams(window.location.search).get("open");
+    if (!openId) return;
+    // 雲端 feed 還沒載完就等一下
+    const tryOpen = () => {
+      const found = Object.values(generatedMap).find((m) => m.id === openId);
+      if (found) {
+        setOpenManga(found);
+        // 清掉 query 避免反覆觸發
+        const url = new URL(window.location.href);
+        url.searchParams.delete("open");
+        window.history.replaceState({}, "", url.toString());
+      }
+    };
+    // 立即試一次、然後每 300ms 重試直到雲端 feed 載完（最多 5s）
+    tryOpen();
+    if (!Object.values(generatedMap).some((m) => m.id === openId)) {
+      const start = Date.now();
+      const t = setInterval(() => {
+        if (Date.now() - start > 5000) {
+          clearInterval(t);
+          return;
+        }
+        const found = Object.values(generatedMap).find((m) => m.id === openId);
+        if (found) {
+          setOpenManga(found);
+          clearInterval(t);
+          const url = new URL(window.location.href);
+          url.searchParams.delete("open");
+          window.history.replaceState({}, "", url.toString());
+        }
+      }, 300);
+      return () => clearInterval(t);
+    }
+  }, [generatedMap]);
+
   // 同步到 localStorage
   useEffect(() => {
     if (typeof window === "undefined") return;
