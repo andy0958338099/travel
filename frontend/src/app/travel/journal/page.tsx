@@ -6,6 +6,7 @@ import Image from "next/image";
 import "leaflet/dist/leaflet.css";
 import { ALL_ATTRACTIONS } from "../data";
 import { useCloudState } from "@/utils/useCloudState";
+import ShareButtons from "@/components/ShareButtons";
 
 // Dynamic import for Leaflet (no SSR)
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
@@ -433,14 +434,14 @@ export default function TravelJournalPage() {
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg tracking-tight">
               江南水鄉八日物語
             </h1>
-            <div className="flex justify-center">
+            <div className="flex justify-center mb-2">
               <ShareButtons
                 title="江南水鄉八日物語"
                 text="2026 夏季江南水鄉八日物語 📖 8 天 4 座城市 · 一段慢慢走的故事"
                 variant="icon"
               />
             </div>
-          </div>
+            <p className="text-xl text-white text-opacity-90 mb-8 font-light">
               杭州 · 烏鎮 · 西塘 深度漫遊日誌
             </p>
             

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { useCloudState } from '@/utils/useCloudState';
+import ShareButtons from '@/components/ShareButtons';
 import { createClient } from '@/utils/supabase/client';
 import {
   loadActivities,
@@ -514,7 +515,6 @@ export default function PlannerPage() {
             text="2026 江南水鄉八日 💰 行程價格規劃器 · 一鍵分帳 + 預算追蹤"
             variant="icon"
           />
-        </div>
             <button
               onClick={undo}
               disabled={history.length === 0}
@@ -616,12 +616,11 @@ export default function PlannerPage() {
                 onClick={() => setFontSize(f => Math.min(24, f + 1))}
                 className="w-7 h-7 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold flex items-center justify-center"
               >A+</button>
-            </div>
-          </div>
         </div>
         <p className="text-sm text-gray-600">
           點擊格子新增活動 · 拖曳移動調整時間 · 拖曳底部邊緣調整長度 · 編輯活動設定價格
         </p>
+        </div>
 
         {/* Budget Summary */}
         <BudgetSummary activities={activities} memberCount={members.length} onPersonCountChange={(n) => {

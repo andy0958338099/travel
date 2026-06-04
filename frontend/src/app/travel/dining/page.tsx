@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { RESTAURANTS } from './data';
+import ShareButtons from '@/components/ShareButtons';
 
 // 美食博主視角 · 資料來源說明：
 // ★ 已驗證：Wikipedia / OpenStreetMap 確認名稱、地址、創始時間
