@@ -11,6 +11,7 @@ import { exportCloudBackup, importCloudBackup } from "@/utils/cloudBackup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toast } from "@/components/Toast";
 import { SyncIndicator } from "@/components/SyncIndicator";
+import ShareButtons from "@/components/ShareButtons";
 import OnboardingTour from "@/components/OnboardingTour";
 
 const CNY_RATE = 4.5;
@@ -251,10 +252,16 @@ export default function TravelPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">🗺️ 江南水鄉八日之旅</h1>
           <p className="text-sm sm:text-base text-white/80">8天7夜 · 杭州 → 上海 → 西塘 → 烏鎮 → 杭州</p>
-          <div className="flex flex-wrap gap-2 sm:gap-3 mt-3 sm:mt-4 text-xs sm:text-sm">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 sm:mt-4 text-xs sm:text-sm">
             <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">📅 7月17日 - 7月24日</span>
             <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">👥 2人</span>
             <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">💰 NT$40,000-60,000</span>
+            <span className="ml-auto" />
+            <ShareButtons
+              title="江南水鄉八日之旅"
+              text="2026 夏季江南水鄉八日之旅 🗺️ 杭州 → 上海 → 西塘 → 烏鎮"
+              variant="icon"
+            />
           </div>
         </div>
       </div>

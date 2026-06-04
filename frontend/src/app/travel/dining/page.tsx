@@ -137,6 +137,11 @@ export default function DiningPage() {
             <h1 className="text-xl font-bold text-gray-800">美食日誌</h1>
           </div>
           <div className="ml-auto flex gap-2">
+            <ShareButtons
+              title="美食日誌"
+              text="2026 江南水鄉八日 🍜 美食日誌 · 跟著美食博主吃七天"
+              variant="icon"
+            />
             <Link
               href="/travel/guidebook?tab=food"
               className="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-full font-bold border border-rose-200"

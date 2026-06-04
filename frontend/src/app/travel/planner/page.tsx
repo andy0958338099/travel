@@ -509,7 +509,12 @@ export default function PlannerPage() {
           <h1 className="text-2xl font-bold text-gray-800">
             💰 行程價格規劃器
           </h1>
-          <div className="flex gap-2">
+          <ShareButtons
+            title="行程價格規劃器"
+            text="2026 江南水鄉八日 💰 行程價格規劃器 · 一鍵分帳 + 預算追蹤"
+            variant="icon"
+          />
+        </div>
             <button
               onClick={undo}
               disabled={history.length === 0}

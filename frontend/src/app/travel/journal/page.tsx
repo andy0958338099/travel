@@ -433,7 +433,14 @@ export default function TravelJournalPage() {
             <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg tracking-tight">
               江南水鄉八日物語
             </h1>
-            <p className="text-xl text-white text-opacity-90 mb-8 font-light">
+            <div className="flex justify-center">
+              <ShareButtons
+                title="江南水鄉八日物語"
+                text="2026 夏季江南水鄉八日物語 📖 8 天 4 座城市 · 一段慢慢走的故事"
+                variant="icon"
+              />
+            </div>
+          </div>
               杭州 · 烏鎮 · 西塘 深度漫遊日誌
             </p>
             
