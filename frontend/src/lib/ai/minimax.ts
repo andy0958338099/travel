@@ -25,12 +25,20 @@ function getApiKey(): string {
 }
 
 /**
- * Cloudflare Worker URL（optional）。
- * 設了 → 全部 MiniMax 呼叫都走 worker，繞過 Netlify free plan 26-30s timeout。
- * 沒設 → fallback 直接打 MiniMax（給本機 dev 用）。
+ * Cloudflare Worker URL（繞過 Netlify free plan 26-30s function timeout）。
+ *
+ * Worker URL is a public HTTPS endpoint (not a secret) — safe to hardcode
+ * as a fallback. The hardcode guarantees the Worker route works regardless
+ * of Netlify env-injection quirks (e.g. v2 projects UI env not propagating
+ * to v1 sites function runtime, see commit 118abf9 history).
+ *
+ * 優先順序:  process.env.CLOUDFLARE_WORKER_URL → hardcoded fallback → null
+ * 沒任何可用值時: getWorkerUrl() 仍回 null、callUpstream() fallback 直連 MiniMax。
  */
+const DEFAULT_WORKER_URL = "https://minimax-proxy.andy0958338099.workers.dev";
+
 function getWorkerUrl(): string | null {
-  return process.env.CLOUDFLARE_WORKER_URL || null;
+  return process.env.CLOUDFLARE_WORKER_URL || DEFAULT_WORKER_URL;
 }
 
 /**
