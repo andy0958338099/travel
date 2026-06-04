@@ -245,11 +245,11 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                       {/* ── 第二階段：HTML/CSS 文字疊加（v3.0 規則） ── */}
                       {url && (
                         <div className="absolute inset-0 flex flex-col z-10 pointer-events-none">
-                          {/* 底部漸層 backdrop（讓白字清楚） */}
-                          <div className="flex-1 bg-gradient-to-b from-black/0 via-black/0 to-black/70" />
+                          {/* Spacer — 圖片上方 75% 完全可見，不被漸層蓋住 */}
+                          <div className="flex-1" />
 
-                          {/* 文字區（bottom） */}
-                          <div className="p-3 text-white space-y-1.5">
+                          {/* 文字區（底部 ~25% + 自帶漸層 backdrop 讓白字清楚） */}
+                          <div className="p-3 text-white space-y-1.5 bg-gradient-to-t from-black/85 via-black/40 to-transparent">
                             {/* 標題 + 序號 badge */}
                             <div className="flex items-center gap-1.5">
                               <span className="text-[10px] font-black uppercase tracking-wider bg-white/20 backdrop-blur-sm px-1.5 py-0.5 rounded">
