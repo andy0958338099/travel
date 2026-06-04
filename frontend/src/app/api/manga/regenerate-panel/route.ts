@@ -29,7 +29,7 @@ import { buildPanelPrompt, PanelIndex } from "@/lib/ai/mangaPrompts";
 
 // Hardcode as fallback — see minimax.ts getWorkerUrl() for the same rationale.
 // Netlify v2 projects UI env doesn't reliably inject into v1 function runtime.
-const DEFAULT_WORKER_URL = "https://minimax-proxy.andy0958338099.workers.dev";
+const DEFAULT_WORKER_URL = "https://jiangnan-trip.andy0958338099.workers.dev";
 
 export const maxDuration = 10; // fire-and-forget: orchestrator only, ~2s
 

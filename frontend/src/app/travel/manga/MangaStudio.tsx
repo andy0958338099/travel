@@ -1,5 +1,5 @@
 /**
- * MangaStudio — AI 旅遊漫畫圖鑑 client
+ * MangaStudio — 江南水鄉八日之旅 · Q版漫畫圖鑑 client
  *
  * 行為：
  * 1. 33 個景點 grid（按 category 分組）
@@ -219,10 +219,10 @@ export default function MangaStudio({ attractions }: Props) {
       {/* Hero */}
       <header className="mb-8 text-center">
         <div className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold mb-3">
-          🎨 Q版漫畫圖鑑 · MVP
+          🎨 Q版漫畫圖鑑 · 江南水鄉八日之旅
         </div>
         <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          江南景點 · 4 格漫畫生成
+          江南景點 · 4 格 Q版漫畫
         </h1>
         <p className="text-gray-600 mt-2 text-sm sm:text-base">
           點 🎨 把每個景點變成 4 格 Q版漫畫，配上導遊風格的短/中/長介紹

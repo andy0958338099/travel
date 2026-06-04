@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "description": "江南水鄉八日之旅 — Brian & Mana 2026 夏季杭州水鄉深度旅遊網站（Next.js 14 + Supabase + Cloudflare Workers）",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

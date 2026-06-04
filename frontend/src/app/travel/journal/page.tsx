@@ -540,7 +540,7 @@ export default function TravelJournalPage() {
                   if (y > 270) doc.addPage();
                   doc.setFontSize(8);
                   doc.setTextColor(180);
-                  doc.text('由 Manga Studio Travel 自動生成 — ' + new Date().toLocaleDateString('zh-TW'), pageW / 2, 290, { align: 'center' });
+                  doc.text('由 江南水鄉八日之旅 自動生成 — ' + new Date().toLocaleDateString('zh-TW'), pageW / 2, 290, { align: 'center' });
 
                   doc.save(`journey-journal-${new Date().toISOString().slice(0,10)}.pdf`);
                 }}

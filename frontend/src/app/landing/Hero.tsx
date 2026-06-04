@@ -64,7 +64,7 @@ export default function Hero() {
               Brian & Mana
               <br />
               <span className="bg-gradient-to-r from-amber-200 via-rose-200 to-pink-200 bg-clip-text text-transparent">
-                杭州 8 日之旅
+                江南水鄉八日之旅
               </span>
             </h1>
             <p className={`text-sm sm:text-base md:text-lg text-white/80 mb-6 sm:mb-8 transition-all duration-1000 delay-300 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>

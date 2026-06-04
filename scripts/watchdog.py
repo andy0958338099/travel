@@ -1,5 +1,5 @@
 """
-Manga Studio Watchdog — 確保 AI Agent 不會閒置
+江南水鄉八日之旅 Watchdog — 確保 AI Agent 不會閒置
 當 10 分鐘沒有新任務時，自動執行待辦改進項目
 """
 

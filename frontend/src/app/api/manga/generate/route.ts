@@ -26,7 +26,7 @@ import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { createClient } from "@/utils/supabase/server";
 
-const DEFAULT_WORKER_URL = "https://minimax-proxy.andy0958338099.workers.dev";
+const DEFAULT_WORKER_URL = "https://jiangnan-trip.andy0958338099.workers.dev";
 
 export const maxDuration = 10; // fire-and-forget: orchestrator only, ~1-2s
 

@@ -35,7 +35,7 @@ function getApiKey(): string {
  * 優先順序:  process.env.CLOUDFLARE_WORKER_URL → hardcoded fallback → null
  * 沒任何可用值時: getWorkerUrl() 仍回 null、callUpstream() fallback 直連 MiniMax。
  */
-const DEFAULT_WORKER_URL = "https://minimax-proxy.andy0958338099.workers.dev";
+const DEFAULT_WORKER_URL = "https://jiangnan-trip.andy0958338099.workers.dev";
 
 function getWorkerUrl(): string | null {
   return process.env.CLOUDFLARE_WORKER_URL || DEFAULT_WORKER_URL;

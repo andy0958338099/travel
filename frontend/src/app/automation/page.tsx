@@ -77,7 +77,7 @@ export default function AutomationDashboard() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
         <div>
           <h1 style={{ fontSize: "1.8rem", fontWeight: 700, color: "#fff", margin: 0 }}>
-            🎯 Manga Studio 自動化系統
+            🎯 江南水鄉八日之旅 · 自動化系統
           </h1>
           <p style={{ color: "#888", margin: "0.5rem 0 0 0", fontSize: "0.9rem" }}>
             最後更新：{lastCheck} | 後端：http://localhost:8000

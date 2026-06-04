@@ -1,5 +1,5 @@
 {
-  "name": "minimax-proxy",
+  "name": "jiangnan-trip",
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
