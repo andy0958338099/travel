@@ -6,13 +6,22 @@
  *   - 所有文字由程式第二階段 HTML/CSS overlay 疊加
  *   - 字體：Noto Sans TC
  *   - 每張卡：title（固定）+ subtitle（景點名）+ description（caption）
+ *
+ * 🔄 v2.0 fire-and-forget regenerate（2026-06-04）：
+ *   - 點 🔄 → POST /api/manga/regenerate-panel → Netlify function 立即回
+ *   - Netlify function call Worker `manga/panel` → Worker 立即回 202
+ *   - Worker 背景跑 MiniMax + Supabase upload + DB update (~30s)
+ *   - 前端訂閱 Supabase Realtime on `travel_mangas` UPDATE
+ *   - 收到 panel_N_url 變化 → 自動更新 UI + clear regenerating state
+ *   - 30s 保險 timeout：如果 Realtime 沒收到，30s 後手動 clear
  */
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PanelIndex } from "@/lib/ai/mangaPrompts";
 import { PANEL_META } from "@/lib/ai/mangaPrompts";
+import { createClient } from "@/utils/supabase/client";
 
 export interface MangaData {
   id: string;
@@ -49,18 +58,81 @@ interface Props {
   onUpdate?: (updated: MangaData) => void;
 }
 
-// Noto Sans TC 載入（從 Google Fonts）
-const NOTO_SANS_TC = "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap";
+const NOTO_SANS_TC =
+  "https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap";
+const REGEN_TIMEOUT_MS = 45_000; // safety: if Realtime doesn't fire in 45s, clear spinner
 
 export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
   const [regenerating, setRegenerating] = useState<PanelIndex | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [current, setCurrent] = useState<MangaData>(manga);
   const [showLong, setShowLong] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Supabase Realtime 訂閱 ──
+  // 收到 travel_mangas row UPDATE 時，自動更新對應的 panel_N_url 並 clear spinner
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`manga-${manga.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "travel_mangas",
+          filter: `id=eq.${manga.id}`,
+        },
+        (payload) => {
+          const newRow = payload.new as MangaData;
+          // 只在真的有變化時更新（避免 no-op render）
+          setCurrent((prev) => {
+            const changed =
+              prev.panel_1_url !== newRow.panel_1_url ||
+              prev.panel_2_url !== newRow.panel_2_url ||
+              prev.panel_3_url !== newRow.panel_3_url ||
+              prev.panel_4_url !== newRow.panel_4_url ||
+              prev.status !== newRow.status ||
+              prev.updated_at !== newRow.updated_at;
+            return changed ? newRow : prev;
+          });
+          // 自動通知 parent（更新 grid 上的封面圖等）
+          onUpdate?.(newRow);
+
+          // 如果有 panel 在重生中、且 row 變了、視為完成
+          setRegenerating((regenPanel) => {
+            if (regenPanel && newRow[`panel_${regenPanel}_url` as keyof MangaData]) {
+              return null;
+            }
+            return regenPanel;
+          });
+
+          // 如果 row status=failed、視為失敗、顯示錯誤
+          if (newRow.status === "failed") {
+            setError("Worker pipeline 失敗，請重試或聯絡管理員");
+            setRegenerating(null);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [manga.id, onUpdate]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   async function handleRegenerate(panel: PanelIndex) {
     setRegenerating(panel);
     setError(null);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
     try {
       const res = await fetch("/api/manga/regenerate-panel", {
         method: "POST",
@@ -69,21 +141,29 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "重生失敗");
-
-      // 更新本地狀態
-      const urlKey = `panel_${panel}_url` as keyof MangaData;
-      const updated: MangaData = { ...current, [urlKey]: json.url };
-      setCurrent(updated);
-      onUpdate?.(updated);
+      if (json.status !== "regenerating") {
+        throw new Error(`Worker 沒接受：${JSON.stringify(json)}`);
+      }
+      // 啟動保險 timeout：如果 Realtime 沒收到，45s 後手動 clear
+      timeoutRef.current = setTimeout(() => {
+        setRegenerating((curr) => {
+          if (curr) {
+            setError("重生逾時，請重新整理頁面檢查");
+            return null;
+          }
+          return curr;
+        });
+      }, REGEN_TIMEOUT_MS);
     } catch (e: any) {
       setError(e.message);
-    } finally {
       setRegenerating(null);
     }
   }
 
   const panels: PanelIndex[] = [1, 2, 3, 4];
-  const successCount = panels.filter((p) => current[`panel_${p}_url` as keyof MangaData]).length;
+  const successCount = panels.filter(
+    (p) => current[`panel_${p}_url` as keyof MangaData]
+  ).length;
 
   return (
     <>
@@ -101,10 +181,15 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
           {/* Header */}
           <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 sm:p-5 rounded-t-2xl flex items-center justify-between z-10">
             <div>
-              <div className="text-xs opacity-80">🎨 Q版漫畫 · {current.character_name}</div>
-              <h2 className="text-xl sm:text-2xl font-bold mt-0.5">{current.source_name}</h2>
+              <div className="text-xs opacity-80">
+                🎨 Q版漫畫 · {current.character_name}
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold mt-0.5">
+                {current.source_name}
+              </h2>
               <div className="text-xs opacity-80 mt-1">
                 {successCount}/4 格 · 狀態：{current.status}
+                {regenerating && ` · 正在重生 ${regenerating}/4`}
               </div>
             </div>
             <button
@@ -173,7 +258,9 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                               <span className="text-base sm:text-lg font-black drop-shadow-md leading-tight">
                                 {meta.title}
                               </span>
-                              <span className="text-base sm:text-lg">{meta.icon}</span>
+                              <span className="text-base sm:text-lg">
+                                {meta.icon}
+                              </span>
                             </div>
 
                             {/* 副標題 = 景點名 */}
@@ -205,16 +292,20 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
           </div>
 
           {/* Descriptions (短/中/長 — 程式文字) */}
-          <div className="px-4 sm:px-5 pb-5 space-y-3">
+          <div className="px-4 sm:p-5 pb-5 space-y-3">
             {current.short_desc && (
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3">
-                <div className="text-xs font-bold text-amber-700 mb-1">⚡ 一句話</div>
+                <div className="text-xs font-bold text-amber-700 mb-1">
+                  ⚡ 一句話
+                </div>
                 <div className="text-sm text-gray-800">{current.short_desc}</div>
               </div>
             )}
             {current.medium_desc && (
               <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3">
-                <div className="text-xs font-bold text-blue-700 mb-1">📖 300 字介紹</div>
+                <div className="text-xs font-bold text-blue-700 mb-1">
+                  📖 300 字介紹
+                </div>
                 <div className="text-sm text-gray-800 whitespace-pre-wrap">
                   {current.medium_desc}
                 </div>
