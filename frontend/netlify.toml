@@ -7,6 +7,11 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  # Worker proxy URL (not a secret — public URL, safe to commit).
+  # netlify.toml [build.environment] is the most reliable injection point:
+  # Next.js inlines process.env.CLOUDFLARE_WORKER_URL at build time, so
+  # dashboard-only env can fail to propagate to the function bundle.
+  CLOUDFLARE_WORKER_URL = "https://minimax-proxy.andy0958338099.workers.dev"
 
 # @netlify/plugin-nextjs bundles ALL API routes into one Lambda function
 # named "___netlify-server-handler". Setting timeout per-route via
