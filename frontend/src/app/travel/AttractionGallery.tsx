@@ -6,6 +6,7 @@ import {
   getHiddenAttractions, hideAttraction,
 } from '@/utils/attractionGalleryService';
 import { toast } from '@/components/GlobalToastHost';
+import ShareButtons from '@/components/ShareButtons';
 
 function SkeletonCard() {
   return (
@@ -199,6 +200,13 @@ function AttractionCard({
                 {selectedIdx + 1} / {visibleImages.length}
                 {attraction.nameEn && ` · ${attraction.nameEn}`}
               </p>
+              <div className="mt-2 flex justify-center">
+                <ShareButtons
+                  title={attraction.name}
+                  text={`2026 江南水鄉八日 📷 ${attraction.name}${attraction.highlight ? ' · ' + attraction.highlight.slice(0, 40) : ''}`}
+                  variant="icon"
+                />
+              </div>
             </div>
 
             {/* 縮圖列 */}
