@@ -29,7 +29,7 @@ export const ATTRACTIONS: { westLake: Attraction[]; wuzhen: Attraction[]; other:
   wuzhen: [
     { name: "烏鎮西柵", nameEn: "Wuzhen Xizha", ticket: "¥150", hours: "09:00-22:00", highlight: "夜景必看！燈光秀美，保存最完整的江南水鄉風貌", lat: 30.7442, lng: 120.4875, category: 'wuzhen', images: ["/attractions/wz01-best1.jpg", "/attractions/wz01-2.jpg", "/attractions/wz01-3.jpg"] },
     { name: "烏鎮東柵", nameEn: "Wuzhen Dongzheng", ticket: "¥110", hours: "07:00-18:00", highlight: "較原始的風貌，民俗館、染坊等", lat: 30.7392, lng: 120.4855, category: 'wuzhen', images: ["/attractions/wz02-best1.jpg", "/attractions/wz02-2.jpg", "/attractions/wz02-3.jpg"] },
-    { name: "東西柵聯票", nameEn: "Wuzhen Combined Ticket", ticket: "¥200", hours: "各景區開放時間", highlight: "建議購買聯票，一次玩完", lat: 30.7420, lng: 120.4865, category: 'wuzhen', images: ["/attractions/wz01-2.jpg", "/attractions/wz02-2.jpg", "/attractions/wz03-2.jpg"] },
+    { name: "東西柵聯票", nameEn: "Wuzhen Combined Ticket", ticket: "¥200", hours: "各景區開放時間", highlight: "建議購買聯票，一次玩完西柵+東柵", lat: 30.7420, lng: 120.4865, category: 'wuzhen', images: ["/attractions/wz01-best1.jpg", "/attractions/wz02-best1.jpg"] },
     { name: "木心美術館", nameEn: "Muxin Art Museum", ticket: "¥20", hours: "09:00-17:30(週一閉館)", highlight: "紀念藝術家木心，建築大師陳丹青設計", lat: 30.7462, lng: 120.4895, category: 'wuzhen', images: ["/attractions/wz04-best1.jpg", "/attractions/wz04-2.jpg", "/attractions/wz04-3.jpg"] },
   ],
   other: [
