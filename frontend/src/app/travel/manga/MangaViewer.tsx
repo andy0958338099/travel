@@ -169,16 +169,24 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
     setError(null);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
+    // 🔥 立刻把舊圖刪掉 (UI 顯示 spinner)，等 Worker 完成後 Realtime 推播貼回新圖
+    const oldUrl = current[`panel_${panel}_url` as keyof MangaData];
+    setCurrent((prev) => ({ ...prev, [`panel_${panel}_url`]: null }));
+
     try {
-      const res = await fetch("/api/manga/regenerate-panel", {
+      // 直連 Cloudflare Worker (繞過 Netlify 30s timeout + 繞過 Netlify build 卡住)
+      const workerUrl = "https://jiangnan-trip.andy0958338099.workers.dev";
+      const res = await fetch(workerUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mangaId: current.id, panel }),
+        body: JSON.stringify({
+          endpoint: "manga/panel",
+          payload: { mangaId: current.id, panel },
+        }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "重生失敗");
-      if (json.status !== "regenerating") {
-        throw new Error(`Worker 沒接受：${JSON.stringify(json)}`);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Worker ${res.status}`);
       }
       // 啟動保險 timeout：如果 Realtime 沒收到，45s 後手動 clear
       timeoutRef.current = setTimeout(() => {
@@ -191,6 +199,8 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
         });
       }, REGEN_TIMEOUT_MS);
     } catch (e: any) {
+      // 失敗時恢復舊圖
+      setCurrent((prev) => ({ ...prev, [`panel_${panel}_url`]: oldUrl }));
       setError(e.message);
       setRegenerating(null);
     }
