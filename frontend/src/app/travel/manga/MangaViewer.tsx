@@ -20,7 +20,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PanelIndex } from "@/lib/ai/mangaPrompts";
-import { PANEL_META } from "@/lib/ai/mangaPrompts";
+import { PANEL_META, buildPanelPrompt } from "@/lib/ai/mangaPrompts";
 import { createClient } from "@/utils/supabase/client";
 
 export interface MangaData {
@@ -174,14 +174,57 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
     setCurrent((prev) => ({ ...prev, [`panel_${panel}_url`]: null }));
 
     try {
-      // 直連 Cloudflare Worker (繞過 Netlify 30s timeout + 繞過 Netlify build 卡住)
+      // 1) 撈 character → 拿 style_prompt (角色) + reference_image_url (ref)
+      const supabase = createClient();
+      const { data: char, error: charErr } = await supabase
+        .from("ai_characters")
+        .select("style_prompt, reference_image_url")
+        .eq("id", current.character_id)
+        .single();
+      if (charErr || !char) throw new Error(`character not found: ${charErr?.message || "no row"}`);
+
+      // 2) 組 prompt (用 buildPanelPrompt — 跟 server route 同一個 source of truth)
+      const prompt = buildPanelPrompt(char.style_prompt || "", current.source_name, panel);
+
+      // 3) 處理 ref image: 已是 data:/http(s) 直接用；local /public/ path 用 fetch 轉 data URL
+      let refImageUrl: string | undefined;
+      const ref = char.reference_image_url;
+      if (ref) {
+        if (ref.startsWith("data:") || ref.startsWith("http")) {
+          refImageUrl = ref;
+        } else {
+          // local path (e.g. /refs/xxx.jpg) — 試 fetch 轉 base64
+          try {
+            const r = await fetch(ref);
+            if (r.ok) {
+              const blob = await r.blob();
+              refImageUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = () => reject(new Error("FileReader failed"));
+                reader.readAsDataURL(blob);
+              });
+            }
+          } catch {
+            // 抓不到就當作沒 ref（MiniMax 沒 ref image 也會用 prompt 風格生成）
+          }
+        }
+      }
+
+      // 4) 直連 Cloudflare Worker（繞過 Netlify 30s timeout）
       const workerUrl = "https://jiangnan-trip.andy0958338099.workers.dev";
       const res = await fetch(workerUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           endpoint: "manga/panel",
-          payload: { mangaId: current.id, panel },
+          payload: {
+            mangaId: current.id,
+            panel,
+            prompt,
+            ...(refImageUrl ? { refImageUrl } : {}),
+            aspectRatio: "3:4",
+          },
         }),
       });
       if (!res.ok) {
