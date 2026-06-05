@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import html2canvas from "html2canvas";
+import ShareButtons from "@/components/ShareButtons";
 import { toast } from "@/components/GlobalToastHost";
 
 // ── Storage ───────────────────────────────────────────────────────────────────
@@ -670,10 +671,17 @@ export default function PostcardPage() {
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-black text-gray-800">🖼️ 卡通旅遊行程圖卡</h1>
             <p className="text-gray-500 text-sm mt-1">一鍵生成可分享的旅程圖卡 · 8天精華合併成一圖</p>
+            <div className="mt-2">
+              <ShareButtons
+                title="卡通旅遊行程圖卡"
+                text="2026 江南水鄉八日 🖼️ 8 天精華合併成一圖卡 · 可分享到 LINE / FB"
+                variant="icon"
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-2 items-end">
             <button

@@ -14,6 +14,7 @@
 import MangaStudio from "./MangaStudio";
 import { ALL_ATTRACTIONS } from "../data";
 import { ATTRACTION_CATEGORIES } from "@/utils/mangaTaxonomy";
+import ShareButtons from "@/components/ShareButtons";
 
 export const metadata = {
   title: "Q版旅遊漫畫圖鑑 | 江南 8 日",
@@ -33,7 +34,14 @@ export default function MangaPage() {
   }));
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-purple-50">
+    <main className="relative min-h-screen bg-gradient-to-b from-indigo-50 via-white to-purple-50">
+      <div className="absolute top-4 right-4 z-10">
+        <ShareButtons
+          title="Q版旅遊漫畫圖鑑"
+          text="2026 江南水鄉八日 🎨 Q版旅遊漫畫圖鑑 · 點景點變 4 格漫畫"
+          variant="icon"
+        />
+      </div>
       <MangaStudio attractions={attractions} />
     </main>
   );
