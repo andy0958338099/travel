@@ -1,5 +1,5 @@
 /**
- * Manga prompt templates — 4-panel comic generation.
+ * Manga prompt templates — 4-panel travel portrait generation.
  *
  * ⚠️ HARD RULE (2026-06-03 user v3.0): 圖片模型禁止生成任何文字。
  *    - 中文 / 英文 / 數字 / Logo / 標誌 / 海報文案 / 招牌 都不行
@@ -12,23 +12,46 @@
  *   3. 美食 / 特色 (food / feature)
  *   4. 打卡 + 旅遊 tips (photo + tips)
  *
- * The character prompt is appended to every panel so the i2i
- * subject_reference stays consistent.
+ * STYLE v2.0 (2026-06-05 user 範本):
+ *   從 Q版漫畫風改為 Realistic DSLR Portrait Photography
+ *   角色預設 = a graceful ancient Song dynasty noble lady
+ *   統一 3:4 vertical portrait + bottom 留白給文字疊加
+ *
+ * The character prompt (from ai_characters.style_prompt) is appended to
+ * every panel so the i2i subject_reference stays consistent.
  */
 
-// ── 全域 NO-TEXT 規則（每個 prompt 都強制加） ──
+// ── 全域 NO-TEXT 規則 v2（user 範本強化版） ──
 const NO_TEXT_RULES = [
-  "DO NOT INCLUDE ANY TEXT.",
-  "DO NOT INCLUDE ANY WORDS.",
-  "DO NOT INCLUDE ANY LETTERS.",
-  "DO NOT INCLUDE ANY TYPOGRAPHY.",
-  "DO NOT INCLUDE ANY CAPTIONS.",
-  "DO NOT INCLUDE ANY LOGOS.",
-  "DO NOT INCLUDE ANY SIGNAGE.",
-  "DO NOT INCLUDE ANY WRITING.",
-  "Leave empty areas for future text overlay.",
-  "No speech bubbles. No banners. No posters. No subtitles.",
-].join(" ");
+  "no text",
+  "no words",
+  "no letters",
+  "no typography",
+  "no captions",
+  "no logos",
+  "no signage",
+  "no writing",
+  "no speech bubbles",
+  "no banners",
+  "no posters",
+  "no subtitles",
+  "blank empty space at the bottom of the picture reserved for later text overlay",
+  "vertical portrait, aspect ratio 3:4",
+].join(", ");
+
+// ── 寫實風格基底（user 範本 — 套到 4 格） ──
+const REALISTIC_STYLE = [
+  "Realistic DSLR portrait photography",
+  "soft diffused natural daylight",
+  "shallow depth of field",
+  "vintage realistic color grading",
+  "cinematic atmosphere",
+  "8K ultra high detail",
+  "photorealistic",
+  "hyper-detailed fabric folds and hair details",
+  "misty atmosphere",
+  "distant hazy mountains in the background",
+].join(", ");
 
 export type PanelIndex = 1 | 2 | 3 | 4;
 
@@ -57,14 +80,15 @@ export function buildPanelPrompt(
   scene: string,
   panel: PanelIndex
 ): string {
-  // 每個 panel 只描述視覺場景，不放任何文字
+  // 寫實風 4 格：沿用 user 範本結構（DSLR 攝影 + 宋代貴族女子 + 場景細節）
+  // 每格只有 pose + 場景語意不同；風格 / NO-TEXT / 比例統一
   const scenePrompts: Record<PanelIndex, string> = {
-    1: `${baseCharacter} standing at the entrance of ${scene}, waving with both hands, big warm smile, vibrant background, clean composition with empty space at the top for text overlay`,
-    2: `${baseCharacter} walking through the historic ${scene}, sepia-toned atmosphere, ancient architecture and cultural artifacts in the background, dramatic lighting, no text in the scene`,
-    3: `${baseCharacter} enjoying the famous local food near ${scene}, close-up of delicious dishes, appetizing food photography style, warm lighting, clean composition`,
-    4: `${baseCharacter} posing at the most photogenic spot of ${scene}, golden hour lighting, beautiful scenery in the background, empty sky area for text overlay`,
+    1: `${REALISTIC_STYLE}, ${baseCharacter}, arriving at the entrance of ${scene}, relaxed standing pose with one hand gently raised in a friendly wave, soft natural ancient facial features with a warm welcoming smile, clean composition, ${NO_TEXT_RULES}`,
+    2: `${REALISTIC_STYLE}, ${baseCharacter}, exploring the historic atmosphere of ${scene}, walking slowly through the cultural setting, contemplative pose with eyes gently observing the surroundings, dramatic natural lighting, ${NO_TEXT_RULES}`,
+    3: `${REALISTIC_STYLE}, ${baseCharacter}, savoring the famous local delicacy near ${scene}, seated elegantly with hands gently holding traditional tableware, warm golden light, mouth-watering food photography of the signature dish in foreground, ${NO_TEXT_RULES}`,
+    4: `${REALISTIC_STYLE}, ${baseCharacter}, standing beside ${scene}, relaxed standing pose like taking a travel souvenir photo, misty lake surface with slight water ripples, faint mist winding around the base, detailed masonry texture, ${NO_TEXT_RULES}`,
   };
-  return `${scenePrompts[panel]}. ${NO_TEXT_RULES}. manga style, vibrant colors, 3:4 vertical aspect ratio, comic panel composition, clean lineart, beautiful atmospheric illustration.`;
+  return scenePrompts[panel];
 }
 
 /**

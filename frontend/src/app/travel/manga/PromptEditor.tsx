@@ -18,6 +18,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
+import { buildPanelPrompt, PanelIndex } from "@/lib/ai/mangaPrompts";
 
 interface Props {
   attractionName: string;
@@ -34,12 +35,6 @@ const PANEL_META = {
 } as const;
 
 type PanelIdx = 1 | 2 | 3 | 4;
-
-function buildDefaultPrompt(panel: PanelIdx, sourceName: string, stylePrompt: string): string {
-  const title = PANEL_META[panel].title;
-  const base = `${stylePrompt}, featuring ${sourceName} in ${title} scene.`;
-  return `${base} Highly detailed, anime style, vibrant colors, no text, no words, no letters, no logos, no signage, no writing, no captions, no speech bubbles, no banners, no posters, no subtitles. Empty areas for future text overlay. Aspect ratio 3:4 vertical portrait.`;
-}
 
 export default function PromptEditor({ attractionName, region, onClose, onSaved }: Props) {
   const [activePanel, setActivePanel] = useState<PanelIdx>(1);
@@ -76,11 +71,12 @@ export default function PromptEditor({ attractionName, region, onClose, onSaved 
         chars?.find((c: any) => c.region === "qstyle") ||
         chars?.[0];
       const style = match?.style_prompt || "";
+      // 跟 buildPanelPrompt 同一個 source of truth（v2 寫實風格）
       const defaults: Record<PanelIdx, string> = {
-        1: buildDefaultPrompt(1, attractionName, style),
-        2: buildDefaultPrompt(2, attractionName, style),
-        3: buildDefaultPrompt(3, attractionName, style),
-        4: buildDefaultPrompt(4, attractionName, style),
+        1: buildPanelPrompt(style, attractionName, 1 as PanelIndex),
+        2: buildPanelPrompt(style, attractionName, 2 as PanelIndex),
+        3: buildPanelPrompt(style, attractionName, 3 as PanelIndex),
+        4: buildPanelPrompt(style, attractionName, 4 as PanelIndex),
       };
       setDefaultPrompts(defaults);
       // 撈 user custom prompts
