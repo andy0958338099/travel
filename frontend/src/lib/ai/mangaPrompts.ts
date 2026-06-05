@@ -12,10 +12,13 @@
  *   3. 美食 / 特色 (food / feature)
  *   4. 打卡 + 旅遊 tips (photo + tips)
  *
- * STYLE v2.0 (2026-06-05 user 範本):
- *   從 Q版漫畫風改為 Realistic DSLR Portrait Photography
- *   角色預設 = a graceful ancient Song dynasty noble lady
- *   統一 3:4 vertical portrait + bottom 留白給文字疊加
+ * STYLE v3.1 (2026-06-05 user 衝突感 + 驚訝感):
+ *   - 場景佔 70% 版面，仕女佔 30% (不再是仕女為主)
+ *   - 「宋代仕女闖入現代市集」時間旅行衝突感為核心
+ *   - 仕女表情：驚訝 (wide eyes, slightly open mouth, hands raised)
+ *   - 從 Q版漫畫風改為 Realistic DSLR Travel Photography
+ *   - 角色預設 = a graceful ancient Song dynasty noble lady
+ *   - 統一 3:4 vertical portrait + bottom 留白給文字疊加
  *
  * The character prompt (from ai_characters.style_prompt) is appended to
  * every panel so the i2i subject_reference stays consistent.
@@ -39,18 +42,20 @@ const NO_TEXT_RULES = [
   "vertical portrait, aspect ratio 3:4",
 ].join(", ");
 
-// ── 寫實風格基底（user 範本 — 套到 4 格） ──
+// ── 寫實風格基底 v3.1（user 衝突感 + 驚訝感） ──
 const REALISTIC_STYLE = [
-  "Realistic DSLR portrait photography",
-  "soft diffused natural daylight",
-  "shallow depth of field",
+  "Realistic DSLR travel photography",
+  "candid street photography with strong environmental storytelling",
+  "shallow depth of field on the scene",
+  "the scenic location and architectural details fill 70% of the frame",
+  "the Song dynasty noble lady in hanfu appears as 30% of the frame as a striking time-travel visitor",
+  "the lady shows a visibly surprised and astonished expression, wide eyes, slightly open mouth, taken aback by the modern surroundings, looking around with curious wonder, hands slightly raised in astonishment",
+  "juxtaposition of ancient Song dynasty and modern Chinese setting",
   "vintage realistic color grading",
   "cinematic atmosphere",
   "8K ultra high detail",
   "photorealistic",
-  "hyper-detailed fabric folds and hair details",
-  "misty atmosphere",
-  "distant hazy mountains in the background",
+  "hyper-detailed environment and fabric folds",
 ].join(", ");
 
 export type PanelIndex = 1 | 2 | 3 | 4;
@@ -80,13 +85,12 @@ export function buildPanelPrompt(
   scene: string,
   panel: PanelIndex
 ): string {
-  // 寫實風 4 格：沿用 user 範本結構（DSLR 攝影 + 宋代貴族女子 + 場景細節）
-  // 每格只有 pose + 場景語意不同；風格 / NO-TEXT / 比例統一
+  // v3.1 寫實風 4 格：場景為主、仕女為客 + 衝突感 + 驚訝表情
   const scenePrompts: Record<PanelIndex, string> = {
-    1: `${REALISTIC_STYLE}, ${baseCharacter}, arriving at the entrance of ${scene}, relaxed standing pose with one hand gently raised in a friendly wave, soft natural ancient facial features with a warm welcoming smile, clean composition, ${NO_TEXT_RULES}`,
-    2: `${REALISTIC_STYLE}, ${baseCharacter}, exploring the historic atmosphere of ${scene}, walking slowly through the cultural setting, contemplative pose with eyes gently observing the surroundings, dramatic natural lighting, ${NO_TEXT_RULES}`,
-    3: `${REALISTIC_STYLE}, ${baseCharacter}, savoring the famous local delicacy near ${scene}, seated elegantly with hands gently holding traditional tableware, warm golden light, mouth-watering food photography of the signature dish in foreground, ${NO_TEXT_RULES}`,
-    4: `${REALISTIC_STYLE}, ${baseCharacter}, standing beside ${scene}, relaxed standing pose like taking a travel souvenir photo, misty lake surface with slight water ripples, faint mist winding around the base, detailed masonry texture, ${NO_TEXT_RULES}`,
+    1: `${REALISTIC_STYLE}, ${baseCharacter}, candidly arriving at the entrance of ${scene}, the entrance architecture and surrounding modern visitors dominate the frame, the Song dynasty lady in hanfu stands as a striking small figure creating a time-travel moment, ${NO_TEXT_RULES}`,
+    2: `${REALISTIC_STYLE}, ${baseCharacter}, exploring the cultural setting of ${scene}, the scene's signature architecture and atmosphere fill most of the frame, the lady appears in mid-ground in her hanfu as a visitor, modern Chinese environment surrounds her, ${NO_TEXT_RULES}`,
+    3: `${REALISTIC_STYLE}, ${baseCharacter}, savoring the local delicacy near ${scene}, the food atmosphere and signature dish fill the foreground, the Song dynasty lady in hanfu is shown among the bustling market or restaurant scene as a striking ancient visitor, time-travel contrast is the focal point, ${NO_TEXT_RULES}`,
+    4: `${REALISTIC_STYLE}, ${baseCharacter}, taking a souvenir photo at ${scene}, the iconic landmark or scenery fills 70% of the frame as backdrop, the lady stands to the side as a striking contrast figure, candid travel photography with strong environmental storytelling, ${NO_TEXT_RULES}`,
   };
   return scenePrompts[panel];
 }
