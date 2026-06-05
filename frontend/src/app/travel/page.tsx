@@ -184,17 +184,23 @@ export default function TravelPage() {
       {/* Header */}
       <div className="bg-gradient-to-r from-teal-600 to-blue-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 lg:py-8">
-          {/* Nav row: 返回首頁 + nav scrollable + 排序按鈕 */}
+          {/* Nav row: 返回首頁 + nav flex-wrap 3 行 + 排序按鈕 */}
           <div className="flex items-center gap-2 mb-3">
             <Link href="/" className="text-white/80 hover:text-white text-sm flex-shrink-0">
               ← 返回首頁
             </Link>
-            <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
-              {navOrder.map(item => (
-                <Link key={item.key} href={item.href} className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full text-sm flex-shrink-0 whitespace-nowrap">
-                  {item.label}
-                </Link>
-              ))}
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap gap-1.5 -mx-1 px-1">
+                {navOrder.map(item => (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    className="bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-full text-xs sm:text-sm whitespace-nowrap"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
             </div>
             {isEditingOrder ? (
               <>

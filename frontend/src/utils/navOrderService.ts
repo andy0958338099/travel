@@ -23,6 +23,7 @@ export interface NavItem {
 
 export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'planner',     label: '🗓️ 行程規劃器',  href: '/travel/planner'     },
+  { key: 'sim-guide',   label: '📶 陸旅通訊',     href: '/travel/sim-guide'   },
   { key: 'journal',     label: '📖 旅程日誌',     href: '/travel/journal'     },
   { key: 'stories',     label: '📚 地理歷史',     href: '/travel/stories'     },
   { key: 'manga',       label: '🎨 Q版漫畫圖鑑',  href: '/travel/manga'       },
