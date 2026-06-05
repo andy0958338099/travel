@@ -28,7 +28,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '樂高、變形金剛、高達模型、芭比娃娃',
     tips: '節假日人流量大，下午2-4點是相對低峰時段。2樓有試玩區可免費體驗遙控玩具。消費滿500元可辦會員卡享95折。',
     distanceFromRoute: '南京東路680號，步行約3分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-sh-01.jpg',
   },
   {
     id: 'sh-02',
@@ -41,7 +41,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '國產精品玩具、模型、益智拼圖',
     tips: '可以使用商場停車優惠。3樓玩具區經常與童裝區聯動促銷，母嬰用品同步選購更划算。每周六下午有免費試玩活動。',
     distanceFromRoute: '南京東路830號，步行約2分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=800&q=80',
+    imageUrl: '/toys-tour/sh-02.jpg',
   },
   {
     id: 'sh-03',
@@ -54,7 +54,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '高端模型、Hot Toys、S.H.Figuarts、限定版',
     tips: '會員可優先購買限定商品。店內提供免費WiFi查詢官網庫存。靠近人民廣場地鐵站，交通便利。節假日排隊，建議早上11點前到。',
     distanceFromRoute: '西藏中路118號，步行約5分鐘（人民廣場地鐵站）',
-    imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80',
+    imageUrl: '/toys-tour/sh-03.jpg',
   },
   {
     id: 'sh-04',
@@ -67,7 +67,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '樂高限定版、馬賽克牆、免費試玩、定制服務',
     tips: '可以現場拼搭並拍照。限定版需要排隊購買，建議開門就到。門市提供免費WiFi下載樂高應用。消費可全額抵扣停車。',
     distanceFromRoute: '南京東路829號，步行約4分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-sh-04.jpg',
   },
   {
     id: 'sh-05',
@@ -80,7 +80,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '平價玩具、批發價格、傳統市集氛圍',
     tips: '一定要殺價！同款商品不同店家價格差異可達2倍。推薦往福佑路北側的批發店深入探索。人流高峰在下午3-6點。',
     distanceFromRoute: '豫園商城B1-B2，步行約5分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&q=80',
+    imageUrl: '/toys-tour/sh-05.jpg',
   },
   {
     id: 'sh-06',
@@ -93,7 +93,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '遙控飛機、模型套裝、絨毛玩具、積木',
     tips: '營業時間到下午6點，建議上午去選擇最齊全。大量採購可享批發價。距離豫園步行約10分鐘，可以和豫園一起遊覽。',
     distanceFromRoute: '麗水路68號，步行約8分鐘（豫園附近）',
-    imageUrl: 'https://images.unsplash.com/photo-1523206489230-c012c64b2b48?w=800&q=80',
+    imageUrl: '/toys-tour/sh-06.jpg',
   },
   {
     id: 'sh-07',
@@ -106,7 +106,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '日版高達、壽屋、Figma、日系精品玩具',
     tips: '可使用免稅服務（需護照）。5樓玩具區經常與4樓童裝聯動。消費滿1000元可抵扣2小時停車。節假日人少，體驗好。',
     distanceFromRoute: '南京東路228號，步行約3分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-sh-07.jpg',
   },
   {
     id: 'sh-08',
@@ -119,7 +119,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: 'M&M\'s公仔、DIY調色、角色周邊、拍照打卡',
     tips: "4樓DIY調色體驗（約100元）建議提前預約。1樓有巨型M&M's公仔免費拍照。步行街人流量大，但排隊進店時間通常不超過10分鐘。",
     distanceFromRoute: '南京東路步行街689號，步行約3分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-sh-08.jpg',
   },
   {
     id: 'sh-09',
@@ -132,7 +132,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '火車模型、船模、軍事模型、文創公仔',
     tips: '與外灘景點結合遊覽，建議傍晚看完外灘夜景後逛。外灘中央商場建築本身是優秀歷史建築，值得一看。部分店鋪接受支付寶/微信。',
     distanceFromRoute: '中山東一路外灘，步行約5分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-sh-09.jpg',
   },
   {
     id: 'sh-10',
@@ -145,7 +145,7 @@ const SH_TOYS: ToyStore[] = [
     highlight: '運動主題玩具、足球、籃球、卡通周邊',
     tips: '離四行倉庫較近，適合遊覽完四行倉庫後順路前往。商場有餐飲設施，可以在此午餐。四行倉庫的遊客服務中心有洗手間和休息區。',
     distanceFromRoute: '虹口足球場，步行約20分鐘或地鐵3分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1531259683007-016a7b628fc3?w=800&q=80',
+    imageUrl: '/toys-tour/sh-10.jpg',
   },
   {
     id: 'sh-11',
@@ -187,7 +187,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '平價玩具、批發價格、款式齊全',
     tips: '建議上午去，庫存最齊全。可以大量議價，同款比商場便宜40-60%。武林廣場地鐵站A出口直達商場B2層。',
     distanceFromRoute: '武林廣場B2層，步行約3分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-hz-01.jpg',
   },
   {
     id: 'hz-02',
@@ -200,7 +200,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '創意玩具、編程機器人、3D木質拼圖、金屬模型',
     tips: '可以現場體驗編程玩具。工作日晚上和周末下午人流量大。國脈大廈對面是杭州大廈，可以安排一起遊覽。',
     distanceFromRoute: '武林廣場289號，步行約4分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1519567241046-7f570eee3ce6?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-hz-02.jpg',
   },
   {
     id: 'hz-03',
@@ -213,7 +213,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '樂高、芭比、小馬寶莉、銀泰會員折扣',
     tips: '銀泰會員日（每月8日）優惠力度最大，可以線上領券。6樓玩具區靠近親子樂園，可以安排半天時間。消費滿300元可減免2小時停費。',
     distanceFromRoute: '武林廣場銀泰百貨6樓，步行約5分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80',
+    imageUrl: '/toys-tour/hz-03.jpg',
   },
   {
     id: 'hz-04',
@@ -226,7 +226,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '德國STEM玩具、日本工匠玩具、歐美益智玩具',
     tips: '杭州大廈停車較貴，建議地鐵前往。玩具區導購服務專業，可以根據孩子年齡和愛好推薦。商場會員可以累積積分抵現。',
     distanceFromRoute: '武林廣場1號，步行約5分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-hz-04.jpg',
   },
   {
     id: 'hz-05',
@@ -239,7 +239,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '傳統手工藝玩具、中國風公仔、卡通周邊',
     tips: '河坊街晚上的夜景比白天更有特色，建議傍晚遊覽並購買。街區內物流不便，建議輕裝前往。河坊街中間段玩具店最集中。',
     distanceFromRoute: '河坊街歷史街區，步行約5分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-hz-05.jpg',
   },
   {
     id: 'hz-06',
@@ -252,7 +252,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '益智玩具、創意禮品、空調環境',
     tips: '地下商街有空調，是夏天遊覽河坊街時的良好選擇。B1層玩具店集中在中部區域，可以快速找到。南宋御街和河坊街的交界處是最大型的玩具店。',
     distanceFromRoute: '南宋御街B1層，步行約3分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1523206489230-c012c64b2b48?w=800&q=80',
+    imageUrl: '/toys-tour/hz-06.jpg',
   },
   {
     id: 'hz-07',
@@ -265,7 +265,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '模型、卡通周邊、交通便利',
     tips: '吳山廣場地鐵7號線直達，與火車站和西湖都有地鐵連接。玩具店在地鐵商場2樓，出口即達。建議遊覽完吳山廣場後直接來這裡。',
     distanceFromRoute: '吳山廣場地鐵商場2樓，步行約2分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-hz-07.jpg',
   },
   {
     id: 'hz-08',
@@ -278,7 +278,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '家庭型商場、互動試玩空間、親子友好',
     tips: '商場的餐飲設施齊全，可以在這裡用餐同時遊玩。週末有親子工作坊活動，關注商場公眾號報名。停車方便，適合自駕家庭。',
     distanceFromRoute: '武林廣場501城市廣場3樓，步行約8分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=800&q=80',
+    imageUrl: '/toys-tour/hz-08.jpg',
   },
   {
     id: 'hz-09',
@@ -291,7 +291,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '便攜玩具、價格實惠、交通便利',
     tips: '地鐵站內商店規模較小，不建議專程前往。適合在等車時順路看看。地鐵站靠近西湖和吳山廣場，是遊覽間隙的理想購物點。',
     distanceFromRoute: '定安路地鐵站1號線站內，步行約2分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&q=80',
+    imageUrl: '/toys-tour/placeholder-hz-09.jpg',
   },
   {
     id: 'hz-10',
@@ -304,7 +304,7 @@ const HZ_TOYS: ToyStore[] = [
     highlight: '卡通周邊、遙控玩具、地鐵樞紐',
     tips: '早晚高峰期人流極大，建議避開7:30-9:00和17:30-19:00。龍翔橋站連接西湖和市中心，可以安排在西湖遊覽後的返程中順路遊覽。',
     distanceFromRoute: '龍翔橋地鐵站站內，步行約3分鐘',
-    imageUrl: 'https://images.unsplash.com/photo-1531259683007-016a7b628fc3?w=800&q=80',
+    imageUrl: '/toys-tour/hz-10.jpg',
   },
   {
     id: 'hz-11',
