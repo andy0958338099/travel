@@ -42,32 +42,8 @@ function AttractionCard({
   const isWholeHidden = hiddenAttractions.has(attraction.name);
 
   if (isWholeHidden) {
-    // 整個景點被刪除，渲染一個「已隱藏」小區塊並提供還原按鈕
-    return (
-      <div className="bg-gray-50 rounded-xl border border-dashed border-gray-300 overflow-hidden relative p-3 flex flex-col items-center justify-center min-h-[180px]">
-        <span className="text-2xl">🗑️</span>
-        <h3 className="font-semibold text-gray-500 text-sm mt-1 line-through">
-          {attraction.name}
-        </h3>
-        <p className="text-xs text-gray-400 mt-1">已隱藏</p>
-        <button
-          onClick={async () => {
-            // 還原 = 從 Supabase 移除該記錄（toggle 行為）
-            const { createClient } = await import('@/utils/supabase/client');
-            const supabase = createClient();
-            await supabase
-              .from('attraction_gallery_attractions')
-              .delete()
-              .eq('attraction_name', attraction.name);
-            onDeleted(attraction.name);
-            toast.success(`已還原 ${attraction.name}`);
-          }}
-          className="mt-2 text-xs text-teal-600 hover:text-teal-700 underline"
-        >
-          還原
-        </button>
-      </div>
-    );
+    // 隱藏的景點不佔 grid 位置（改用「管理已隱藏」入口還原）
+    return null;
   }
 
   if (visibleImages.length === 0) {
@@ -269,6 +245,7 @@ export default function AttractionGallery() {
   const [filter, setFilter] = useState<'all' | 'westLake' | 'wuzhen' | 'other'>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [hiddenAttractions, setHiddenAttractions] = useState<Set<string>>(new Set());
+  const [showHiddenManager, setShowHiddenManager] = useState(false);
 
   useEffect(() => {
     // 載入隱藏的整個景點清單
@@ -318,27 +295,84 @@ export default function AttractionGallery() {
         </div>
       </div>
 
-      {/* 統計 */}
-      <p className="text-sm text-gray-500">
-        {isLoading
-          ? '載入中…'
-          : `共 ${visibleAndHidden.length} 個景點（${visibleAndHidden.filter(a => !hiddenAttractions.has(a.name)).length} 個顯示）`}
-      </p>
+      {/* 統計 + 管理入口 */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <p className="text-sm text-gray-500">
+          {isLoading
+            ? '載入中…'
+            : (() => {
+                const total = visibleAndHidden.length;
+                const hidden = visibleAndHidden.filter((a) => hiddenAttractions.has(a.name)).length;
+                const shown = total - hidden;
+                return hidden > 0
+                  ? `共 ${total} 個景點（${shown} 個顯示 · ${hidden} 個已隱藏）`
+                  : `共 ${total} 個景點`;
+              })()}
+        </p>
+        {!isLoading && visibleAndHidden.filter((a) => hiddenAttractions.has(a.name)).length > 0 && (
+          <button
+            onClick={() => setShowHiddenManager((v) => !v)}
+            className="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+          >
+            {showHiddenManager ? '收起' : '管理'}已隱藏 ({visibleAndHidden.filter((a) => hiddenAttractions.has(a.name)).length})
+          </button>
+        )}
+      </div>
+
+      {/* 隱藏管理區塊（展開時顯示） */}
+      {showHiddenManager && (
+        <div className="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-3">
+          <p className="text-xs text-gray-500 mb-2">以下景點已隱藏，點「還原」可重新顯示：</p>
+          <ul className="flex flex-wrap gap-2">
+            {visibleAndHidden
+              .filter((a) => hiddenAttractions.has(a.name))
+              .map((a) => (
+                <li
+                  key={a.name}
+                  className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-3 py-1 text-xs"
+                >
+                  <span className="text-gray-500 line-through">{a.name}</span>
+                  <button
+                    onClick={async () => {
+                      const { createClient } = await import('@/utils/supabase/client');
+                      const supabase = createClient();
+                      await supabase
+                        .from('attraction_gallery_attractions')
+                        .delete()
+                        .eq('attraction_name', a.name);
+                      setHiddenAttractions((prev) => {
+                        const next = new Set(prev);
+                        next.delete(a.name);
+                        return next;
+                      });
+                      toast.success(`已還原 ${a.name}`);
+                    }}
+                    className="text-teal-600 hover:text-teal-700 font-medium"
+                  >
+                    還原
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
 
       {/* 照片網格 */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
         {isLoading
           ? Array.from({ length: 10 }).map((_, i) => <SkeletonCard key={i} />)
-          : visibleAndHidden.map((attraction) => (
-              <AttractionCard
-                key={attraction.name}
-                attraction={attraction}
-                hiddenAttractions={hiddenAttractions}
-                onDeleted={(name) => {
-                  setHiddenAttractions((prev) => new Set([...prev, name]));
-                }}
-              />
-            ))}
+          : visibleAndHidden
+              .filter((a) => !hiddenAttractions.has(a.name))
+              .map((attraction) => (
+                <AttractionCard
+                  key={attraction.name}
+                  attraction={attraction}
+                  hiddenAttractions={hiddenAttractions}
+                  onDeleted={(name) => {
+                    setHiddenAttractions((prev) => new Set([...prev, name]));
+                  }}
+                />
+              ))}
       </div>
     </div>
   );

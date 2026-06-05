@@ -20,6 +20,8 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { ATTRACTION_CATEGORIES } from "@/utils/mangaTaxonomy";
 import MangaViewer, { type MangaData } from "./MangaViewer";
+import PromptEditor from "./PromptEditor";
+import { createClient } from "@/utils/supabase/client";
 
 export interface AttractionLite {
   name: string;
@@ -46,6 +48,8 @@ export default function MangaStudio({ attractions }: Props) {
   const [generating, setGenerating] = useState<Record<string, { current: number; total: number }>>({});
   // 當前打開的 manga
   const [openManga, setOpenManga] = useState<MangaData | null>(null);
+  // 當前編輯 prompt 的景點（顯示 PromptEditor modal）
+  const [editingAttraction, setEditingAttraction] = useState<AttractionLite | null>(null);
   // 載入中
   const [loading, setLoading] = useState(true);
   // 分類篩選
@@ -154,6 +158,28 @@ export default function MangaStudio({ attractions }: Props) {
       setGenerating((g) => ({ ...g, [sourceId]: { current: 0, total: 4 } }));
 
       try {
+        // 讀 user 對此景點的 custom prompts
+        let customPrompts: Record<1 | 2 | 3 | 4, string> | undefined;
+        const fp = localStorage.getItem("manga-fingerprint");
+        if (fp) {
+          const supabase = createClient();
+          const { data: userRow } = await supabase
+            .from("user_manga_prompts")
+            .select("panel_1_prompt, panel_2_prompt, panel_3_prompt, panel_4_prompt")
+            .eq("user_fingerprint", fp)
+            .eq("attraction_name", sourceId)
+            .maybeSingle();
+          if (userRow) {
+            const cp: any = {};
+            let hasAny = false;
+            for (const p of [1, 2, 3, 4] as const) {
+              const v = userRow[`panel_${p}_prompt`];
+              if (v && v.trim()) { cp[p] = v; hasAny = true; }
+            }
+            if (hasAny) customPrompts = cp;
+          }
+        }
+
         const res = await fetch("/api/manga/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -162,6 +188,7 @@ export default function MangaStudio({ attractions }: Props) {
             sourceId: sourceId,
             sourceName: attraction.name,
             region: attraction.region,
+            ...(customPrompts ? { customPrompts } : {}),
           }),
         });
 
@@ -289,6 +316,7 @@ export default function MangaStudio({ attractions }: Props) {
                       generated={generatedMap[a.name]}
                       generating={generating[a.name]}
                       onClick={() => handleGenerate(a)}
+                      onEditPrompt={() => setEditingAttraction(a)}
                     />
                   ))}
                 </div>
@@ -303,6 +331,15 @@ export default function MangaStudio({ attractions }: Props) {
           manga={openManga}
           onClose={() => setOpenManga(null)}
           onUpdate={handleMangaUpdate}
+        />
+      )}
+
+      {/* Prompt editor modal */}
+      {editingAttraction && (
+        <PromptEditor
+          attractionName={editingAttraction.name}
+          region={editingAttraction.region}
+          onClose={() => setEditingAttraction(null)}
         />
       )}
     </div>
@@ -341,11 +378,13 @@ function AttractionMangaCard({
   generated,
   generating,
   onClick,
+  onEditPrompt,
 }: {
   attraction: AttractionLite;
   generated?: MangaData;
   generating?: { current: number; total: number };
   onClick: () => void;
+  onEditPrompt: () => void;
 }) {
   const isReady = !!generated;
   const isGenerating = !!generating;
@@ -426,6 +465,12 @@ function AttractionMangaCard({
           }`}
         >
           {isGenerating ? "⏳ 生成中…" : isReady ? "📖 開啟漫畫" : "🎨 生成 Q版漫畫"}
+        </button>
+        <button
+          onClick={onEditPrompt}
+          className="w-full mt-1.5 text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+        >
+          📝 編輯 prompt
         </button>
       </div>
     </div>

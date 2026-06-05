@@ -305,11 +305,11 @@ async function runMangaPanelPipeline(payload, env) {
 // 4 panels sequential (~30s each) + descriptions (~10s chat) ≈ 130s total
 // waitUntil doesn't count toward Worker 30s wall time cap.
 async function runMangaGeneratePipeline(payload, env) {
-  const { mangaId } = payload;
+  const { mangaId, customPrompts } = payload;
   const supabaseUrl = env.SUPABASE_URL;
   const supabaseKey = env.SUPABASE_ANON_KEY;
 
-  console.log(`manga/generate ${mangaId}: starting 4-panel pipeline`);
+  console.log(`manga/generate ${mangaId}: starting 4-panel pipeline${customPrompts ? ' (with user custom prompts)' : ''}`);
 
   try {
     // 1) 撈 manga + character
@@ -362,6 +362,21 @@ async function runMangaGeneratePipeline(payload, env) {
       return `${base} Highly detailed, anime style, vibrant colors, no text, no words, no letters, no logos, no signage, no writing, no captions, no speech bubbles, no banners, no posters, no subtitles. Empty areas for future text overlay. Aspect ratio 3:4 vertical portrait.`;
     };
 
+    // 3.5) 解析 customPrompts (user 從 Supabase 存的自訂 prompt)
+    // 每個 panel 可以獨立覆寫，沒覆寫的 fallback default
+    const resolvedPrompts = {};
+    for (const panel of [1, 2, 3, 4]) {
+      if (customPrompts && customPrompts[panel] && customPrompts[panel].trim()) {
+        resolvedPrompts[panel] = customPrompts[panel].trim();
+      } else {
+        resolvedPrompts[panel] = buildPrompt(panel);
+      }
+    }
+    if (customPrompts) {
+      const customCount = Object.values(resolvedPrompts).filter((p, i) => customPrompts[i + 1]?.trim()).length;
+      console.log(`manga/generate ${mangaId}: using ${customCount}/4 custom prompts`);
+    }
+
     // 4) Run 4 panels sequentially
     const PANEL_TITLES_ORDER = [
       { panel: 1, title: "歡迎光臨" },
@@ -378,7 +393,7 @@ async function runMangaGeneratePipeline(payload, env) {
           {
             mangaId,
             panel,
-            prompt: buildPrompt(panel),
+            prompt: resolvedPrompts[panel],
             refImageUrl,
             aspectRatio: "3:4",
           },

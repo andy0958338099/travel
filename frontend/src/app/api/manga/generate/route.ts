@@ -47,12 +47,13 @@ interface GenerateRequest {
   sourceName: string;
   characterId?: string;
   region?: string;
+  customPrompts?: Record<1 | 2 | 3 | 4, string>;  // user 自訂 4-panel prompt (從 Supabase 讀)
 }
 
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const body = (await req.json()) as GenerateRequest;
-  const { sourceType, sourceId, sourceName, characterId, region } = body;
+  const { sourceType, sourceId, sourceName, characterId, region, customPrompts } = body;
 
   if (!sourceType || !sourceId || !sourceName) {
     return NextResponse.json(
@@ -140,7 +141,7 @@ export async function POST(req: NextRequest) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         endpoint: "manga/generate",
-        payload: { mangaId, refImageUrl },
+        payload: { mangaId, refImageUrl, customPrompts },
       }),
     });
     const json = await res.json();
