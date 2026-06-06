@@ -22,6 +22,8 @@ import { useEffect, useRef, useState } from "react";
 import type { PanelIndex } from "@/lib/ai/mangaPrompts";
 import { PANEL_META, buildPanelPrompt } from "@/lib/ai/mangaPrompts";
 import { createClient } from "@/utils/supabase/client";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 export interface MangaData {
   id: string;
@@ -68,6 +70,8 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
   const [current, setCurrent] = useState<MangaData>(manga);
   const [showLong, setShowLong] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const pdfRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Share URL (always built from current manga + window origin) ──
@@ -102,6 +106,64 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
       } finally {
         document.body.removeChild(ta);
       }
+    }
+  }
+
+  // ── 下載 PDF (LINE 分享附件用, 1 頁 A4 含 4 格漫畫 + 標題/caption/景點名/URL) ──
+  // 流程：html2canvas 抓隱藏 div (position: fixed; top: -10000px) → jsPDF 拼 A4 portrait → 觸發瀏覽器下載
+  async function handleDownloadPDF() {
+    if (!pdfRef.current || pdfGenerating) return;
+    setPdfGenerating(true);
+    try {
+      // 1) 等隱藏 div 內所有 <img> 載入完（含 crossOrigin fetch + decode）
+      const imgs = pdfRef.current.querySelectorAll("img");
+      await Promise.all(
+        Array.from(imgs).map(
+          (img) =>
+            new Promise<void>((resolve) => {
+              if (img.complete && img.naturalWidth > 0) return resolve();
+              img.onload = () => resolve();
+              img.onerror = () => resolve(); // 失敗不擋流程,讓畫面保留 alt
+            })
+        )
+      );
+
+      // 2) html2canvas 抓隱藏 div (scale: 2 高清 + useCORS for Supabase CORS)
+      const canvas = await html2canvas(pdfRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+        windowWidth: 794, // A4 @ 96dpi
+      });
+
+      // 3) jsPDF 拼 A4 portrait (595x842 pt)
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4",
+      });
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // 595
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 842
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // 內容超過 A4 高度就裁到 1 頁（不溢出第二頁）
+      pdf.addImage(
+        canvas.toDataURL("image/png"),
+        "PNG",
+        0,
+        0,
+        imgWidth,
+        Math.min(imgHeight, pdfHeight)
+      );
+      pdf.save(
+        `${current.source_name}_Q版漫畫_${current.id.slice(0, 8)}.pdf`
+      );
+    } catch (e: any) {
+      console.error("[MangaViewer] PDF generation failed:", e);
+      alert("PDF 生成失敗，請重試");
+    } finally {
+      setPdfGenerating(false);
     }
   }
 
@@ -311,6 +373,19 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                 {copied ? "✓" : "🔗"}
               </button>
               <button
+                onClick={handleDownloadPDF}
+                disabled={pdfGenerating}
+                title="下載 PDF（LINE 分享用）"
+                aria-label="下載 PDF"
+                className={`relative w-9 h-9 flex items-center justify-center rounded-full text-white text-base shadow-sm transition-colors ${
+                  pdfGenerating
+                    ? "bg-amber-500 animate-pulse cursor-wait"
+                    : "bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                }`}
+              >
+                {pdfGenerating ? "⏳" : "📄"}
+              </button>
+              <button
                 onClick={onClose}
                 title="關閉"
                 aria-label="關閉"
@@ -447,6 +522,209 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
               <span>ID: {current.id.slice(0, 8)}</span>
               <span>更新：{new Date(current.updated_at).toLocaleString("zh-TW")}</span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 隱藏 PDF 模板 (html2canvas 抓這個 div) ──
+          位置 off-screen, 不影響 modal UI; 1 頁 A4 版型 (794x1123 @ 96dpi) */}
+      <div
+        ref={pdfRef}
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          top: "-10000px",
+          left: "-10000px",
+          width: "794px",
+          background: "#ffffff",
+          color: "#1e293b",
+          fontFamily: "'Noto Sans TC', system-ui, sans-serif",
+          padding: "40px",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottom: "3px solid #f59e0b",
+            paddingBottom: "16px",
+            marginBottom: "24px",
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: "14px",
+                color: "#6366f1",
+                fontWeight: 700,
+                letterSpacing: "0.5px",
+              }}
+            >
+              🎨 江南水鄉 Q版漫畫 · 江南水鄉八日
+            </div>
+            <h1
+              style={{
+                fontSize: "32px",
+                fontWeight: 900,
+                color: "#1e293b",
+                margin: "6px 0 0 0",
+                lineHeight: 1.2,
+              }}
+            >
+              {current.source_name} · 4 格 Q版漫畫
+            </h1>
+          </div>
+          <div
+            style={{
+              fontSize: "14px",
+              color: "#94a3b8",
+              fontWeight: 700,
+              background: "#f1f5f9",
+              padding: "6px 12px",
+              borderRadius: "8px",
+            }}
+          >
+            {current.character_name}
+          </div>
+        </div>
+
+        {/* 4 panel 2x2 grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "20px",
+            marginBottom: "24px",
+          }}
+        >
+          {([1, 2, 3, 4] as PanelIndex[]).map((p) => {
+            const urlKey = `panel_${p}_url` as const;
+            const titleKey = `panel_${p}_title` as const;
+            const captionKey = `panel_${p}_caption` as const;
+            const url = current[urlKey];
+            const meta = PANEL_META[p];
+            return (
+              <div
+                key={p}
+                style={{
+                  background: "#f8fafc",
+                  border: "1px solid #e2e8f0",
+                  borderRadius: "12px",
+                  padding: "12px",
+                }}
+              >
+                {url ? (
+                  <img
+                    src={url}
+                    crossOrigin="anonymous"
+                    alt={`${meta.title} - ${current.source_name}`}
+                    style={{
+                      width: "100%",
+                      aspectRatio: "1 / 1",
+                      objectFit: "cover",
+                      borderRadius: "8px",
+                      background: "#e2e8f0",
+                      display: "block",
+                    }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      aspectRatio: "1 / 1",
+                      background: "#e2e8f0",
+                      borderRadius: "8px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#94a3b8",
+                      fontSize: "14px",
+                    }}
+                  >
+                    ❌ 缺圖
+                  </div>
+                )}
+                <div
+                  style={{
+                    marginTop: "10px",
+                    fontSize: "16px",
+                    fontWeight: 900,
+                    color: "#1e293b",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                  }}
+                >
+                  <span
+                    style={{
+                      background: "#e0e7ff",
+                      color: "#4338ca",
+                      fontSize: "11px",
+                      fontWeight: 900,
+                      padding: "2px 6px",
+                      borderRadius: "4px",
+                    }}
+                  >
+                    {p}/4
+                  </span>
+                  <span>{current[titleKey] || meta.title}</span>
+                  <span>{meta.icon}</span>
+                </div>
+                <div
+                  style={{
+                    marginTop: "4px",
+                    fontSize: "12px",
+                    color: "#475569",
+                    lineHeight: 1.45,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {current[captionKey] || "—"}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div
+          style={{
+            borderTop: "2px solid #f59e0b",
+            paddingTop: "16px",
+            fontSize: "12px",
+            color: "#475569",
+            lineHeight: 1.6,
+          }}
+        >
+          <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "14px" }}>
+            📍 景點：{current.source_name}
+          </div>
+          {current.short_desc && (
+            <div style={{ marginTop: "4px" }}>⚡ {current.short_desc}</div>
+          )}
+          <div style={{ marginTop: "4px", wordBreak: "break-all" }}>
+            🔗 {shareUrl}
+          </div>
+          <div
+            style={{
+              marginTop: "8px",
+              color: "#94a3b8",
+              display: "flex",
+              justifyContent: "space-between",
+            }}
+          >
+            <span>© 江南水鄉八日之旅</span>
+            <span>
+              {current.updated_at
+                ? new Date(current.updated_at).toLocaleDateString("zh-TW")
+                : ""}
+            </span>
           </div>
         </div>
       </div>
