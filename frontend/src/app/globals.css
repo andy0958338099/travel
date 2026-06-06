@@ -3,33 +3,93 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafaf9;       /* 宣紙白 */
+  --foreground: #1e293b;       /* 墨黑 */
+  --china-red: #dc2626;        /* 中國紅 */
+  --china-red-dark: #b91c1c;   /* 硃砂紅 */
+  --china-gold: #f59e0b;       /* 帝王金 */
+  --china-jade: #059669;       /* 翠玉 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0c0a09;
+    --foreground: #f5f5f4;
   }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-noto-serif-tc), "Noto Serif TC", "Source Han Serif TC", "Songti TC", "PingFang TC", "Microsoft JhengHei", serif;
+}
+
+/* 標題預設用思源宋體 */
+h1, h2, h3, .font-serif {
+  font-family: var(--font-noto-serif-tc), "Noto Serif TC", "Source Han Serif TC", "Songti TC", serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
-  /* 隱藏 scrollbar 但保留滾動功能（手機橫滑 nav/dashboard 用） */
+  /* 隱藏 scrollbar 但保留滾動功能 */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* 中國風: 朱紅印章 */
+  .chinese-seal {
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    color: #fef3c7;
+    border: 2px solid #fcd34d;
+    box-shadow: 0 2px 8px rgba(185, 28, 28, 0.4), inset 0 0 0 1px rgba(252, 211, 77, 0.3);
+    font-family: "Noto Serif TC", "Songti TC", serif;
+    font-weight: 900;
+  }
+
+  /* 中國風: 金邊框 */
+  .chinese-frame {
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 0 1px rgba(254, 243, 199, 0.5), 0 2px 4px rgba(120, 53, 15, 0.1);
+  }
+
+  /* 中國風: 雲紋漸層 */
+  .cloud-pattern {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 25%, #fbbf24 50%, #f59e0b 75%, #d97706 100%);
+  }
+
+  /* 中國風: 宣紙紋理背景 */
+  .rice-paper {
+    background-color: #fafaf9;
+    background-image:
+      radial-gradient(circle at 25% 25%, rgba(245, 158, 11, 0.03) 1px, transparent 1px),
+      radial-gradient(circle at 75% 75%, rgba(220, 38, 38, 0.02) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+}
+
+@layer components {
+  /* 中式窗格風格卡片 */
+  .chinese-card {
+    @apply bg-white border-2 border-amber-300/50 rounded-lg shadow-md relative;
+    background-image: linear-gradient(135deg, #fffef7 0%, #ffffff 50%, #fff7ed 100%);
+  }
+  .chinese-card::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: inherit;
+    pointer-events: none;
   }
 }

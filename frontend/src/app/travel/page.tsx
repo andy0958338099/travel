@@ -180,88 +180,16 @@ export default function TravelPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-teal-600 to-blue-600 text-white">
+    <div className="min-h-screen bg-stone-50">
+      {/* Page Header (旅遊頁標題區 — nav 已搬到 /travel/layout.tsx 共用) */}
+      <div className="bg-gradient-to-r from-amber-100 via-stone-50 to-rose-100 border-b-2 border-amber-300/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 lg:py-8">
-          {/* Nav row: 返回首頁 + nav flex-wrap 3 行 + 排序按鈕 */}
-          <div className="flex items-center gap-2 mb-3">
-            <Link href="/" className="text-white/80 hover:text-white text-sm flex-shrink-0">
-              ← 返回首頁
-            </Link>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap gap-1.5 -mx-1 px-1">
-                {navOrder.map(item => (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    className="bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-full text-xs sm:text-sm whitespace-nowrap"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            {isEditingOrder ? (
-              <>
-                <button
-                  onClick={() => { setIsEditingOrder(false); saveNavOrder(navOrder); }}
-                  className="bg-green-500 hover:bg-green-600 px-3 py-1 rounded-full text-sm font-medium"
-                >
-                  ✓ 儲存順序
-                </button>
-                <button
-                  onClick={() => { setIsEditingOrder(false); setNavOrder(DEFAULT_NAV_ITEMS); }}
-                  className="bg-white/10 hover:bg-white/20 px-3 py-1 rounded-full text-sm"
-                >
-                  ✕ 取消
-                </button>
-                <div className="w-full" />
-                <div className="flex flex-wrap gap-1 mt-2 w-full">
-                  {navOrder.map((item, idx) => (
-                    <div key={item.key} className="flex items-center gap-1 bg-white/10 rounded-full px-2 py-1">
-                      <button
-                        onClick={() => {
-                          const next = [...navOrder];
-                          [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                          setNavOrder(next.filter(Boolean));
-                        }}
-                        disabled={idx === 0}
-                        className="text-white/60 hover:text-white disabled:opacity-30 text-xs px-1"
-                      >
-                        ↑
-                      </button>
-                      <span className="text-xs text-white/80">{item.label}</span>
-                      <button
-                        onClick={() => {
-                          const next = [...navOrder];
-                          [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
-                          setNavOrder(next.filter(Boolean));
-                        }}
-                        disabled={idx === navOrder.length - 1}
-                        className="text-white/60 hover:text-white disabled:opacity-30 text-xs px-1"
-                      >
-                        ↓
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsEditingOrder(true)}
-                className="bg-yellow-500 hover:bg-yellow-600 text-black px-3 py-1 rounded-full text-sm font-medium"
-              >
-                ✏️ 排序
-              </button>
-            )}
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">🗺️ 江南水鄉八日之旅</h1>
-          <p className="text-sm sm:text-base text-white/80">8天7夜 · 杭州 → 上海 → 西塘 → 烏鎮 → 杭州</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-stone-900 font-serif">🗺️ 江南水鄉八日之旅</h1>
+          <p className="text-sm sm:text-base text-stone-700">8天7夜 · 杭州 → 上海 → 西塘 → 烏鎮 → 杭州</p>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3 sm:mt-4 text-xs sm:text-sm">
-            <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">📅 7月17日 - 7月24日</span>
-            <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">👥 2人</span>
-            <span className="bg-white/20 px-2.5 sm:px-3 py-1 rounded-full">💰 NT$40,000-60,000</span>
+            <span className="bg-white border border-amber-300/60 px-2.5 sm:px-3 py-1 rounded-full text-stone-800">📅 7月17日 - 7月24日</span>
+            <span className="bg-white border border-amber-300/60 px-2.5 sm:px-3 py-1 rounded-full text-stone-800">👥 2人</span>
+            <span className="bg-white border border-amber-300/60 px-2.5 sm:px-3 py-1 rounded-full text-stone-800">💰 NT$40,000-60,000</span>
             <span className="ml-auto" />
             <ShareButtons
               title="江南水鄉八日之旅"
