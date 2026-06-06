@@ -121,17 +121,11 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
         },
         (payload) => {
           const newRow = payload.new as MangaData;
-          // 只在真的有變化時更新（避免 no-op render）
-          setCurrent((prev) => {
-            const changed =
-              prev.panel_1_url !== newRow.panel_1_url ||
-              prev.panel_2_url !== newRow.panel_2_url ||
-              prev.panel_3_url !== newRow.panel_3_url ||
-              prev.panel_4_url !== newRow.panel_4_url ||
-              prev.status !== newRow.status ||
-              prev.updated_at !== newRow.updated_at;
-            return changed ? newRow : prev;
-          });
+          // 只要 Realtime 推了 UPDATE = row 有變 → 直接換 current
+          // (不要在 handler 內判斷「哪些欄位變」, 因為 PATCH 文字時 URL/status/updated_at 都不一定變,
+          //  例如: Supabase PATCH 不會自動更新 updated_at, 圖也沒變,
+          //  結果「caption/title/desc 補上」這種變化會被 ignore, UI 卡在 "—")
+          setCurrent(newRow);
           // 自動通知 parent（更新 grid 上的封面圖等）
           onUpdate?.(newRow);
 
