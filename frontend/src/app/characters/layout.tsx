@@ -4,22 +4,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { key: 'main', label: '🏠 主頁', href: '/automation' },
-  { key: 'network', label: '🌐 網路', href: '/automation/network' },
-  { key: 'songs', label: '🎵 歌曲', href: '/automation/songs' },
-  { key: 'story-arc', label: '🎬 故事弧', href: '/automation/story-arc' },
-  { key: 'timeline', label: '📅 時間軸', href: '/automation/timeline' },
-  { key: 'tts', label: '🗣️ TTS', href: '/automation/tts' },
-  { key: 'video-editor', label: '🎥 影片編輯', href: '/automation/video-editor' },
+  { key: 'main', label: '🏠 主頁', href: '/characters' },
+  { key: 'diaries', label: '📔 日記', href: '/characters/diaries' },
+  { key: 'gallery', label: '🖼️ 畫廊', href: '/characters/gallery' },
+  { key: 'portfolio', label: '💼 作品集', href: '/characters/portfolio' },
+  { key: 'songs', label: '🎵 歌曲', href: '/characters/songs' },
+  { key: 'voice-test', label: '🎤 語音測試', href: '/characters/voice-test' },
 ];
 
 /**
- * AutomationLayout — 共用 layout, 自動套用到 /automation/* 7 個 subpage
+ * CharactersLayout — 共用 layout, 自動套用到 /characters/* 6 個 subpage
  *
  * 設計: 中國風朱紅 header (雲紋橫條 + nav pill + 江南印章) + 底部 footer
  * 跟 /travel/layout.tsx 一致, 簡化版 (無排序)
  */
-export default function AutomationLayout({ children }: { children: React.ReactNode }) {
+export default function CharactersLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || '';
   return (
     <div className="min-h-screen bg-stone-50">
@@ -44,7 +43,7 @@ export default function AutomationLayout({ children }: { children: React.ReactNo
             {NAV_ITEMS.map(item => {
               const isActive =
                 pathname === item.href ||
-                (item.href !== '/automation' && pathname.startsWith(item.href));
+                (item.href !== '/characters' && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.key}
