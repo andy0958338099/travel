@@ -1,19 +1,21 @@
 /**
- * Navigation Order Service
- *
- * Stores and retrieves the travel page navigation item ordering.
- * Backed by the shared `user_state` cloud table (key = 'travel-nav-order'),
- * which is the single source of truth for personal per-device state.
- *
- * Each user gets their own ordering; default = DEFAULT_NAV_ITEMS.
- *
- * Realtime: writes are picked up by other tabs/devices via
- * useCloudState's subscription on the same key. This service is the
- * imperative write path used by the SortMode UI; read-time uses
- * useCloudState in the consumer.
- */
+ /** * Navigation Order Service
+  *
+  * Stores and retrieves the travel page navigation item ordering.
+  * Backed by the shared `user_state` cloud table (key = 'travel-nav-order'),
+  * which is the single source of truth for personal per-device state.
+  *
+  * Each user gets their own ordering; default = DEFAULT_NAV_ITEMS.
+  *
+  * Realtime: writes are picked up by other tabs/devices via
+  * useCloudState's subscription on the same key. This service is the
+  * imperative write path used by the SortMode UI; read-time uses
+  * useCloudState in the consumer.
+  */
 
-import { createClient } from '@/utils/supabase/client';
+ 'use client';
+
+ import { createClient } from '@/utils/supabase/client';
 
 export interface NavItem {
   key: string;
