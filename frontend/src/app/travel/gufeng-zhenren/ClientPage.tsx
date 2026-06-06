@@ -115,7 +115,7 @@ function uuid(): string {
 export default function GufengZhenrenClientPage() {
   // Section 1: 上傳 / 底圖
   const [uploadedDataUrl, setUploadedDataUrl] = useState<string | null>(null);
-  const [pickedAttraction, setPickedAttraction] = useState<{ name: string; cover: string } | null>(null);
+  const [pickedAttraction, setPickedAttraction] = useState<{ id: string; name: string; cover: string; category: string } | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -240,17 +240,21 @@ export default function GufengZhenrenClientPage() {
 
     try {
       const fp = getOrCreateFingerprint();
+      // 4 個必填欄位對應 API (api/time-travel/generate/route.ts):
+      //   userFingerprint / originalPhotoUrl / costumeStyle / costumeStyleKey
+      // (原 ClientPage 拼成 fingerprint / costumeKey / uploadedDataUrl / pickedAttraction → 400)
+      const originalPhotoUrl = uploadedDataUrl || pickedAttraction?.cover || "";
       const res = await fetch("/api/time-travel/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fingerprint: fp,
-          costumeKey: costume.key,
-          costumeName: costume.name,
-          costumeEmoji: costume.emoji,
-          gender: costume.gender,
-          uploadedDataUrl,
-          pickedAttraction, // { name, cover }
+          userFingerprint: fp,
+          originalPhotoUrl,
+          costumeStyle: costume.name,        // 中文名 (給 prompt 用)
+          costumeStyleKey: costume.key,      // 英文 key
+          sourceAttractionId: pickedAttraction?.id ?? null,
+          sourceAttractionName: pickedAttraction?.name ?? null,
+          sourceAttractionCategory: pickedAttraction?.category ?? null,
         }),
       });
       const json = await res.json();
@@ -469,7 +473,7 @@ export default function GufengZhenrenClientPage() {
                       key={a.name}
                       type="button"
                       onClick={() => {
-                        setPickedAttraction({ name: a.name, cover });
+                        setPickedAttraction({ id: a.name, name: a.name, cover, category: a.category });
                         setUploadedDataUrl(null);
                       }}
                       className={`relative aspect-square rounded-md overflow-hidden border-2 transition-all
