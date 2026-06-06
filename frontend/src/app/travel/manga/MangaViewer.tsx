@@ -597,13 +597,12 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
           </div>
         </div>
 
-        {/* 4 panel 2x2 grid — 圖 180x240 (3:4, Q版原比例, 不變形不裁切) */}
+        {/* 4 panel 1x4 排列 (1 列 4 行, 每行 圖左文右) — 圖 130x173 (3:4 不變形) */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(2, 200px)",  // 固定欄寬 = 圖 180 + padding 10*2
-            gap: "16px",
-            justifyContent: "center",  // grid 整體置中
+            gridTemplateColumns: "1fr",  // 1 列
+            gap: "14px",
             marginBottom: "20px",
           }}
         >
@@ -617,21 +616,25 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
               <div
                 key={p}
                 style={{
+                  display: "flex",
+                  gap: "20px",
+                  alignItems: "flex-start",
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
                   borderRadius: "12px",
-                  padding: "10px",
+                  padding: "12px",
                 }}
               >
+                {/* 左: 圖固定 130x173 (3:4 比例, objectFit cover 不變形) */}
                 {url ? (
                   <div
                     style={{
-                      width: "180px",
-                      height: "240px",  // 3:4 比例 (Q版原比例)
+                      flexShrink: 0,
+                      width: "130px",
+                      height: "173px",  // 3:4 比例 (Q版原比例)
                       background: "#e2e8f0",
                       borderRadius: "8px",
                       overflow: "hidden",
-                      margin: "0 auto",
                     }}
                   >
                     <img
@@ -649,8 +652,9 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                 ) : (
                   <div
                     style={{
-                      width: "180px",
-                      height: "240px",  // 3:4 比例
+                      flexShrink: 0,
+                      width: "130px",
+                      height: "173px",  // 3:4 比例
                       background: "#e2e8f0",
                       borderRadius: "8px",
                       display: "flex",
@@ -658,49 +662,56 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                       justifyContent: "center",
                       color: "#94a3b8",
                       fontSize: "14px",
-                      margin: "0 auto",
                     }}
                   >
                     ❌ 缺圖
                   </div>
                 )}
-                <div
-                  style={{
-                    marginTop: "8px",
-                    fontSize: "14px",
-                    fontWeight: 900,
-                    color: "#1e293b",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                  }}
-                >
-                  <span
+                {/* 右: 文字 (flex: 1, minWidth: 0, caption 完整不限行數) */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
                     style={{
-                      background: "#e0e7ff",
-                      color: "#4338ca",
-                      fontSize: "11px",
-                      fontWeight: 900,
-                      padding: "2px 6px",
-                      borderRadius: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "6px",
                     }}
                   >
-                    {p}/4
-                  </span>
-                  <span>{current[titleKey] || meta.title}</span>
-                  <span>{meta.icon}</span>
-                </div>
-                {/* caption: 取消 line-clamp, 完整呈現 (不裁字) */}
-                <div
-                  style={{
-                    marginTop: "4px",
-                    fontSize: "11px",
-                    color: "#475569",
-                    lineHeight: 1.5,
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {current[captionKey] || "—"}
+                    <span
+                      style={{
+                        background: "#e0e7ff",
+                        color: "#4338ca",
+                        fontSize: "11px",
+                        fontWeight: 900,
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {p}/4
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "15px",
+                        fontWeight: 900,
+                        color: "#1e293b",
+                      }}
+                    >
+                      {current[titleKey] || meta.title}
+                    </span>
+                    <span style={{ fontSize: "15px" }}>{meta.icon}</span>
+                  </div>
+                  {/* caption: 完整呈現, 不 line-clamp, wordBreak 防撐破 */}
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      lineHeight: 1.6,
+                      color: "#475569",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {current[captionKey] || "—"}
+                  </div>
                 </div>
               </div>
             );
