@@ -82,7 +82,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '冰粉', price: '¥0', note: '無限續杯，解辣神器' },
       { name: '小酥肉', price: '¥36', note: '酥脆涮嘴，辣的過癮' },
     ],
-    images: [],
+    images: ['/dining/act-3.jpg'],
     menu: {
       '🔥 招牌肉類': [
         { item: '極品鮮毛肚', price: '¥98/份' },
@@ -150,7 +150,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '咖喱牛肉粉', price: '¥22', note: '濃郁咖喱，冬天暖胃聖品' },
       { name: '鹹豆漿', price: '¥6', note: '加油條榨菜蔥花，傳統吃法' },
     ],
-    images: [],
+    images: ['/dining/act-4.jpg'],
     menu: {
       '🥟 招牌生煎': [
         { item: '鮮肉生煎（4隻）', price: '¥20' },
@@ -205,7 +205,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '香菇素菜包', price: '¥22', note: '清爽素食者的最愛' },
       { name: '血湯', price: '¥16', note: '豬血粉絲湯，意外好喝' },
     ],
-    images: [],
+    images: ['/dining/act-7.jpg'],
     menu: {
       '🥟 招牌小籠': [
         { item: '鮮肉小籠（12隻）', price: '¥48' },
@@ -262,7 +262,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '雪菜豆瓣酥', price: '¥38', note: '雪菜配豆瓣酥，清香下飯' },
       { name: '清炒河蝦仁', price: '¥58', note: '當日現捕河蝦，清炒最鮮' },
     ],
-    images: [],
+    images: ['/dining/act-10.jpg'],
     menu: {
       '🐟 招牌水產': [
         { item: '醃篤鮮（全家福）', price: '¥168' },
@@ -323,7 +323,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '拇指煎包', price: '¥15/份', note: '一口一個，隊伍很長' },
       { name: '芒果糯米飯', price: '¥25', note: '泰式口味，糯米椰漿香' },
     ],
-    images: [],
+    images: ['/dining/act-19.jpg'],
     menu: {
       '🔥 燒烤類': [
         { item: '胖子鹽烤魚', price: '¥35' },
@@ -397,7 +397,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '蝦滑', price: '¥58', note: '手工打製，蝦肉Q彈' },
       { name: '凍豆腐', price: '¥28', note: '孔洞發達，吸滿湯汁精華' },
     ],
-    images: [],
+    images: ['/dining/act-27.jpg'],
     menu: {
       '🍲 鍋底': [
         { item: '麻辣牛油鍋', price: '¥78' },
@@ -453,7 +453,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '酸辣湯', price: '¥12', note: '酸辣開胃，配生煎絕配' },
       { name: '大骨頭粉絲湯', price: '¥15', note: '骨頭熬製，鮮美濃郁' },
     ],
-    images: [],
+    images: ['/dining/act-28.jpg'],
     menu: {
       '🥟 生煎類': [
         { item: '原味生煎（4個）', price: '¥12' },
@@ -507,7 +507,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '鮮毛肚', price: '¥48', note: '大片脆嫩，七上八下' },
       { name: '特色鸭血', price: '¥18', note: '嫩滑入味，火鍋必點' },
     ],
-    images: [],
+    images: ['/dining/act-29.jpg'],
     menu: {
       '🍲 鍋底': [
         { item: '麻辣牛油鍋', price: '¥48' },
@@ -570,7 +570,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '清蒸鱸魚', price: '¥168', note: '水鄉水產，鮮嫩清甜' },
       { name: '手工酒釀圓子', price: '¥28', note: '甜品，軟糯酒香' },
     ],
-    images: [],
+    images: ['/dining/act-30.jpg'],
     menu: {
       '🍗 招牌': [
         { item: '御品醉雞', price: '¥88' },
@@ -626,7 +626,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '小籠包（6隻）', price: '¥22', note: '現蒸，皮薄湯多' },
       { name: '鮮肉大包', price: '¥8', note: '大到嚇一跳，肉餡鮮美' },
     ],
-    images: [],
+    images: ['/dining/act-21.jpg'],
     menu: {
       '🥛 豆漿': [
         { item: '鹹豆漿', price: '¥8/碗' },
@@ -688,7 +688,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '麻婆豆腐', price: '¥38', note: '麻辣鮮香，豆腐入味，米飯殺手' },
       { name: '夫妻肺片', price: '¥58', note: '紅油澆拌，牛腱牛心，麻辣過癮' },
     ],
-    images: [],
+    images: ['/dining/act-23.jpg'],
     menu: {
       '🐟 招牌魚類': [
         { item: '水煮鱔魚', price: '¥98/斤' },
@@ -752,7 +752,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '老王頭燒餅', price: '¥8', note: '打燒餅老師傅，餅皮香脆' },
       { name: '手工豆腦', price: '¥10', note: '清晨限量，豆香濃郁' },
     ],
-    images: [],
+    images: ['/dining/act-24.jpg'],
     menu: {
       '🥟 餛飩類': [
         { item: '老貫莊小餛飩', price: '¥12' },
@@ -818,7 +818,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '紅燒獅子頭', price: '¥268', note: '古法慢火炖，肉香四溢' },
       { name: '桂花糯米藕', price: '¥128', note: '桂花糖蜜浸，軟糯香甜' },
     ],
-    images: [],
+    images: ['/dining/act-26.jpg'],
     menu: {
       '🥢 前菜': [
         { item: '富春山居圖（開胃拼盤）', price: '¥388' },
