@@ -527,7 +527,13 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
       </div>
 
       {/* ── 隱藏 PDF 模板 (html2canvas 抓這個 div) ──
-          位置 off-screen, 不影響 modal UI; 1 頁 A4 版型 (794x1123 @ 96dpi) */}
+          位置 off-screen, 不影響 modal UI; 1 頁 A4 版型 (794x1123 @ 96dpi)
+          v3.1 改動 (2026-06-06):
+            - 圖改 180x240 (3:4 Q版原比例, 不裁切不變形)
+            - 縮 outer padding 40→32 + header 字級 (32→26) 騰出 footer 空間
+            - caption 取消 line-clamp 3 行 (完整呈現)
+            - footer padding/間距微調, 確保 4 元素 (景點/short_desc/URL/日期) 都在 1 頁 A4
+            - 整 div 高度 < 1124px (A4 @ 96dpi) → 1 頁 */}
       <div
         ref={pdfRef}
         aria-hidden="true"
@@ -539,25 +545,25 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
           background: "#ffffff",
           color: "#1e293b",
           fontFamily: "'Noto Sans TC', system-ui, sans-serif",
-          padding: "40px",
+          padding: "32px",
           boxSizing: "border-box",
         }}
       >
-        {/* Header */}
+        {/* Header (縮字級 + 縮 padding, 騰空間給 footer) */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
             borderBottom: "3px solid #f59e0b",
-            paddingBottom: "16px",
-            marginBottom: "24px",
+            paddingBottom: "12px",
+            marginBottom: "18px",
           }}
         >
           <div>
             <div
               style={{
-                fontSize: "14px",
+                fontSize: "12px",
                 color: "#6366f1",
                 fontWeight: 700,
                 letterSpacing: "0.5px",
@@ -567,10 +573,10 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
             </div>
             <h1
               style={{
-                fontSize: "32px",
+                fontSize: "26px",
                 fontWeight: 900,
                 color: "#1e293b",
-                margin: "6px 0 0 0",
+                margin: "4px 0 0 0",
                 lineHeight: 1.2,
               }}
             >
@@ -579,7 +585,7 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
           </div>
           <div
             style={{
-              fontSize: "14px",
+              fontSize: "13px",
               color: "#94a3b8",
               fontWeight: 700,
               background: "#f1f5f9",
@@ -591,13 +597,14 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
           </div>
         </div>
 
-        {/* 4 panel 2x2 grid */}
+        {/* 4 panel 2x2 grid — 圖 180x240 (3:4, Q版原比例, 不變形不裁切) */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "20px",
-            marginBottom: "24px",
+            gridTemplateColumns: "repeat(2, 200px)",  // 固定欄寬 = 圖 180 + padding 10*2
+            gap: "16px",
+            justifyContent: "center",  // grid 整體置中
+            marginBottom: "20px",
           }}
         >
           {([1, 2, 3, 4] as PanelIndex[]).map((p) => {
@@ -613,28 +620,37 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
                   borderRadius: "12px",
-                  padding: "12px",
+                  padding: "10px",
                 }}
               >
                 {url ? (
-                  <img
-                    src={url}
-                    crossOrigin="anonymous"
-                    alt={`${meta.title} - ${current.source_name}`}
+                  <div
                     style={{
-                      width: "100%",
-                      aspectRatio: "1 / 1",
-                      objectFit: "cover",
-                      borderRadius: "8px",
+                      width: "180px",
+                      height: "240px",  // 3:4 比例 (Q版原比例)
                       background: "#e2e8f0",
-                      display: "block",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                      margin: "0 auto",
                     }}
-                  />
+                  >
+                    <img
+                      src={url}
+                      crossOrigin="anonymous"
+                      alt={`${meta.title} - ${current.source_name}`}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",  // 維持 3:4 不變形
+                        display: "block",
+                      }}
+                    />
+                  </div>
                 ) : (
                   <div
                     style={{
-                      width: "100%",
-                      aspectRatio: "1 / 1",
+                      width: "180px",
+                      height: "240px",  // 3:4 比例
                       background: "#e2e8f0",
                       borderRadius: "8px",
                       display: "flex",
@@ -642,6 +658,7 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                       justifyContent: "center",
                       color: "#94a3b8",
                       fontSize: "14px",
+                      margin: "0 auto",
                     }}
                   >
                     ❌ 缺圖
@@ -649,8 +666,8 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                 )}
                 <div
                   style={{
-                    marginTop: "10px",
-                    fontSize: "16px",
+                    marginTop: "8px",
+                    fontSize: "14px",
                     fontWeight: 900,
                     color: "#1e293b",
                     display: "flex",
@@ -673,16 +690,14 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                   <span>{current[titleKey] || meta.title}</span>
                   <span>{meta.icon}</span>
                 </div>
+                {/* caption: 取消 line-clamp, 完整呈現 (不裁字) */}
                 <div
                   style={{
                     marginTop: "4px",
-                    fontSize: "12px",
+                    fontSize: "11px",
                     color: "#475569",
-                    lineHeight: 1.45,
-                    display: "-webkit-box",
-                    WebkitLineClamp: 3,
-                    WebkitBoxOrient: "vertical",
-                    overflow: "hidden",
+                    lineHeight: 1.5,
+                    wordBreak: "break-word",
                   }}
                 >
                   {current[captionKey] || "—"}
@@ -692,11 +707,11 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
           })}
         </div>
 
-        {/* Footer */}
+        {/* Footer (完整呈現: 景點名 + short_desc + URL + 日期, 不 line-clamp) */}
         <div
           style={{
             borderTop: "2px solid #f59e0b",
-            paddingTop: "16px",
+            paddingTop: "14px",
             fontSize: "12px",
             color: "#475569",
             lineHeight: 1.6,
@@ -706,7 +721,9 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
             📍 景點：{current.source_name}
           </div>
           {current.short_desc && (
-            <div style={{ marginTop: "4px" }}>⚡ {current.short_desc}</div>
+            <div style={{ marginTop: "4px" }}>
+              ⚡ {current.short_desc}
+            </div>
           )}
           <div style={{ marginTop: "4px", wordBreak: "break-all" }}>
             🔗 {shareUrl}
