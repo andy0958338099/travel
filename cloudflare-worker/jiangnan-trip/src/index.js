@@ -12,8 +12,9 @@ const ALLOWED_ENDPOINTS = new Set([
   "image_generation",
   "chat/completions",
   "music_generation",
-  "manga/panel",   // fire-and-forget — single panel regenerate
-  "manga/generate", // fire-and-forget — full 4-panel manga generation
+  "manga/panel",      // fire-and-forget — single panel regenerate
+  "manga/generate",   // fire-and-forget — full 4-panel manga generation
+  "image/i2i",        // fire-and-forget — 古風寫真 (i2i = image-to-image with subject_reference)
 ]);
 
 const SUPABASE_BUCKET = "travel-manga";
@@ -108,6 +109,34 @@ export default {
           status: "regenerating",
           mangaId,
           totalPanels: 4,
+        }),
+        {
+          status: 202,
+          headers: {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          },
+        }
+      );
+    }
+
+    if (endpoint === "image/i2i") {
+      // 古風寫真 (Gufeng Zhenren) — fire-and-forget
+      // payload: { photoId, imageUrl (user 上傳 base64/http), prompt, table, storageBucket }
+      const { photoId } = payload;
+      if (!photoId) {
+        return new Response(
+          JSON.stringify({ error: "image/i2i needs photoId" }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      ctx.waitUntil(runTimeTravelPipeline(payload, env));
+      return new Response(
+        JSON.stringify({
+          accepted: true,
+          status: "generating",
+          photoId,
+          message: "Time-travel photo dispatched",
         }),
         {
           status: 202,
@@ -541,5 +570,150 @@ async function runMangaGeneratePipeline(payload, env) {
     } catch {
       // ignore
     }
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Background pipeline for 古風寫真 (Gufeng Zhenren image/i2i)
+// ────────────────────────────────────────────────────────────
+// User 上傳照片 → MiniMax image_generation with subject_reference →
+// upload 到 user-attraction-photos bucket → UPDATE user_attraction_photos row
+//
+// 跟 manga/panel 同 pattern (fire-and-forget), 但:
+//   - bucket: user-attraction-photos (跟 travel-manga 不同)
+//   - table: user_attraction_photos
+//   - field: generated_photo_url + status (ready / failed)
+//   - image 是 i2i (subject_reference = user 上傳的 base64/http URL)
+async function runTimeTravelPipeline(payload, env) {
+  const { photoId, imageUrl, prompt } = payload;
+  const apiKey = env.MINIMAX_API_KEY;
+  const supabaseUrl = env.SUPABASE_URL;
+  const supabaseKey = env.SUPABASE_ANON_KEY;
+  const bucket = payload.storageBucket || "user-attraction-photos";
+  const table = payload.table || "user_attraction_photos";
+
+  if (!apiKey || !supabaseUrl || !supabaseKey) {
+    console.error(`image/i2i ${photoId}: Worker secrets missing`);
+    await markRowFailed(photoId, table, supabaseUrl, supabaseKey,
+      "Worker secrets missing (apiKey/supabaseUrl/supabaseKey)");
+    return;
+  }
+
+  console.log(`image/i2i ${photoId}: starting pipeline (bucket=${bucket}, table=${table})`);
+
+  try {
+    // 1) MiniMax image_generation (i2i via subject_reference)
+    const mmBody = {
+      model: "image-01",
+      prompt: prompt || "A person in traditional Song dynasty costume, ancient Jiangnan backdrop, photorealistic, soft golden hour light, 8K",
+      aspect_ratio: "3:4",  // 跟 user 上傳的直式底圖一致
+      n: 1,
+      response_format: "base64",
+      prompt_optimizer: true,
+    };
+    if (imageUrl) {
+      mmBody.subject_reference = [{ type: "character", image_file: imageUrl }];
+    }
+
+    const mmStart = Date.now();
+    const mmRes = await fetch("https://api.minimax.io/v1/image_generation", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(mmBody),
+    });
+    const mmData = await mmRes.json();
+    const mmElapsed = ((Date.now() - mmStart) / 1000).toFixed(1);
+
+    if (mmData.base_resp?.status_code !== 0) {
+      throw new Error(
+        `MiniMax error: ${mmData.base_resp?.status_msg || JSON.stringify(mmData.base_resp)}`
+      );
+    }
+    const base64 = mmData.data?.image_base64?.[0];
+    if (!base64) {
+      throw new Error(
+        `MiniMax returned 0 images (failed=${mmData.metadata?.failed_count || "?"})`
+      );
+    }
+    console.log(
+      `image/i2i ${photoId}: MiniMax ok (${mmElapsed}s, ${(base64.length / 1024).toFixed(0)}KB b64)`
+    );
+
+    // 2) Supabase storage upload
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const objectPath = `${photoId}.jpg`;
+    const uploadStart = Date.now();
+    const uploadRes = await fetch(
+      `${supabaseUrl}/storage/v1/object/${bucket}/${objectPath}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
+          "Content-Type": "image/jpeg",
+          "x-upsert": "true",
+        },
+        body: bytes,
+      }
+    );
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Supabase upload ${uploadRes.status}: ${errText.slice(0, 200)}`);
+    }
+    const uploadElapsed = ((Date.now() - uploadStart) / 1000).toFixed(1);
+    console.log(
+      `image/i2i ${photoId}: upload ok (${uploadElapsed}s, ${(bytes.length / 1024).toFixed(0)}KB)`
+    );
+
+    // 3) Update DB row: status=ready, generated_photo_url
+    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${objectPath}`;
+    const updateRes = await fetch(
+      `${supabaseUrl}/rest/v1/${table}?id=eq.${photoId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${supabaseKey}`,
+          apikey: supabaseKey,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          generated_photo_url: publicUrl,
+          status: "ready",
+          updated_at: new Date().toISOString(),
+        }),
+      }
+    );
+    if (!updateRes.ok) {
+      const errText = await updateRes.text();
+      throw new Error(`DB update ${updateRes.status}: ${errText.slice(0, 200)}`);
+    }
+    console.log(`image/i2i ${photoId}: row updated to status=ready`);
+  } catch (e) {
+    console.error(`image/i2i ${photoId} failed:`, e.message || e);
+    await markRowFailed(photoId, table, supabaseUrl, supabaseKey, e.message);
+  }
+}
+
+async function markRowFailed(photoId, table, supabaseUrl, supabaseKey, errorMsg) {
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/${table}?id=eq.${photoId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${supabaseKey}`,
+        apikey: supabaseKey,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        status: "failed",
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  } catch (e) {
+    console.error(`image/i2i ${photoId}: markRowFailed error:`, e.message || e);
   }
 }
