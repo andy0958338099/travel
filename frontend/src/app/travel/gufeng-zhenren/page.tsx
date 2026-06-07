@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import ClientPage from "./ClientPage";
 
 export const metadata: Metadata = {
@@ -7,5 +8,11 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <ClientPage />;
+  // Suspense 包 useSearchParams (Next.js 14 要求, 不然 build 失敗)
+  // https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-amber-700">載入中...</div>}>
+      <ClientPage />
+    </Suspense>
+  );
 }

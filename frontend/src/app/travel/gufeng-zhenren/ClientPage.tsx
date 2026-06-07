@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { ALL_ATTRACTIONS } from "../data";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/GlobalToastHost";
@@ -155,6 +156,19 @@ export default function GufengZhenrenClientPage() {
     void loadList();
     setLoading(false);
   }, []);
+
+  // 處理 ?photo=ID deep link: 載入完列表後, 自動開 modal 顯示那張
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    if (loading) return;
+    const photoId = searchParams.get("photo");
+    if (!photoId || photos.length === 0) return;
+    const target = photos.find((p) => p.id === photoId);
+    if (target && (!openPhoto || openPhoto.id !== photoId)) {
+      setOpenPhoto(target);
+      void openPhotoModal(target);
+    }
+  }, [loading, searchParams, photos, openPhoto]);
 
   // Realtime 訂閱 user_attraction_photos
   useEffect(() => {
@@ -679,6 +693,19 @@ export default function GufengZhenrenClientPage() {
                   <div className="aspect-square flex items-center justify-center text-amber-700">生成中...</div>
                 )}
               </div>
+
+              {/* 分享列: 大圖下方, 評價列上方 (中國風紅金配色) */}
+              {openPhoto.generated_photo_url && (
+                <div className="mt-3 flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50">
+                  <span className="text-xs font-bold text-amber-900">🎎 分享這張古風寫真</span>
+                  <ShareButtons
+                    title={`古風寫真 · ${openPhoto.costume_style}`}
+                    url={typeof window !== "undefined" ? `${window.location.origin}/travel/gufeng-zhenren?photo=${openPhoto.id}` : undefined}
+                    text={`我在「江南水鄉八日」生成了一張 ${openPhoto.costume_style} 古風寫真 🎎 一鍵穿越 30 種宋代服飾 ${typeof window !== "undefined" ? window.location.origin : ""}/travel/gufeng-zhenren?photo=${openPhoto.id}`}
+                    variant="icon"
+                  />
+                </div>
+              )}
 
               {/* 評價列 */}
               <div className="mt-4 flex flex-wrap items-center gap-2">
