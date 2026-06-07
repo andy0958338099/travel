@@ -14,8 +14,9 @@
  * Realtime: user_attraction_photos table
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, forwardRef } from "react";
 import { useSearchParams } from "next/navigation";
+import html2canvas from "html2canvas";
 import { ALL_ATTRACTIONS } from "../data";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "@/components/GlobalToastHost";
@@ -148,6 +149,55 @@ export default function GufengZhenrenClientPage() {
   const [fingerprint, setFingerprint] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const realtimeRef = useRef<ReturnType<ReturnType<typeof createClient>["channel"]> | null>(null);
+  const shareCardRef = useRef<HTMLDivElement>(null);
+  const [downloadingJpg, setDownloadingJpg] = useState(false);
+
+  // 下載 JPG (html2canvas 抓 shareCardRef)
+  const handleDownloadJpg = useCallback(async () => {
+    if (!shareCardRef.current || !openPhoto?.generated_photo_url || downloadingJpg) return;
+    setDownloadingJpg(true);
+    try {
+      toast.info("🎎 正在生成 JPG...");
+      // 等圖片完全載入 (避免抓到空白)
+      const img = shareCardRef.current.querySelector("img");
+      if (img && !img.complete) {
+        await new Promise<void>((resolve, reject) => {
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error("圖片載入失敗"));
+        });
+      }
+      const canvas = await html2canvas(shareCardRef.current, {
+        scale: 2,
+        backgroundColor: "#fafaf9",
+        useCORS: true,
+        width: 1080,
+        height: 1440,
+        logging: false,
+      });
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+      const a = document.createElement("a");
+      a.download = `gufeng-${openPhoto.costume_style_key}-${openPhoto.id.slice(0, 8)}.jpg`;
+      a.href = dataUrl;
+      a.click();
+      toast.success("✅ JPG 已下載! 可分享到 LINE/IG/FB");
+    } catch (e: any) {
+      console.error("[gufeng] download jpg failed:", e);
+      toast.error("下載失敗: " + (e?.message ?? "未知錯誤"));
+    } finally {
+      setDownloadingJpg(false);
+    }
+  }, [openPhoto, downloadingJpg]);
+
+  const handleCopyShareLink = useCallback(async () => {
+    if (!openPhoto) return;
+    const url = `${window.location.origin}/travel/gufeng-zhenren?photo=${openPhoto.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("🔗 連結已複製!");
+    } catch {
+      toast.error("複製失敗, 請手動複製: " + url);
+    }
+  }, [openPhoto]);
 
   // 啟動: 取 fingerprint + 載入列表
   useEffect(() => {
@@ -694,16 +744,46 @@ export default function GufengZhenrenClientPage() {
                 )}
               </div>
 
-              {/* 分享列: 大圖下方, 評價列上方 (中國風紅金配色) */}
+              {/* 分享列: 大圖下方, 評價列上方 (中國風華麗設計) */}
               {openPhoto.generated_photo_url && (
-                <div className="mt-3 flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-amber-300 bg-gradient-to-r from-amber-50 to-yellow-50">
-                  <span className="text-xs font-bold text-amber-900">🎎 分享這張古風寫真</span>
-                  <ShareButtons
-                    title={`古風寫真 · ${openPhoto.costume_style}`}
-                    url={typeof window !== "undefined" ? `${window.location.origin}/travel/gufeng-zhenren?photo=${openPhoto.id}` : undefined}
-                    text={`我在「江南水鄉八日」生成了一張 ${openPhoto.costume_style} 古風寫真 🎎 一鍵穿越 30 種宋代服飾 ${typeof window !== "undefined" ? window.location.origin : ""}/travel/gufeng-zhenren?photo=${openPhoto.id}`}
-                    variant="icon"
-                  />
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-lg border-2 border-amber-400 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 shadow-sm">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">🎎</span>
+                    <span className="text-xs font-black text-amber-900">分享這張古風寫真</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void handleDownloadJpg()}
+                      disabled={downloadingJpg}
+                      className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-700 hover:to-red-900 disabled:opacity-50 text-white text-sm font-black rounded-full transition-colors flex items-center gap-1.5 shadow-md"
+                    >
+                      📥 {downloadingJpg ? "生成中..." : "下載 JPG"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyShareLink()}
+                      className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-bold rounded-full transition-colors flex items-center gap-1.5"
+                    >
+                      🔗 複製連結
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 隱藏的 share card (html2canvas 抓這個), 中國風 1080x1440 視覺 */}
+              {openPhoto?.generated_photo_url && (
+                <div
+                  aria-hidden="true"
+                  style={{
+                    position: "fixed",
+                    top: "-99999px",
+                    left: "-99999px",
+                    pointerEvents: "none",
+                    zIndex: -1,
+                  }}
+                >
+                  <GufengShareCard ref={shareCardRef} photo={openPhoto} />
                 </div>
               )}
 
@@ -780,3 +860,217 @@ export default function GufengZhenrenClientPage() {
     </main>
   );
 }
+
+// ── GufengShareCard: html2canvas 抓的中國風 1080x1440 分享卡 ──────────────────
+// 跟 postcard 一致 (postcard 經驗: 「匯出時另外在隱藏區域以原始尺寸渲染」)
+// 中國風配色: 紅 #dc2626 + 金 #f59e0b + 墨黑 #1e293b + 宣紙白 #fafaf9
+// 思源宋體 (Noto Serif TC) 給標題, 中式窗格/印章/雲紋裝飾
+const GufengShareCard = forwardRef<HTMLDivElement, { photo: GufengPhoto }>(
+  function GufengShareCard({ photo }, ref) {
+    const meta = getCostumeMeta(photo.costume_style_key);
+    const attraction = photo.source_attraction_name ?? "自拍照";
+    return (
+      <div
+        ref={ref}
+        style={{
+          width: 1080,
+          height: 1440,
+          background: "linear-gradient(135deg, #fafaf9 0%, #f5e6c8 50%, #fafaf9 100%)",
+          fontFamily: "'Noto Serif TC', 'Songti TC', 'STSong', serif",
+          position: "relative",
+          overflow: "hidden",
+          boxSizing: "border-box",
+        }}
+      >
+        {/* 雲紋 SVG (左上, 紅色) */}
+        <svg
+          style={{ position: "absolute", top: 70, left: 70, opacity: 0.35 }}
+          width="120"
+          height="120"
+          viewBox="0 0 100 100"
+          fill="none"
+        >
+          <path
+            d="M20 50 Q20 30 40 30 T60 30 Q80 30 80 50 T60 70 Q40 70 40 50 Z"
+            stroke="#dc2626"
+            strokeWidth="2.5"
+            fill="none"
+          />
+          <path d="M30 60 Q30 50 40 50 T50 50" stroke="#f59e0b" strokeWidth="1.5" fill="none" />
+          <circle cx="50" cy="50" r="3" fill="#dc2626" />
+        </svg>
+
+        {/* 雲紋 SVG (右上, 金色) */}
+        <svg
+          style={{ position: "absolute", top: 80, right: 90, opacity: 0.3 }}
+          width="100"
+          height="100"
+          viewBox="0 0 100 100"
+          fill="none"
+        >
+          <path
+            d="M30 50 Q30 30 50 30 T70 30 Q90 30 90 50 T70 70 Q50 70 50 50 Z"
+            stroke="#f59e0b"
+            strokeWidth="2.5"
+            fill="none"
+          />
+          <path d="M40 60 Q40 50 50 50 T60 50" stroke="#dc2626" strokeWidth="1.5" fill="none" />
+        </svg>
+
+        {/* 雙線窗格外框 (紅粗 + 金細) */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 40,
+            border: "8px solid #dc2626",
+            pointerEvents: "none",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 60,
+            border: "3px solid #f59e0b",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* 標題 */}
+        <div
+          style={{
+            position: "absolute",
+            top: 120,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            color: "#dc2626",
+            fontSize: 56,
+            fontWeight: 900,
+            letterSpacing: 12,
+            textShadow: "2px 2px 0 #f59e0b",
+          }}
+        >
+          江南水鄉八日
+        </div>
+        <div
+          style={{
+            position: "absolute",
+            top: 200,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            color: "#f59e0b",
+            fontSize: 28,
+            letterSpacing: 6,
+            fontWeight: 700,
+          }}
+        >
+          ⸻ 古風寫真 · 一鍵穿越 30 種宋代服飾 ⸻
+        </div>
+
+        {/* 圖片框 (紅色雙層框 + 內層金色) */}
+        <div
+          style={{
+            position: "absolute",
+            top: 290,
+            left: 120,
+            right: 120,
+            height: 760,
+            border: "6px solid #dc2626",
+            background: "#1e293b",
+            overflow: "hidden",
+            boxShadow: "0 0 0 3px #f59e0b, 0 0 0 9px #dc2626",
+          }}
+        >
+          <img
+            src={photo.generated_photo_url!}
+            crossOrigin="anonymous"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        </div>
+
+        {/* 服飾大標題 (圖下方) */}
+        <div
+          style={{
+            position: "absolute",
+            top: 1090,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            fontSize: 72,
+            fontWeight: 900,
+            color: "#dc2626",
+            letterSpacing: 8,
+            textShadow: "2px 2px 0 #f59e0b",
+          }}
+        >
+          {meta.emoji} {photo.costume_style}
+        </div>
+
+        {/* 景點副文字 */}
+        <div
+          style={{
+            position: "absolute",
+            top: 1180,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            fontSize: 32,
+            color: "#1e293b",
+            letterSpacing: 4,
+            fontWeight: 600,
+          }}
+        >
+          🏯 ＠ {attraction}
+        </div>
+
+        {/* 印章 (右下角) — 紅圓框 + 金色中文 */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 160,
+            right: 110,
+            width: 160,
+            height: 160,
+            borderRadius: "50%",
+            border: "6px solid #dc2626",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            color: "#dc2626",
+            fontSize: 22,
+            fontWeight: 900,
+            lineHeight: 1.3,
+            background: "rgba(255, 255, 255, 0.75)",
+            transform: "rotate(-8deg)",
+            boxShadow: "inset 0 0 0 2px #f59e0b",
+            letterSpacing: 2,
+          }}
+        >
+          <span>江南</span>
+          <span>水鄉</span>
+          <span style={{ color: "#f59e0b" }}>八日</span>
+        </div>
+
+        {/* 底部網址 */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: 60,
+            left: 0,
+            right: 0,
+            textAlign: "center",
+            fontSize: 22,
+            color: "#1e293b",
+            letterSpacing: 3,
+            fontWeight: 600,
+          }}
+        >
+          travel-china.netlify.app/travel/gufeng-zhenren
+        </div>
+      </div>
+    );
+  }
+);
