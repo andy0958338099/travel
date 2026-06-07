@@ -303,7 +303,9 @@ export default function GufengZhenrenClientPage() {
   // ── Section 3: 穿越 ────────────────────────────────────────────────────────
   async function handleGenerate() {
     if (generating) return;
-    if (!uploadedDataUrl && !pickedAttraction) {
+    // 2026-06-07: 修 1.0s fail row (西湖船娘 + 河坊街) 顯示 original_photo_url=空字串還送 POST
+    // 之前只驗 uploadedDataUrl || pickedAttraction, 但 pickedAttraction.cover="" 會被當 truthy
+    if (!uploadedDataUrl && !pickedAttraction?.cover) {
       toast.error("請先上傳照片 或 選一個景點底圖");
       return;
     }
@@ -342,15 +344,16 @@ export default function GufengZhenrenClientPage() {
       // Realtime 收到 ready 狀態會自動更新 grid
       await loadList();
     } catch (e: any) {
-      console.error("[gufeng] generate failed:", e);
+      console.error("[gufeng] generate failed:", e?.message, "full:", e);
       toast.error(e?.message || "穿越失敗, 請重試");
     } finally {
-      // 給 worker 一點時間 (5-15s)
+      // 2026-06-07: 修 8s 太早 reset (4 ready 都 27-29.6s 才完成, USER 8s 後重按會撞 cold start)
+      // 改 30s 對齊 Netlify function maxDuration, server 跑完才能再按
       setTimeout(() => {
         setGenerating(false);
         setGeneratingMsg("");
         void loadList();
-      }, 8000);
+      }, 30000);
     }
   }
 

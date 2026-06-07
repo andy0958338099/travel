@@ -60,14 +60,28 @@ async function markRowFailed(
   photoId: string,
   reason: string
 ) {
-  await supabase
-    .from(TABLE)
-    .update({
-      status: "failed",
-      // 沒 error_message 欄位 (早上 trace 確認 column does not exist), 失敗原因先只 log
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", photoId);
+  // 2026-06-07: 寫 error_message 到 row (中堂修 5 failed 找不到原因的 bug)
+  // - supabase 需要聖上先跑 ALTER TABLE user_attraction_photos ADD COLUMN error_message text
+  // - 欄位不存在時 fallback 只寫 status, 不丟整個 pipeline (try/catch 包住)
+  try {
+    await supabase
+      .from(TABLE)
+      .update({
+        status: "failed",
+        error_message: reason.slice(0, 2000),  // 截斷避免超長
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", photoId);
+  } catch (e: any) {
+    console.error(`[time-travel/generate] ${photoId} markRowFailed w/ error_message failed (${e?.message}), fallback to status only`);
+    await supabase
+      .from(TABLE)
+      .update({
+        status: "failed",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", photoId);
+  }
   console.error(`[time-travel/generate] ${photoId} failed: ${reason}`);
 }
 
