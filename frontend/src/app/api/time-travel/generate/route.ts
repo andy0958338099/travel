@@ -19,7 +19,7 @@ import { createClient } from "@/utils/supabase/server";
 const SUPABASE_BUCKET = "user-attraction-photos";
 const TABLE = "user_attraction_photos";
 
-# Netlify free plan 上限 (skill netlify-deployment-debugging §1a)
+// Netlify free plan 上限 (skill netlify-deployment-debugging §1a)
 export const maxDuration = 30;
 
 interface GenerateRequest {
@@ -162,9 +162,11 @@ export async function POST(req: NextRequest) {
   //     (dataURL 從 325-400KB 變 30-60KB, MiniMax 應該跑 15-20s, 留 5-10s buffer)
   const mmStart = Date.now();
   try {
-    // 4a) MiniMax image_generation (i2i via subject_reference)
-    // ⚠️ subject_reference.image_file 期望 https URL, 但加 ref upload 會撞 30s cap
-    //   改用 dataURL 接受偶爾 fail (race condition 在 MiniMax server side)
+    // 4a) MiniMax image_generation
+    // 2026-06-07 修法: 砍 subject_reference 用純 text-to-image
+    //   之前: subject_reference (i2i) → MiniMax 處理 25-30s → 撞 30s cap → 504
+    //   現在: 純 text-to-image → 5-10s 完成 → 絕不撞 30s
+    //   失去 i2i 效果: USER 照片不會移植, 但 prompt 描述用戶特徵
     const mmBody: Record<string, unknown> = {
       model: "image-01",
       prompt: prompt || "A figure in traditional Song dynasty Chinese attire, ancient Jiangnan town backdrop, soft golden hour, photorealistic, 8K",
@@ -173,9 +175,10 @@ export async function POST(req: NextRequest) {
       response_format: "base64",
       prompt_optimizer: true,
     };
-    if (originalPhotoUrl) {
-      mmBody.subject_reference = [{ type: "character", image_file: originalPhotoUrl }];
-    }
+    // ❌ 砍 i2i 區塊 (USER 2026-06-07 報沒錢升 Pro, MiniMax i2i 撞 30s cap)
+    // if (originalPhotoUrl) {
+    //   mmBody.subject_reference = [{ type: "character", image_file: originalPhotoUrl }];
+    // }
 
     const mmRes = await fetch("https://api.minimax.io/v1/image_generation", {
       method: "POST",
