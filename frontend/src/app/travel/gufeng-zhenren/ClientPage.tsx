@@ -66,15 +66,17 @@ export const COSTUME_STYLES: Costume[] = [
 ];
 
 // ── Types ────────────────────────────────────────────────────────────────────
+// 對齊 Supabase user_attraction_photos 實際欄位 (snake_case)
+// costume_emoji 不在 DB — render 時從 COSTUME_STYLES 查
+// user_my_vote 不在 DB (在 photo_votes join table) — 預設 0, 投票時更新
 interface GufengPhoto {
   id: string;
-  image_url: string;
-  attraction_name: string;
-  attraction_cover?: string | null;
-  costume_key: string;
-  costume_name: string;
-  costume_emoji: string;
-  gender: Gender;
+  generated_photo_url: string | null;
+  original_photo_url: string;
+  source_attraction_name: string | null;
+  costume_style_key: string;
+  costume_style: string;
+  costume_emoji?: string;
   like_count: number;
   dislike_count: number;
   comment_count: number;
@@ -82,6 +84,13 @@ interface GufengPhoto {
   user_my_vote?: 1 | -1 | 0 | null;
   created_at: string;
   status: "pending" | "ready" | "failed";
+}
+
+// 從 costume_style_key 查 emoji + name (DB 沒存, 用 lookup table 補)
+function getCostumeMeta(styleKey: string) {
+  return (
+    COSTUME_STYLES.find((c) => c.key === styleKey) ?? { emoji: "👘", name: "古風" }
+  );
 }
 
 interface CommentItem {
@@ -165,8 +174,10 @@ export default function GufengZhenrenClientPage() {
               return [row as GufengPhoto, ...prev];
             });
           } else if (payload.eventType === "UPDATE") {
-            setPhotos((prev) => prev.map((p) => (p.id === row.id ? ({ ...p, ...row } as GufengPhoto) : p)));
-            setOpenPhoto((cur) => (cur && cur.id === row.id ? ({ ...cur, ...row } as GufengPhoto) : cur));
+            // row 是 DB row (snake_case, 對齊新 GufengPhoto); 用 row spread 完全覆蓋 p
+            // 但保留 p.user_my_vote (DB 沒這欄位, 在 photo_votes join table)
+            setPhotos((prev) => prev.map((p) => (p.id === row.id ? ({ ...row, user_my_vote: p.user_my_vote } as GufengPhoto) : p)));
+            setOpenPhoto((cur) => (cur && cur.id === row.id ? ({ ...row, user_my_vote: cur.user_my_vote } as GufengPhoto) : cur));
           } else if (payload.eventType === "DELETE") {
             setPhotos((prev) => prev.filter((p) => p.id !== (payload.old as GufengPhoto).id));
             setOpenPhoto((cur) => (cur && cur.id === (payload.old as GufengPhoto).id ? null : cur));
@@ -616,15 +627,17 @@ export default function GufengZhenrenClientPage() {
                   className="group text-left bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl overflow-hidden border-2 border-amber-200 hover:border-red-500 hover:shadow-xl transition-all"
                 >
                   <div className="relative aspect-[3/4] bg-amber-100">
-                    {p.status === "ready" ? (
-                      <img src={p.image_url} alt={`${p.attraction_name} - ${p.costume_name}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    {p.status === "ready" && p.generated_photo_url ? (
+                      <img src={p.generated_photo_url} alt={`${p.source_attraction_name ?? "自拍照"} - ${getCostumeMeta(p.costume_style_key).name}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                    ) : p.status === "ready" && p.original_photo_url ? (
+                      <img src={p.original_photo_url} alt="原圖 (生成中)" className="w-full h-full object-cover opacity-60" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-amber-700 text-xs">生成中...</div>
                     )}
-                    <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">{p.costume_emoji} {p.costume_name}</div>
+                    <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded">{getCostumeMeta(p.costume_style_key).emoji} {p.costume_style}</div>
                   </div>
                   <div className="p-2">
-                    <div className="text-xs font-bold text-amber-900 truncate">🏯 {p.attraction_name}</div>
+                    <div className="text-xs font-bold text-amber-900 truncate">🏯 {p.source_attraction_name ?? "自拍照"}</div>
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-amber-700">
                       <span>👍 {p.like_count}</span>
                       <span>👎 {p.dislike_count}</span>
@@ -649,7 +662,7 @@ export default function GufengZhenrenClientPage() {
               <div>
                 <div className="text-xs opacity-80">古風寫真</div>
                 <div className="font-black text-lg flex items-center gap-2">
-                  {openPhoto.costume_emoji} {openPhoto.costume_name} · ＠ {openPhoto.attraction_name}
+                  {getCostumeMeta(openPhoto.costume_style_key).emoji} {openPhoto.costume_style} · ＠ {openPhoto.source_attraction_name ?? "自拍照"}
                 </div>
               </div>
               <button onClick={() => setOpenPhoto(null)} className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white text-xl font-bold">×</button>
@@ -658,8 +671,10 @@ export default function GufengZhenrenClientPage() {
             <div className="p-4 sm:p-5">
               {/* 大圖 */}
               <div className="rounded-xl overflow-hidden border-2 border-amber-300 bg-amber-100">
-                {openPhoto.status === "ready" ? (
-                  <img src={openPhoto.image_url} alt={openPhoto.costume_name} className="w-full max-h-[55vh] object-contain mx-auto" />
+                {openPhoto.status === "ready" && openPhoto.generated_photo_url ? (
+                  <img src={openPhoto.generated_photo_url} alt={getCostumeMeta(openPhoto.costume_style_key).name} className="w-full max-h-[55vh] object-contain mx-auto" />
+                ) : openPhoto.status === "ready" && openPhoto.original_photo_url ? (
+                  <img src={openPhoto.original_photo_url} alt="原圖 (生成中)" className="w-full max-h-[55vh] object-contain mx-auto opacity-60" />
                 ) : (
                   <div className="aspect-square flex items-center justify-center text-amber-700">生成中...</div>
                 )}
