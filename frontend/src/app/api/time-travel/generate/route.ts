@@ -149,11 +149,53 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── 4) 同步跑 pipeline: MiniMax (25s) + Supabase upload (1s) + DB UPDATE (0.1s)
-  //   總時間 3s cold + 25s + 1s + 0.1s = 29.1s, 在 Netlify free plan 30s 內 ✅
+  // ── 4) 同步跑 pipeline: MiniMax (15s) + Supabase uploads (2s) + DB UPDATE (0.1s)
+  //   總時間 3s cold + 1s ref upload + 15s MiniMax + 1s result upload + 0.1s DB = 20.1s, 大 buffer ✅
+  // 2026-06-07 修法: dataURL → Supabase Storage → public URL, 給 MiniMax image_file
+  //   - MiniMax 文件要求 image_file 是 https URL, dataURL 觸發 schema validation 拒絕
+  //   - 4 個 ready 是 MiniMax 寬容, 5 個 fail 是 strict 模式
   const mmStart = Date.now();
   try {
-    // 4a) MiniMax image_generation (i2i via subject_reference)
+    // 4a-prep) 解析 ref image: dataURL → 上傳 Supabase Storage → public URL
+    //   - dataURL (手機上傳或 canvas.toDataURL) → 拆 base64, upload, 拿 public URL
+    //   - https URL (pickedAttraction.cover) → 直接用
+    //   - 空字串 → 不送 subject_reference (純 text-to-image)
+    let refImageUrl: string | null = null;
+    if (originalPhotoUrl) {
+      if (originalPhotoUrl.startsWith("data:")) {
+        const base64Part = originalPhotoUrl.split(",")[1];
+        if (!base64Part) throw new Error("invalid data URL (no base64 part)");
+        const refBytes = Uint8Array.from(atob(base64Part), (c) => c.charCodeAt(0));
+        const refPath = `${photoId}_ref.jpg`;
+        const refUploadStart = Date.now();
+        const refUploadRes = await fetch(
+          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${refPath}`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}`,
+              apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
+              "Content-Type": "image/jpeg",
+              "x-upsert": "true",
+            },
+            body: refBytes,
+          }
+        );
+        if (!refUploadRes.ok) {
+          const errText = await refUploadRes.text();
+          throw new Error(`Ref image upload ${refUploadRes.status}: ${errText.slice(0, 200)}`);
+        }
+        refImageUrl = getSupabasePublicUrl(SUPABASE_BUCKET, refPath);
+        const refUploadElapsed = ((Date.now() - refUploadStart) / 1000).toFixed(1);
+        console.log(`[time-travel/generate] ${photoId}: ref upload ok (${refUploadElapsed}s, ${(refBytes.length / 1024).toFixed(0)}KB) → ${refImageUrl}`);
+      } else if (originalPhotoUrl.startsWith("http://") || originalPhotoUrl.startsWith("https://")) {
+        refImageUrl = originalPhotoUrl;
+      } else {
+        throw new Error(`originalPhotoUrl 必須是 data: URL 或 http(s) URL, 收到: ${originalPhotoUrl.slice(0, 50)}...`);
+      }
+    }
+
+    // 4a) MiniMax image_generation (i2i via subject_reference, image_file 必須 https URL)
     const mmBody: Record<string, unknown> = {
       model: "image-01",
       prompt: prompt || "A person in traditional Song dynasty costume, ancient Jiangnan backdrop, photorealistic, soft golden hour light, 8K",
@@ -162,8 +204,8 @@ export async function POST(req: NextRequest) {
       response_format: "base64",
       prompt_optimizer: true,
     };
-    if (originalPhotoUrl) {
-      mmBody.subject_reference = [{ type: "character", image_file: originalPhotoUrl }];
+    if (refImageUrl) {
+      mmBody.subject_reference = [{ type: "character", image_file: refImageUrl }];
     }
 
     const mmRes = await fetch("https://api.minimax.io/v1/image_generation", {
