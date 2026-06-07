@@ -23,5 +23,7 @@
 # Free plan allows up to 26s, but cold start (~2s) + MiniMax (~25s) = ~27s,
 # which makes the first request flaky. 30s is the documented free plan ceiling
 # for functions in newer Netlify Runtime versions.
+#
+# 2026-06-07 升 Pro plan ($19/mo) 拿 60s cap, 30s MiniMax + 5s buffer 安全
 [functions."___netlify-server-handler"]
-  timeout = 30
+  timeout = 60
