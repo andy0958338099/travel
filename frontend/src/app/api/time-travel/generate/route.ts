@@ -1,36 +1,26 @@
 /**
  * POST /api/time-travel/generate
  *
- * 古風寫真 (Gufeng Zhenren) — 觸發一張時空穿越寫真生成。
+ * 古風寫真 (Gufeng Zhenren) — 同步 pipeline (修 cold start + Worker 30s cap 撞牆問題)。
+ *
+ * 舊架構 (fire-and-forget via Worker): Netlify function 1s INSERT + forward → Worker 30s cap 撞 cold start
+ * 新架構 (同步跑完): Netlify function 0.5s INSERT + 直接 await MiniMax + Supabase upload + DB PATCH
+ *   - 總時間 3s cold + 25s MiniMax + 1s upload + 0.1s DB = 29.1s, 在 Netlify free plan 30s 內 ✅
+ *   - 避免 Worker ctx.waitUntil 被 cdn 30s cap 取消 (早上 9:57 跟 10:00 失敗原因)
  *
  * Body: {
- *   userFingerprint: string,
- *   sourceAttractionId?: string,
- *   sourceAttractionName?: string,
- *   sourceAttractionCategory?: string,
- *   originalPhotoUrl: string,           // 使用者上傳的原圖 (URL or data URI)
- *   costumeStyle: string,               // e.g. "Tang dynasty scholar robes"
- *   costumeStyleKey: string,            // e.g. "tang_scholar"
+ *   userFingerprint, sourceAttractionId?, sourceAttractionName?, sourceAttractionCategory?,
+ *   originalPhotoUrl, costumeStyle, costumeStyleKey
  * }
- *
- * Fire-and-forget 架構 (跟 manga/generate 一致):
- *   1. Netlify function = 輕 orchestrator。 maxDuration=10s。
- *      - 驗證 inputs
- *      - INSERT user_attraction_photos row, status=generating
- *      - 組 prompt (costumeStyle + 景點)
- *      - Forward 到 Cloudflare Worker `image/i2i` endpoint
- *   2. Cloudflare Worker = 背景 pipeline (event.waitUntil, 沒 Netlify 30s 上限)
- *      - 調 MiniMax i2i (~10-15s)
- *      - Upload 到 Supabase Storage user-attraction-photos bucket
- *      - UPDATE row, status=ready (with generated_photo_url) or failed
- *   3. Frontend = 開 modal 立即看 spinner, 訂閱 Supabase Realtime 拿 ready 圖。
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 
-const DEFAULT_WORKER_URL = "https://jiangnan-trip.andy0958338099.workers.dev";
+const SUPABASE_BUCKET = "user-attraction-photos";
+const TABLE = "user_attraction_photos";
 
-export const maxDuration = 10; // fire-and-forget: orchestrator only, ~1-2s
+// Netlify free plan 上限 (skill netlify-deployment-debugging §1a)
+export const maxDuration = 30;
 
 interface GenerateRequest {
   userFingerprint: string;
@@ -60,6 +50,27 @@ function buildPrompt(args: {
   ].join(" ");
 }
 
+function getSupabasePublicUrl(bucket: string, path: string): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  return `${url}/storage/v1/object/public/${bucket}/${path}`;
+}
+
+async function markRowFailed(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  photoId: string,
+  reason: string
+) {
+  await supabase
+    .from(TABLE)
+    .update({
+      status: "failed",
+      // 沒 error_message 欄位 (早上 trace 確認 column does not exist), 失敗原因先只 log
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", photoId);
+  console.error(`[time-travel/generate] ${photoId} failed: ${reason}`);
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const body = (await req.json()) as GenerateRequest;
@@ -73,17 +84,26 @@ export async function POST(req: NextRequest) {
     costumeStyleKey,
   } = body;
 
+  // ── 1) 驗證 inputs ──
   if (!userFingerprint || !originalPhotoUrl || !costumeStyle || !costumeStyleKey) {
     return NextResponse.json(
       {
-        error:
-          "userFingerprint, originalPhotoUrl, costumeStyle, costumeStyleKey required",
+        error: "userFingerprint, originalPhotoUrl, costumeStyle, costumeStyleKey required",
       },
       { status: 400 }
     );
   }
 
-  // ── 1) INSERT user_attraction_photos row, status=generating ──
+  // ── 2) 驗證 env (避免早上 06-04 「MINIMAX_API_KEY not configured」) ──
+  const mmKey = process.env.MINIMAX_API_KEY;
+  if (!mmKey) {
+    return NextResponse.json(
+      { error: "MINIMAX_API_KEY not configured (Netlify function env)" },
+      { status: 500 }
+    );
+  }
+
+  // ── 3) INSERT user_attraction_photos row, status=generating ──
   const photoId = crypto.randomUUID();
   const prompt = buildPrompt({
     costumeStyle,
@@ -107,9 +127,7 @@ export async function POST(req: NextRequest) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error: insertErr } = await supabase
-    .from("user_attraction_photos")
-    .insert(insertData);
+  const { error: insertErr } = await supabase.from(TABLE).insert(insertData);
   if (insertErr) {
     return NextResponse.json(
       { error: `insert failed: ${insertErr.message}` },
@@ -117,46 +135,100 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── 2) Fire-and-forget: 呼叫 Worker, Worker 立即回 202 + 背景跑 i2i + upload + update ──
-  const workerUrl = process.env.CLOUDFLARE_WORKER_URL || DEFAULT_WORKER_URL;
+  // ── 4) 同步跑 pipeline: MiniMax (25s) + Supabase upload (1s) + DB UPDATE (0.1s)
+  //   總時間 3s cold + 25s + 1s + 0.1s = 29.1s, 在 Netlify free plan 30s 內 ✅
+  const mmStart = Date.now();
   try {
-    const res = await fetch(workerUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        endpoint: "image/i2i",
-        payload: {
-          photoId,
-          userFingerprint,
-          imageUrl: originalPhotoUrl,
-          prompt,
-          // 提示 Worker 寫回的 bucket / 行 / 狀態欄位
-          table: "user_attraction_photos",
-          storageBucket: "user-attraction-photos",
-        },
-      }),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(json.error || `Worker ${res.status}`);
+    // 4a) MiniMax image_generation (i2i via subject_reference)
+    const mmBody: Record<string, unknown> = {
+      model: "image-01",
+      prompt: prompt || "A person in traditional Song dynasty costume, ancient Jiangnan backdrop, photorealistic, soft golden hour light, 8K",
+      aspect_ratio: "3:4",
+      n: 1,
+      response_format: "base64",
+      prompt_optimizer: true,
+    };
+    if (originalPhotoUrl) {
+      mmBody.subject_reference = [{ type: "character", image_file: originalPhotoUrl }];
+    }
 
-    // 立即回 user — 不等 background 完成
+    const mmRes = await fetch("https://api.minimax.io/v1/image_generation", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${mmKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(mmBody),
+    });
+    const mmData = await mmRes.json();
+    const mmElapsed = ((Date.now() - mmStart) / 1000).toFixed(1);
+
+    if (mmData.base_resp?.status_code !== 0) {
+      throw new Error(
+        `MiniMax error: ${mmData.base_resp?.status_msg || JSON.stringify(mmData.base_resp)}`
+      );
+    }
+    const base64 = mmData.data?.image_base64?.[0];
+    if (!base64) {
+      throw new Error(
+        `MiniMax returned 0 images (failed=${mmData.metadata?.failed_count || "?"})`
+      );
+    }
+    console.log(`[time-travel/generate] ${photoId}: MiniMax ok (${mmElapsed}s, ${(base64.length / 1024).toFixed(0)}KB b64)`);
+
+    // 4b) Supabase Storage upload
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const objectPath = `${photoId}.jpg`;
+    const uploadStart = Date.now();
+    const uploadRes = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${objectPath}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
+          "Content-Type": "image/jpeg",
+          "x-upsert": "true",
+        },
+        body: bytes,
+      }
+    );
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text();
+      throw new Error(`Supabase upload ${uploadRes.status}: ${errText.slice(0, 200)}`);
+    }
+    const uploadElapsed = ((Date.now() - uploadStart) / 1000).toFixed(1);
+    console.log(`[time-travel/generate] ${photoId}: upload ok (${uploadElapsed}s, ${(bytes.length / 1024).toFixed(0)}KB)`);
+
+    // 4c) UPDATE row, status=ready
+    const publicUrl = getSupabasePublicUrl(SUPABASE_BUCKET, objectPath);
+    const { error: updateErr } = await supabase
+      .from(TABLE)
+      .update({
+        generated_photo_url: publicUrl,
+        status: "ready",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", photoId);
+    if (updateErr) {
+      throw new Error(`DB update failed: ${updateErr.message}`);
+    }
+
+    console.log(`[time-travel/generate] ${photoId}: row updated to status=ready`);
     return NextResponse.json(
       {
         photoId,
-        status: "generating",
-        acceptedAt: new Date().toISOString(),
+        status: "ready",
+        generatedPhotoUrl: publicUrl,
+        elapsedMs: Date.now() - mmStart,
       },
-      { status: 202 }
+      { status: 200 }
     );
   } catch (e: any) {
-    // Worker 沒接受 → 標記 failed, user 可看錯誤
-    await supabase
-      .from("user_attraction_photos")
-      .update({ status: "failed", updated_at: new Date().toISOString() })
-      .eq("id", photoId);
+    await markRowFailed(supabase, photoId, e?.message || String(e));
     return NextResponse.json(
-      { error: e.message || "worker dispatch failed", photoId },
-      { status: 502 }
+      { error: e?.message || "pipeline failed", photoId, status: "failed" },
+      { status: 500 }
     );
   }
 }
