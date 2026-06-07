@@ -19,8 +19,10 @@ import { createClient } from "@/utils/supabase/server";
 const SUPABASE_BUCKET = "user-attraction-photos";
 const TABLE = "user_attraction_photos";
 
-// Netlify free plan 上限 (skill netlify-deployment-debugging §1a)
-export const maxDuration = 30;
+// Netlify free plan 上限 30s, MiniMax 25-30s 處理時間常撞牆
+// 升 Pro plan ($19/mo) 拿 60s cap, 30s MiniMax + 5s buffer 安全
+// 聖上 2026-06-07 批准升 Pro, 中堂改 maxDuration 60
+export const maxDuration = 60;
 
 interface GenerateRequest {
   userFingerprint: string;
