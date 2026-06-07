@@ -43,12 +43,16 @@ function buildPrompt(args: {
   const scene = attractionName
     ? `${attractionName} (${category || "景點"}) as the backdrop`
     : "ancient Jiangnan town as the backdrop";
+  // 2026-06-07 修法: USER 報 i2i 把 user 照片的現代元素(耳環、眼鏡、首飾)移植到古風人物
+  //   強化 prompt: 明確禁止現代元素 + 強調 MALE + 強調 ONLY traditional
   return [
-    `Photorealistic portrait of a person wearing ${costumeStyle},`,
-    `standing gracefully in ${scene},`,
-    `soft golden hour light, ornate traditional accessories,`,
-    `gentle breeze, shallow depth of field, cinematic color grading,`,
-    `high detail fabric texture, museum-quality costume, 8K.`,
+    `Photorealistic dignified MALE portrait of a person wearing ${costumeStyle},`,
+    `standing in ${scene},`,
+    `soft golden hour light, traditional Song dynasty clothing ONLY,`,
+    `NO modern jewelry, NO earrings, NO glasses, NO modern accessories,`,
+    `traditional Song dynasty hair accessories and headwear only,`,
+    `museum-quality historical costume, 8K cinematic detail,`,
+    `period-accurate Song dynasty styling, no anachronism.`,
   ].join(" ");
 }
 
