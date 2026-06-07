@@ -149,63 +149,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── 4) 同步跑 pipeline: MiniMax (15s) + Supabase uploads (2s) + DB UPDATE (0.1s)
-  //   總時間 3s cold + 1s ref upload + 15s MiniMax + 1s result upload + 0.1s DB = 20.1s, 大 buffer ✅
-  // 2026-06-07 修法: dataURL → Supabase Storage → public URL, 給 MiniMax image_file
-  //   - MiniMax 文件要求 image_file 是 https URL, dataURL 觸發 schema validation 拒絕
-  //   - 4 個 ready 是 MiniMax 寬容, 5 個 fail 是 strict 模式
+  // ── 4) 同步跑 pipeline: MiniMax (20-25s dataURL) + Supabase upload (1s) + DB UPDATE (0.1s)
+  //   總時間 3s cold + 20-25s MiniMax + 1s upload + 0.1s DB = 24-29s, 擦邊但能過
+  // 2026-06-07 修法紀錄:
+  //   - 第一次: dataURL 直接送 (4 ready 27-29.6s 成功, 5 failed "string did not match")
+  //   - 第二次: 加 ref upload 拿 https URL (期望 MiniMax 對 https 較快, 結果撞 30s cap)
+  //   - 第三次 (本版): 砍 ref upload, 回 dataURL, 但 client 端壓縮照片到 0.55 quality
+  //     (dataURL 從 325-400KB 變 30-60KB, MiniMax 應該跑 15-20s, 留 5-10s buffer)
   const mmStart = Date.now();
   try {
-    // 4a-prep) 解析 ref image: dataURL → 上傳 Supabase Storage → public URL
-    //   - dataURL (手機上傳或 canvas.toDataURL) → 拆 base64, upload, 拿 public URL
-    //   - https URL (pickedAttraction.cover) → 直接用
-    //   - 空字串 → 不送 subject_reference (純 text-to-image)
-    let refImageUrl: string | null = null;
-    if (originalPhotoUrl) {
-      if (originalPhotoUrl.startsWith("data:")) {
-        const base64Part = originalPhotoUrl.split(",")[1];
-        if (!base64Part) throw new Error("invalid data URL (no base64 part)");
-        const refBytes = Uint8Array.from(atob(base64Part), (c) => c.charCodeAt(0));
-        const refPath = `${photoId}_ref.jpg`;
-        const refUploadStart = Date.now();
-        const refUploadRes = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/${SUPABASE_BUCKET}/${refPath}`,
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY}`,
-              apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
-              "Content-Type": "image/jpeg",
-              "x-upsert": "true",
-            },
-            body: refBytes,
-          }
-        );
-        if (!refUploadRes.ok) {
-          const errText = await refUploadRes.text();
-          throw new Error(`Ref image upload ${refUploadRes.status}: ${errText.slice(0, 200)}`);
-        }
-        refImageUrl = getSupabasePublicUrl(SUPABASE_BUCKET, refPath);
-        const refUploadElapsed = ((Date.now() - refUploadStart) / 1000).toFixed(1);
-        console.log(`[time-travel/generate] ${photoId}: ref upload ok (${refUploadElapsed}s, ${(refBytes.length / 1024).toFixed(0)}KB) → ${refImageUrl}`);
-      } else if (originalPhotoUrl.startsWith("http://") || originalPhotoUrl.startsWith("https://")) {
-        refImageUrl = originalPhotoUrl;
-      } else {
-        throw new Error(`originalPhotoUrl 必須是 data: URL 或 http(s) URL, 收到: ${originalPhotoUrl.slice(0, 50)}...`);
-      }
-    }
-
-    // 4a) MiniMax image_generation (i2i via subject_reference, image_file 必須 https URL)
+    // 4a) MiniMax image_generation (i2i via subject_reference)
+    // ⚠️ subject_reference.image_file 期望 https URL, 但加 ref upload 會撞 30s cap
+    //   改用 dataURL 接受偶爾 fail (race condition 在 MiniMax server side)
     const mmBody: Record<string, unknown> = {
       model: "image-01",
-      prompt: prompt || "A person in traditional Song dynasty costume, ancient Jiangnan backdrop, photorealistic, soft golden hour light, 8K",
+      prompt: prompt || "A figure in traditional Song dynasty Chinese attire, ancient Jiangnan town backdrop, soft golden hour, photorealistic, 8K",
       aspect_ratio: "3:4",
       n: 1,
       response_format: "base64",
       prompt_optimizer: true,
     };
-    if (refImageUrl) {
-      mmBody.subject_reference = [{ type: "character", image_file: refImageUrl }];
+    if (originalPhotoUrl) {
+      mmBody.subject_reference = [{ type: "character", image_file: originalPhotoUrl }];
     }
 
     const mmRes = await fetch("https://api.minimax.io/v1/image_generation", {

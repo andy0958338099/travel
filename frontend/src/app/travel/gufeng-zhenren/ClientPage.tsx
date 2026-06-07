@@ -277,12 +277,34 @@ export default function GufengZhenrenClientPage() {
       toast.error("檔案太大 (>8MB), 請壓縮後再上傳");
       return;
     }
+    // 2026-06-07: 壓縮到 max 800px wide, jpeg 0.7 quality
+    //   - 之前不壓縮, 手機照片 404KB dataURL → MiniMax 跑 28-30s → 撞 30s cap → 504
+    //   - 壓縮後 dataURL 預期 50-100KB → MiniMax 跑 10-15s → 大 buffer
     const reader = new FileReader();
     reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setUploadedDataUrl(dataUrl);
-      setPickedAttraction(null); // 改成自己上傳 → 取消景點底圖
-      toast.success("照片上傳成功!");
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 800;
+        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          toast.error("瀏覽器不支援 canvas, 請改用其他瀏覽器");
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+        const origKB = Math.round(file.size / 1024);
+        const newKB = Math.round(compressedDataUrl.length / 1024);
+        console.log(`[gufeng] upload compressed: ${origKB}KB → ${newKB}KB (dataURL, ${canvas.width}x${canvas.height})`);
+        setUploadedDataUrl(compressedDataUrl);
+        setPickedAttraction(null); // 改成自己上傳 → 取消景點底圖
+        toast.success(`照片上傳成功 (${origKB}KB → ${newKB}KB)`);
+      };
+      img.onerror = () => toast.error("圖片解碼失敗");
+      img.src = reader.result as string;
     };
     reader.onerror = () => toast.error("讀取檔案失敗");
     reader.readAsDataURL(file);
