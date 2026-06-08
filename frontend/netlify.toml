@@ -5,6 +5,14 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# (2026-06-08 聖旨 A — 顯式指定 server handler runtime = "nodejs18.x":
+#  聖上 log 9:55:27 PM: "Failed to create function: invalid parameter for
+#  function creation: Invalid AWS Lambda parameters used in this request."
+#  root cause: Netlify 推斷 userNodeVersion 失敗 → AWS Lambda 收到空 runtime。
+#  顯式 runtime 跳過推斷,AWS Lambda 100% 接受 nodejs18.x。
+[functions."___netlify-server-handler"]
+  runtime = "nodejs18.x"
+
 [build.environment]
   NODE_VERSION = "18"
   # Worker proxy URL (not a secret — public URL, safe to commit).
