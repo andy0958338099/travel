@@ -13,15 +13,10 @@
   # dashboard-only env can fail to propagate to the function bundle.
   CLOUDFLARE_WORKER_URL = "https://jiangnan-trip.andy0958338099.workers.dev"
 
-# @netlify/plugin-nextjs bundles ALL API routes into one Lambda function
-# named "___netlify-server-handler". Setting timeout per-route via
-# `api/manga/regenerate-panel` syntax DOES NOT work — must target the
-# actual function name from the build log:
-#   "Packaging Functions from .netlify/functions-internal directory:
-#    - ___netlify-server-handler/___netlify-server-handler.mjs"
-#
-# Free plan allows up to 26s, but cold start (~2s) + MiniMax (~25s) = ~27s,
-# which makes the first request flaky. 30s is the documented free plan ceiling
-# for functions in newer Netlify Runtime versions.
-[functions."___netlify-server-handler"]
-  timeout = 30
+# (2026-06-08 移除 [functions."___netlify-server-handler"] timeout = 30:
+#  聖旨 2026-06-08 — ddfbff2 push 後 Netlify deploy 失敗,AWS Lambda 報
+#  "Invalid AWS Lambda parameters"。root cause 是手動 per-function block
+#  跟新版 @netlify/plugin-nextjs v5.15.11 / 新版 Netlify runtime 不相容。
+#  修法: 移除手動 block,讓 plugin 自動管理 server handler timeout
+#  (plugin 會用 free plan 預設值 26-30s ceiling)。
+#  API route 的 maxDuration 仍由 route.ts `export const maxDuration = 30` 控制。
