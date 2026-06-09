@@ -1,0 +1,19 @@
+# .netlifyignore — exclude build artifacts that don't need to be deployed
+# (executed AFTER `next build`, BEFORE upload to Netlify storage)
+
+# webpack cache (191MB on this project) — never needed at runtime
+.next/cache/
+
+# Next.js internal metadata
+.next/types/
+.next/trace
+
+# Local Netlify CLI state
+.netlify/
+
+# Source .log tracking files (do not deploy)
+/public/**/*.log
+
+# Build trace
+*.tsbuildinfo
+next-env.d.ts
