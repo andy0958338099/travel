@@ -50,3 +50,6 @@ backend/node_modules/
 
 # Large media (optional - uncomment if repo gets too big)
 # assets/characters/*/videos/
+
+# Local Netlify folder
+.netlify

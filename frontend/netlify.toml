@@ -5,13 +5,14 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
-# (2026-06-08 聖旨 A — 顯式指定 server handler runtime = "nodejs18.x":
-#  聖上 log 9:55:27 PM: "Failed to create function: invalid parameter for
-#  function creation: Invalid AWS Lambda parameters used in this request."
-#  root cause: Netlify 推斷 userNodeVersion 失敗 → AWS Lambda 收到空 runtime。
-#  顯式 runtime 跳過推斷,AWS Lambda 100% 接受 nodejs18.x。
-[functions."___netlify-server-handler"]
-  runtime = "nodejs18.x"
+# (2026-06-09 聖旨 A — 移除手動 [functions."___netlify-server-handler"] 區塊:
+#  原因: 手動指定 runtime = "nodejs18.x" 跟新版 @netlify/plugin-nextjs v5.15.11
+#  不相容, AWS Lambda 報 "Invalid AWS Lambda parameters"。
+#  修法: 改用全域 [functions] node_bundler = "esbuild", 讓 plugin 自動推斷
+#  runtime 與 timeout (free plan 預設 26-30s ceiling)。
+#  API route 的 maxDuration 仍由 route.ts `export const maxDuration = 30` 控制。
+[functions]
+  node_bundler = "esbuild"
 
 [build.environment]
   NODE_VERSION = "18"
@@ -20,11 +21,3 @@
   # Next.js inlines process.env.CLOUDFLARE_WORKER_URL at build time, so
   # dashboard-only env can fail to propagate to the function bundle.
   CLOUDFLARE_WORKER_URL = "https://jiangnan-trip.andy0958338099.workers.dev"
-
-# (2026-06-08 移除 [functions."___netlify-server-handler"] timeout = 30:
-#  聖旨 2026-06-08 — ddfbff2 push 後 Netlify deploy 失敗,AWS Lambda 報
-#  "Invalid AWS Lambda parameters"。root cause 是手動 per-function block
-#  跟新版 @netlify/plugin-nextjs v5.15.11 / 新版 Netlify runtime 不相容。
-#  修法: 移除手動 block,讓 plugin 自動管理 server handler timeout
-#  (plugin 會用 free plan 預設值 26-30s ceiling)。
-#  API route 的 maxDuration 仍由 route.ts `export const maxDuration = 30` 控制。
