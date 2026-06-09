@@ -1,8 +1,8 @@
-source: placeholder
-http: n/a
-size: 9440
+source: https://pic1.zhimg.com/v2-6a0fd18a32cbbf652437a34f2904c0ec_r.jpg
+http: 200
+size: 1446004
 type: jpeg
-query: n/a
-date: 2026-06-08
-region: n/a
-note: Wikimedia 對 CHAGEE 杭州店無資料,Bing 找的 3 個候選 URL 全部地域不符(香港/澳門/海外),Wan Chai 香港店 subagent 已抓但不適合杭州旗艦店。改用 placeholder,等之後補抓或 user 提供杭州本店照片
+query: 霸王茶姬 杭州 湖濱銀泰 伯牙絕弦
+date: 2026-06-09
+region: 杭州 (知乎上傳, iPhone EXIF 3024x4032 真人拍攝)
+note: Bing 中文搜「霸王茶姬 杭州 湖濱銀泰 伯牙絕弦」候選 1, 知乎大圖 iPhone 直立照, EXIF iPhone 13+ 拍攝, 真人店家實景 (非 stock photo)。候選 2 淘寶商品照 (alicdn) 521x521 太像 stock 海報, 棄用。sips -Z 1200 縮圖到 274K。

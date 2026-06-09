@@ -1,8 +1,9 @@
-source: placeholder
-http: n/a
-size: 9440
+source: https://pic1.zhimg.com/v2-0266b9096aec853a278bdca61e643b44_b.jpg
+http: 200
+size: 49376
 type: jpeg
-query: n/a
-date: 2026-06-08
-region: n/a
-note: Wikimedia 對 HEYTEA 上海店僅有 Disneytown 裝修中照片(不適合營業中店面),其他 Wikimedia 圖都是香港/蘇州/鄭州地域不符。改用 placeholder,等之後補抓或 user 提供上海港匯恒隆店照片
+query: 喜茶 上海 港匯恒隆 多肉葡萄
+date: 2026-06-09
+region: 上海 (知乎上傳, 600x900 中等解析度)
+note: Bing 中文搜「喜茶 上海 港匯恒隆 多肉葡萄」候選 1, 知乎 600x900 49KB 較小但知乎品質可接受 (中文權威社區非 stock photo)。其他候選 KKNews (45KB) / 頭條 itc.cn (146KB, 因 2017 舊報導棄用) / dpfile (7.8KB 太小) / smzdm (404) 都更差。sips -Z 1200 縮圖到 119K。
+中堂自評: 49KB → 119KB 解析度可能不夠代表性, 但比其他候選都好, user 接受可之後補照。
