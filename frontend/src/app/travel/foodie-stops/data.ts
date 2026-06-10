@@ -63,8 +63,6 @@ export interface FoodieStop {
     note: string;
   };
   image: string;           // /foodie-stops/{id}.jpg 或 placeholder
-  // 2026-06-10: 對應 dining 餐廳 id (用於 cross-link)
-  relatedRestaurantId?: string;
 }
 
 export const FOODIE_STOPS: FoodieStop[] = [
@@ -323,7 +321,6 @@ export const FOODIE_STOPS: FoodieStop[] = [
     ],
     tips: '只開到中午 12 點,想吃請早,5:30-7:00 是最在地時段',
     image: '/foodie-stops/fs-youbu-hz.jpg',
-    relatedRestaurantId: 'act-21',  // 對應 dining 的 act-21 游埠豆漿 (河坊街同一家)
   },
   {
     id: 'fs-damalu-hz',
@@ -351,7 +348,6 @@ export const FOODIE_STOPS: FoodieStop[] = [
     ],
     tips: '望江門地鐵站 C 出口,出來走 3 分鐘,建議 6:30-8:00 體驗最在地',
     image: '/foodie-stops/fs-damalu-hz.jpg',
-    relatedRestaurantId: 'act-24',  // 對應 dining 的 act-24 大馬弄早市 (中山南路同一家)
   },
   {
     id: 'fs-maoerduo-xt',

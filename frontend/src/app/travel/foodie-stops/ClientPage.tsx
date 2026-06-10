@@ -80,16 +80,6 @@ function StopCard({ stop, onClick }: { stop: FoodieStop; onClick: () => void }) 
               距「{stop.nearAttraction.name}」{stop.nearAttraction.distance}
             </div>
           )}
-          {/* 2026-06-10: cross-link 到 餐食評論 (dining) */}
-          {stop.relatedRestaurantId && (
-            <Link
-              href={`/travel/dining#${stop.relatedRestaurantId}`}
-              className="inline-block mt-1 text-xs bg-orange-50 text-orange-700 px-2 py-0.5 rounded-full hover:bg-orange-100 transition"
-              title="這家店在 🍜 餐食評論也有食記"
-            >
-              🍜 餐食評論也有 →
-            </Link>
-          )}
         </div>
 
         {/* 價格 + 營業時間 */}
