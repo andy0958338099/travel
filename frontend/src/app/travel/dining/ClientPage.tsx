@@ -235,6 +235,16 @@ export default function DiningPage() {
                   {item.tags.map(tag => (
                     <span key={tag} className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">#{tag}</span>
                   ))}
+                  {/* 2026-06-10: cross-link 到 網紅名店 (foodie-stops) */}
+                  {item.relatedStopId && (
+                    <Link
+                      href={`/travel/foodie-stops#${item.relatedStopId}`}
+                      className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full hover:bg-emerald-100 transition"
+                      title="這家店在 🧋 網紅名店也有評論"
+                    >
+                      🧋 網紅名店也有 →
+                    </Link>
+                  )}
                 </div>
 
                 {/* Story (food blogger style) */}
