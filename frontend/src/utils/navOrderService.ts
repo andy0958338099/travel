@@ -30,6 +30,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'stories',     label: '📚 地理歷史',     href: '/travel/stories'     },
   { key: 'manga',          label: '🎨 Q版漫畫編輯器',  href: '/travel/manga'          },
   { key: 'guidebook',      label: '📖 Q版漫畫圖鑑',     href: '/travel/guidebook'      },
+  { key: 'postcard',       label: '💌 旅遊明信片',   href: '/travel/postcard'     },
   { key: 'gufeng-zhenren', label: '🎎 古風寫真',    href: '/travel/gufeng-zhenren' },
   { key: 'room-tour',      label: '🏨 Room Tour',    href: '/travel/room-tour'      },
   { key: 'videos',      label: '🎬 影片分享牆',   href: '/travel/videos'      },
