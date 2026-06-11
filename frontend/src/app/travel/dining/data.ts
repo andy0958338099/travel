@@ -25,6 +25,8 @@ export interface Restaurant {
   // 進階欄位
   images?: string[];
   menu?: Record<string, Array<{ item: string; price: string }>>;
+  // 2026-06-11: 對應 foodie-stops 店家 id (用於 cross-link badge)
+  relatedStopId?: string;
 }
 
 export const RESTAURANTS: Restaurant[] = [
@@ -397,7 +399,8 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '蝦滑', price: '¥58', note: '手工打製，蝦肉Q彈' },
       { name: '凍豆腐', price: '¥28', note: '孔洞發達，吸滿湯汁精華' },
     ],
-    images: ['/dining/act-3/haidilao-interior.jpg', '/dining/act-3/haidilao-shanghai-1.jpg', '/dining/act-3/haidilao-shanghai-2.jpg'],
+    // 2026-06-11: 西塘分店, 原圖借主店 (act-3), 6-08 規則禁止共用圖, 改 placeholder
+    images: [],
     menu: {
       '🍲 鍋底': [
         { item: '麻辣牛油鍋', price: '¥78' },
@@ -421,7 +424,7 @@ export const RESTAURANTS: Restaurant[] = [
         { item: '手工麵條', price: '¥38' },
       ],
     },
-    tips: '建議提前在官方APP預約排隊，現場排隊可能需要1-2小時。自助水果和冰淇可以在等位時無限享用。浦東店靠近上海中心大廈，吃完可以去浦東濱江散步看夜景。',
+    tips: '西塘分店, 菜單與主店 (act-3 海底撈) 相同. 照片待補 (6-08 規則禁止 stock photo). 建議提前在官方APP預約排隊，現場排隊可能需要1-2小時。自助水果和冰淇可以在等位時無限享用。浦東店靠近上海中心大廈，吃完可以去浦東濱江散步看夜景。',
     ratingDetail: '服務★★★★★ 味道★★★★ 環境★★★★ 性價比★★★★',
   },
   {
@@ -453,7 +456,8 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '酸辣湯', price: '¥12', note: '酸辣開胃，配生煎絕配' },
       { name: '大骨頭粉絲湯', price: '¥15', note: '骨頭熬製，鮮美濃郁' },
     ],
-    images: ['/dining/act-4/shengjian-food.jpg'],
+    // 2026-06-11: 分店, 原圖借主店 (act-4), 6-08 規則禁止共用圖, 改 placeholder
+    images: [],
     menu: {
       '🥟 生煎類': [
         { item: '原味生煎（4個）', price: '¥12' },
@@ -469,7 +473,7 @@ export const RESTAURANTS: Restaurant[] = [
         { item: '松茸蘑菇湯', price: '¥20' },
       ],
     },
-    tips: '務必在早上8點前到，否則排隊時間可能超過30分鐘。一次出爐一大鍋，排後面的客人需要等下一輪。先咬一小口吸湯汁，再慢慢品嚐，否則容易被湯汁燙傷。吳江路美食街已整改，環境比早年乾淨很多。',
+    tips: '分店, 菜單與主店 (act-4 小楊生煎) 相同. 照片待補 (6-08 規則禁止 stock photo). 務必在早上8點前到，否則排隊時間可能超過30分鐘。一次出爐一大鍋，排後面的客人需要等下一輪。先咬一小口吸湯汁，再慢慢品嚐，否則容易被湯汁燙傷。吳江路美食街已整改，環境比早年乾淨很多。',
     ratingDetail: '味道★★★★★ 性價比★★★★★ 在地感★★★★★ 準時性★★★★',
   },
   {
@@ -507,7 +511,8 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '鮮毛肚', price: '¥48', note: '大片脆嫩，七上八下' },
       { name: '特色鸭血', price: '¥18', note: '嫩滑入味，火鍋必點' },
     ],
-    images: ['/dining/act-29/jiaoniangniang.jpg'],
+    // 2026-06-11: 原 mahongxing/jiaoniangniang 圖檔違規 (stock photo, 6-08 規則禁止), 改 placeholder
+    images: [],
     menu: {
       '🍲 鍋底': [
         { item: '麻辣牛油鍋', price: '¥48' },
@@ -526,7 +531,7 @@ export const RESTAURANTS: Restaurant[] = [
         { item: '凍豆腐', price: '¥12' },
       ],
     },
-    tips: '在西塘古鎮北側，距離永寧橋和塘東街都很近，適合安排在古鎮夜遊之後用餐。晚飯時間17:30-19:30人比較多，建議稍早或稍晚去。吃完了可以順便逛逛古鎮的夜景，燈光打在水面上的倒影很美。',
+    tips: '照片待補 (原 jiaoniangniang.jpg 違規 stock photo, 6-08 規則禁止). 在西塘古鎮北側，距離永寧橋和塘東街都很近，適合安排在古鎮夜遊之後用餐。晚飯時間17:30-19:30人比較多，建議稍早或稍晚去。吃完了可以順便逛逛古鎮的夜景，燈光打在水面上的倒影很美。',
     ratingDetail: '味道★★★★ 辣度★★★★ 在地感★★★★★ 氣氛感★★★★',
   },
   {
@@ -627,6 +632,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '鮮肉大包', price: '¥8', note: '大到嚇一跳，肉餡鮮美' },
     ],
     images: ['/dining/act-21/youbu-doujiang.jpg'],
+    relatedStopId: 'fs-youbu-hz',  // 對應 foodie-stops 的 fs-youbu-hz 游埠豆漿 (中山南路同一家)
     menu: {
       '🥛 豆漿': [
         { item: '鹹豆漿', price: '¥8/碗' },
@@ -688,7 +694,8 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '麻婆豆腐', price: '¥38', note: '麻辣鮮香，豆腐入味，米飯殺手' },
       { name: '夫妻肺片', price: '¥58', note: '紅油澆拌，牛腱牛心，麻辣過癮' },
     ],
-    images: ['/dining/act-23/mahongxing.jpg'],
+    // 2026-06-11: 原 mahongxing.jpg 圖檔違規 (stock photo, 6-08 規則禁止), 改 placeholder
+    images: [],
     menu: {
       '🐟 招牌魚類': [
         { item: '水煮鱔魚', price: '¥98/斤' },
@@ -710,7 +717,7 @@ export const RESTAURANTS: Restaurant[] = [
         { item: '炒時蔬', price: '¥26' },
       ],
     },
-    tips: '位置在河坊街靠南宋御街的外側，不在主街上要找一下。晚飯時間18:00-19:30人比較多，建議稍晚或提前去。水煮魚可以選鱔魚或草魚，鱔魚更嫩。',
+    tips: '照片待補 (原 mahongxing.jpg 違規 stock photo, 6-08 規則禁止). 位置在河坊街靠南宋御街的外側，不在主街上要找一下。晚飯時間18:00-19:30人比較多，建議稍晚或提前去。水煮魚可以選鱔魚或草魚，鱔魚更嫩。',
     ratingDetail: '味道★★★★★ 辣度★★★★ 在地感★★★★ 性價比★★★★',
   },
   {
@@ -753,6 +760,7 @@ export const RESTAURANTS: Restaurant[] = [
       { name: '手工豆腦', price: '¥10', note: '清晨限量，豆香濃郁' },
     ],
     images: ['/dining/act-24/damanong.jpg'],
+    relatedStopId: 'fs-damalu-hz',  // 對應 foodie-stops 的 fs-damalu-hz 大馬弄 (望江門附近同一家)
     menu: {
       '🥟 餛飩類': [
         { item: '老貫莊小餛飩', price: '¥12' },

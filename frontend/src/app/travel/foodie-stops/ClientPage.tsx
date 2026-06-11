@@ -149,6 +149,16 @@ function StopDetail({ stop, onClose }: { stop: FoodieStop; onClose: () => void }
                 {t}
               </span>
             ))}
+            {/* 2026-06-11: cross-link 到 dining (餐食評論) */}
+            {stop.relatedRestaurantId && (
+              <Link
+                href={`/travel/dining#${stop.relatedRestaurantId}`}
+                className="text-sm bg-orange-50 text-orange-700 px-3 py-1 rounded-full hover:bg-orange-100 transition"
+                title="這家店在 🍜 餐食評論也有食記"
+              >
+                🍜 餐食評論也有 →
+              </Link>
+            )}
           </div>
 
           {/* 基本資訊 */}
