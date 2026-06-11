@@ -284,6 +284,25 @@ async function generateMiniMaxImage(prompt: string): Promise<string | null> {
   } catch { return null; }
 }
 
+// ── Pockgo image generator (server-side proxy via /api/postcard/generate-pockgo) ──
+//    2026-06-11 新增 — 跟 minimax 並存，UI 可切換
+async function generatePockgoImage(prompt: string): Promise<string | null> {
+  try {
+    const res = await fetch("/api/postcard/generate-pockgo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      console.error(`[pockgo] HTTP ${res.status}:`, data.error || "(no body)");
+      return null;
+    }
+    const data = await res.json();
+    return data.image ?? null;
+  } catch (e) { console.error("[pockgo] fetch err:", e); return null; }
+}
+
 // ── MiniMax music generator (server-side proxy via /api/postcard/music) ──
 //    Key 留在 server 端，前端不暴露
 async function generateMiniMaxMusic(prompt: string, lyrics: string): Promise<string | null> {
@@ -447,6 +466,8 @@ export default function PostcardPage() {
   const [generatedImages, setGeneratedImages] = useState<Record<number, string>>({});
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingDay, setGeneratingDay] = useState<number | null>(null);
+  // 2026-06-11: 圖片模型切換 minimax / pockgo
+  const [imageModel, setImageModel] = useState<"minimax" | "pockgo">("minimax");
   const [exportingMerged, setExportingMerged] = useState(false);
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [editEvents, setEditEvents] = useState<ItineraryEvent[]>([]);
@@ -503,7 +524,9 @@ export default function PostcardPage() {
     try {
       const eventsText = dayEvents.map(e => e.title).join(", ");
       const prompt = `Cute flat kawaii travel illustration, ${meta.theme}. ${eventsText}. ${meta.icons.join(" ")} Pastel colors, no text, vertical portrait postcard, 9:16 aspect ratio`;
-      const img = await generateMiniMaxImage(prompt);
+      const img = await (imageModel === "pockgo"
+        ? generatePockgoImage(prompt)
+        : generateMiniMaxImage(prompt));
       if (img) {
         localStorage.setItem(`${IMG_STORAGE_KEY}${day}`, JSON.stringify({ url: img, prompt }));
         setGeneratedImages(prev => ({ ...prev, [day]: img }));
@@ -684,6 +707,31 @@ export default function PostcardPage() {
             </div>
           </div>
           <div className="flex flex-col gap-2 items-end">
+            {/* 2026-06-11: 圖片模型切換 */}
+            <div className="flex gap-1 bg-white rounded-xl p-1 shadow border border-indigo-100" data-testid="image-model-toggle">
+              <button
+                onClick={() => setImageModel("minimax")}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                  imageModel === "minimax"
+                    ? "bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow"
+                    : "text-gray-500 hover:bg-gray-50"
+                }`}
+                title="預設 MiniMax image-01"
+              >
+                🎨 MiniMax
+              </button>
+              <button
+                onClick={() => setImageModel("pockgo")}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                  imageModel === "pockgo"
+                    ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow"
+                    : "text-gray-500 hover:bg-gray-50"
+                }`}
+                title="pockgo gemini-2.5-flash-image (新)"
+              >
+                🆕 pockgo
+              </button>
+            </div>
             <button
               onClick={generateAllDays}
               disabled={generatingAll || generatingDay !== null}
