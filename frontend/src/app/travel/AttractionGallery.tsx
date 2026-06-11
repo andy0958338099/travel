@@ -1,9 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { ATTRACTIONS, type Attraction } from './data';
 import {
-  getHiddenImages, hideImage,
-  getHiddenAttractions, hideAttraction,
+  getHiddenImages, hideImage, unhideImage,
+  getHiddenAttractions, hideAttraction, unhideAttraction,
+  composeKey,
 } from '@/utils/attractionGalleryService';
 import { toast } from '@/components/GlobalToastHost';
 import ShareButtons from '@/components/ShareButtons';
@@ -38,7 +40,9 @@ function AttractionCard({
     getHiddenImages().then(setHiddenSet);
   }, []);
 
-  const visibleImages = images.filter((img) => !hiddenSet.has(img));
+  const visibleImages = images.filter(
+    (img) => !hiddenSet.has(composeKey(attraction.name, img))
+  );
   const isWholeHidden = hiddenAttractions.has(attraction.name);
 
   if (isWholeHidden) {
@@ -111,6 +115,14 @@ function AttractionCard({
         <div className="p-3">
           <p className="text-xs text-gray-500">{attraction.nameEn || ''}</p>
           <p className="text-xs text-gray-600 mt-1 line-clamp-2">{attraction.highlight}</p>
+          {/* 2026-06-11: 跳轉獨立 detail page */}
+          <Link
+            href={`/travel/attractions/${encodeURIComponent(attraction.name)}`}
+            className="mt-2 inline-flex items-center gap-1 text-xs text-orange-600 hover:text-orange-700 font-medium"
+            onClick={(e) => e.stopPropagation()}
+          >
+            查看景點詳情 →
+          </Link>
         </div>
 
         {/* 整個景點刪除按鈕 — 卡片右上角，與 lightbox 內的單張刪除按鈕分開 */}
@@ -206,8 +218,11 @@ function AttractionCard({
                       className="absolute top-0 right-0 w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center text-xs"
                       onClick={async (e) => {
                         e.stopPropagation();
-                        await hideImage(img);
-                        setHiddenSet((prev) => new Set([...prev, img]));
+                        await hideImage(img, attraction.name);
+                        setHiddenSet(
+                          (prev) =>
+                            new Set([...prev, composeKey(attraction.name, img)])
+                        );
                         if (selectedIdx >= visibleImages.length - 1) {
                           setSelectedIdx((prev) => Math.max(0, (prev || 1) - 1));
                         }
