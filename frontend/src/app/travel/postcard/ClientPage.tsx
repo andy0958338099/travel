@@ -543,7 +543,13 @@ export default function PostcardPage() {
         ? generatePockgoImage(prompt)
         : generateMiniMaxImage(prompt));
       if (img) {
-        localStorage.setItem(`${IMG_STORAGE_KEY}${day}`, JSON.stringify({ url: img, prompt, provider: imageModel }));
+        // 2026-06-12: pockgo 4K 圖 2-3MB, 8 個 18MB+ 超 localStorage 5MB limit.
+        // try/catch 包 setItem, 失敗只 warn, 不影響 state 更新 (UI 仍要顯示)
+        try {
+          localStorage.setItem(`${IMG_STORAGE_KEY}${day}`, JSON.stringify({ url: img, prompt, provider: imageModel }));
+        } catch (e: any) {
+          console.warn(`[postcard] localStorage quota 滿, day ${day} 圖只存記憶體:`, e?.message);
+        }
         setGeneratedImages(prev => ({ ...prev, [day]: img }));
       }
     } catch (err) { console.error(err); }
