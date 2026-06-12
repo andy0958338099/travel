@@ -51,6 +51,15 @@ function getModel(): string {
   return process.env.AI_MODEL_3 || "gemini-3.1-flash-image-preview-4k";
 }
 
+// 2026-06-13 聖上換 qwen-image-2512 發現不生圖:
+// pockgo /api/pricing 顯示 qwen-image-2512 endpoint=["openai"] (沒 gemini),
+// 中堂之前 hard-code 的 extra_body.imageConfig + system message imageConfig 是
+// Gemini API 專屬格式, OpenAI 端 model 收到不認的欄位 → 400 error → 無生成.
+// 修法: 用 model name 前綴判斷, 走對應的 body schema.
+function isGeminiModel(model: string): boolean {
+  return /^gemini-/i.test(model);
+}
+
 const DEFAULT_TIMEOUT = 55_000;  // gemini-3.1-flash-image-preview-4k 出圖 ~12-40s, 留 buffer
 const DOWNLOAD_TIMEOUT = 30_000; // 4K 圖大, 下載 10-25s
 const ASPECT_RATIO = "16:9";     // 2026-06-12: 聖上拍板橫式寬卡 (中國風 scroll painting)
@@ -108,38 +117,50 @@ export async function generatePockgoImage(opts: GenerateImageOpts): Promise<stri
   const endpoint = `${base}chat/completions`;
 
   const t0 = Date.now();
+  // 2026-06-13: 條件 body schema — gemini 用 imageConfig, 其他 (qwen/gpt-image/flux/dall-e/grok/seedream/hunyuan/nano-banana/z-image) 走 OpenAI 標準
+  const gemini = isGeminiModel(model);
+  const body: Record<string, unknown> = {
+    model,
+    messages: [
+      ...(gemini
+        ? [{
+            role: "system" as const,
+            // Gemini 用 JSON system message 帶 imageConfig (rentry 規格)
+            content: JSON.stringify({ imageConfig: { aspectRatio: ASPECT_RATIO, imageSize: "4K" } }),
+          }]
+        : [{
+            role: "system" as const,
+            // OpenAI 端: 純文字 system 引導 16:9 寬卡 + 中國風, 不帶 imageConfig (model 不認)
+            content: "You are a professional travel illustration generator. Always produce a single image in 16:9 ultra wide landscape aspect ratio. Follow the user's prompt exactly. Do not include any text, watermarks, or extra commentary in your reply other than the generated image.",
+          }]),
+      {
+        role: "user" as const,
+        content: [
+          { type: "text" as const, text: opts.prompt },
+        ],
+      },
+    ],
+    max_tokens: 150,
+    temperature: 0.7,
+  };
+  if (gemini) {
+    // Gemini 專屬: extra_body.imageConfig + imageSize 4K (rentry 規格)
+    body.extra_body = {
+      imageConfig: {
+        aspectRatio: ASPECT_RATIO,
+        imageSize: "4K",
+      },
+    };
+  }
+  // OpenAI 端: 不傳 extra_body, 靠 prompt 文字引導 16:9 寬卡
+
   const res = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      model,
-      // 16:9 寬卡 + 4K 解析度 (2026-06-12 聖上拍板)
-      // 4K 透過 extra_body.imageConfig 設定 (rentry 規格 + gemini 2.5 支援)
-      extra_body: {
-        imageConfig: {
-          aspectRatio: ASPECT_RATIO,
-          imageSize: "4K",
-        },
-      },
-      messages: [
-        {
-          role: "system",
-          content: JSON.stringify({ imageConfig: { aspectRatio: ASPECT_RATIO, imageSize: "4K" } }),
-        },
-        {
-          role: "user",
-          // content 是 array, 跟 OpenAI multi-part 一樣 (rentry 規格)
-          content: [
-            { type: "text", text: opts.prompt },
-          ],
-        },
-      ],
-      max_tokens: 150,
-      temperature: 0.7,
-    }),
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(DEFAULT_TIMEOUT),
   });
 
