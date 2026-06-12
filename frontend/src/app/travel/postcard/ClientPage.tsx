@@ -467,7 +467,9 @@ export default function PostcardPage() {
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingDay, setGeneratingDay] = useState<number | null>(null);
   // 2026-06-11: 圖片模型切換 minimax / pockgo
-  const [imageModel, setImageModel] = useState<"minimax" | "pockgo">("minimax");
+  // 2026-06-12: 預設改 pockgo (聖上指示)
+  const [imageModel, setImageModel] = useState<"minimax" | "pockgo">("pockgo");
+  const [providerSwitchToast, setProviderSwitchToast] = useState<string | null>(null);
   const [exportingMerged, setExportingMerged] = useState(false);
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [editEvents, setEditEvents] = useState<ItineraryEvent[]>([]);
@@ -514,6 +516,23 @@ export default function PostcardPage() {
   useEffect(() => {
     if (itinerary.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(itinerary));
   }, [itinerary]);
+
+  // 2026-06-12: 切換 provider → 清空舊圖 (避免「一鍵生成」跳過)
+  useEffect(() => {
+    const providerKey = "postcard_img_provider_v1";
+    const prev = typeof window !== "undefined" ? localStorage.getItem(providerKey) : null;
+    if (prev && prev !== imageModel) {
+      // 清空 generatedImages + 對應 localStorage
+      for (let d = 1; d <= 8; d++) {
+        localStorage.removeItem(`${IMG_STORAGE_KEY}${d}`);
+      }
+      setGeneratedImages({});
+      const providerLabel = imageModel === "pockgo" ? "🆕 pockgo" : "🎨 MiniMax";
+      setProviderSwitchToast(`已切到 ${providerLabel}, 舊圖已清空, 請按 🎨 或「一鍵生成」重跑`);
+      setTimeout(() => setProviderSwitchToast(null), 5000);
+    }
+    if (typeof window !== "undefined") localStorage.setItem(providerKey, imageModel);
+  }, [imageModel]);
 
   // Generate image for one day
   const generateDayImage = async (day: number) => {
@@ -727,11 +746,21 @@ export default function PostcardPage() {
                     ? "bg-gradient-to-r from-violet-500 to-purple-500 text-white shadow"
                     : "text-gray-500 hover:bg-gray-50"
                 }`}
-                title="pockgo gemini-2.5-flash-image (新)"
+                title="pockgo gemini-2.5-flash-image (新, 預設)"
               >
                 🆕 pockgo
               </button>
             </div>
+            {/* 2026-06-12: provider 切換 toast 提示 */}
+            {providerSwitchToast && (
+              <div
+                data-testid="provider-switch-toast"
+                className="px-3 py-2 bg-amber-50 border border-amber-300 text-amber-800 text-xs font-bold rounded-lg shadow animate-pulse"
+                style={{ maxWidth: 280 }}
+              >
+                {providerSwitchToast}
+              </div>
+            )}
             <button
               onClick={generateAllDays}
               disabled={generatingAll || generatingDay !== null}
