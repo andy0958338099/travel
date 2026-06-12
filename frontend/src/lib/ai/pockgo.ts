@@ -45,11 +45,14 @@ function getApiBaseUrl(): string {
 }
 
 function getModel(): string {
-  return process.env.AI_MODEL_3 || "gemini-3.1-flash-image-preview-4k";
+  // 2026-06-12: pockgo 平台 Google Gemini 共 66 個 model, 唯一 image model 是
+  //   gemini-2.5-flash-image (按次計費 ¥0.07/次). USER 之前給的 3.1-flash-image-preview-4k 不存在.
+  // USER 可在 Netlify env AI_MODEL_3 覆蓋, 不設則 fallback 此 default.
+  return process.env.AI_MODEL_3 || "gemini-2.5-flash-image";
 }
 
-const DEFAULT_TIMEOUT = 55_000;  // 4K gemini-3.1 出圖 ~30-50s, 留 5s buffer
-const DOWNLOAD_TIMEOUT = 30_000; // 4K 圖大, 下載可能 15-25s
+const DEFAULT_TIMEOUT = 35_000;  // gemini-2.5-flash-image 出圖 ~10-20s, 留 buffer
+const DOWNLOAD_TIMEOUT = 25_000; // 4K 圖大, 下載 5-15s
 const ASPECT_RATIO = "9:16";     // postcard 固定直式
 
 /**
