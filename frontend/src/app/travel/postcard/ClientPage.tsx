@@ -8,6 +8,63 @@ import { toast } from "@/components/GlobalToastHost";
 const STORAGE_KEY = "hangzhou-trip-postcard";
 const IMG_STORAGE_KEY = "hangzhou-trip-postcard-img-";
 const SONG_STORAGE_KEY = "hangzhou-trip-postcard-song-";
+const PROMPT_STORAGE_KEY = "postcard_prompt_v1";  // 2026-06-12: 聖上拍板可改 prompt
+
+// 2026-06-12: USER 給的 prompt 模板 (中國風 + 16:9 + 4K + 完整 typography 要求)
+// 8 天共用 base, ${theme} ${events} ${icons} 自動代入當天資料
+const DEFAULT_PROMPT_TEMPLATE = `Create a horizontal Chinese travel itinerary infographic.
+
+Ultra wide layout.
+
+Aspect ratio 16:9.
+
+Traditional Chinese cultural tourism guide.
+
+Chinese hand-drawn travel atlas.
+
+Ancient Chinese scroll painting composition.
+
+Timeline flows from left to right.
+
+Each day arranged horizontally.
+
+Large panoramic travel guide.
+
+Elegant Chinese decorative borders.
+
+Vintage parchment paper texture.
+
+Song Dynasty aesthetic.
+
+Chinese ink and watercolor illustration.
+
+Travel handbook style.
+
+Cute detailed illustrations.
+
+Rich storytelling.
+
+Include:
+• attractions for Day ${"{day}"}: ${"{events}"}
+• local foods of ${"{theme}"}
+• transportation icons: ${"{icons}"}
+• arrows
+• timeline
+• route map
+
+Typography:
+Large Traditional Chinese labels for "${"{theme}"}".
+Perfect Traditional Chinese characters.
+No spelling errors.
+No garbled text.
+No fake Chinese characters.
+No random symbols.
+
+Looks like an official Chinese tourism bureau travel guide.
+
+Highly detailed.
+
+4K resolution.`;
 
 // ── Song data type ─────────────────────────────────────────────────────────────
 type SongData = {
@@ -466,10 +523,12 @@ export default function PostcardPage() {
   const [generatedImages, setGeneratedImages] = useState<Record<number, string>>({});
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingDay, setGeneratingDay] = useState<number | null>(null);
-  // 2026-06-11: 圖片模型切換 minimax / pockgo
+  // 2026-06-12: 圖片模型切換 minimax / pockgo
   // 2026-06-12: 預設改 pockgo (聖上指示)
   const [imageModel, setImageModel] = useState<"minimax" | "pockgo">("pockgo");
   const [providerSwitchToast, setProviderSwitchToast] = useState<string | null>(null);
+  // 2026-06-12: prompt template 可改 (聖上要求), default = 聖上給的中國風 prompt
+  const [promptTemplate, setPromptTemplate] = useState<string>(DEFAULT_PROMPT_TEMPLATE);
   const [exportingMerged, setExportingMerged] = useState(false);
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [editEvents, setEditEvents] = useState<ItineraryEvent[]>([]);
@@ -530,6 +589,13 @@ export default function PostcardPage() {
     if (typeof window !== "undefined") localStorage.setItem(providerKey, imageModel);
   }, [imageModel]);
 
+  // 2026-06-12: 載入 prompt template (從 localStorage 或 default)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem(PROMPT_STORAGE_KEY);
+    if (saved) setPromptTemplate(saved);
+  }, []);
+
   // Generate image for one day
   const generateDayImage = async (day: number) => {
     const dayEvents = itinerary.filter(e => e.day === day);
@@ -537,8 +603,13 @@ export default function PostcardPage() {
     if (!meta) return;
     setGeneratingDay(day);
     try {
+      // 2026-06-12: prompt template 可改, 用 current template 替換 {day} {theme} {events} {icons}
       const eventsText = dayEvents.map(e => e.title).join(", ");
-      const prompt = `Cute flat kawaii travel illustration, ${meta.theme}. ${eventsText}. ${meta.icons.join(" ")} Pastel colors, no text, vertical portrait postcard, 9:16 aspect ratio`;
+      const prompt = promptTemplate
+        .replace(/\$\{day\}/g, String(day))
+        .replace(/\$\{theme\}/g, meta.label + " " + meta.theme)
+        .replace(/\$\{events\}/g, eventsText || "(sightseeing)")
+        .replace(/\$\{icons\}/g, meta.icons.join(" "));
       const img = await (imageModel === "pockgo"
         ? generatePockgoImage(prompt)
         : generateMiniMaxImage(prompt));
@@ -815,91 +886,122 @@ export default function PostcardPage() {
           </div>
         </div>
 
-        {/* Day cards grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mb-6">
+        {/* 2026-06-12: 聖上拍板 prompt template 可改, inline textarea 編輯 (儲存 localStorage) */}
+        <details className="mb-4 bg-white rounded-xl shadow border border-amber-200 overflow-hidden">
+          <summary className="px-4 py-3 cursor-pointer font-bold text-sm text-amber-800 bg-amber-50 hover:bg-amber-100 flex items-center justify-between">
+            <span>✏️ Prompt 模板 ({promptTemplate.length} 字) — 點開編輯</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm("重置 prompt 為聖上給的預設中國風模板?")) {
+                  setPromptTemplate(DEFAULT_PROMPT_TEMPLATE);
+                  localStorage.setItem(PROMPT_STORAGE_KEY, DEFAULT_PROMPT_TEMPLATE);
+                }
+              }}
+              className="text-xs px-2 py-1 bg-white border border-amber-300 rounded hover:bg-amber-50"
+            >
+              ↺ 重置預設
+            </button>
+          </summary>
+          <textarea
+            value={promptTemplate}
+            onChange={(e) => {
+              setPromptTemplate(e.target.value);
+              localStorage.setItem(PROMPT_STORAGE_KEY, e.target.value);
+            }}
+            rows={20}
+            className="w-full p-3 text-xs font-mono text-gray-800 border-0 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-y"
+            style={{ minHeight: 280 }}
+            placeholder="prompt template, 用 ${day} ${theme} ${events} ${icons} 代入當天資料"
+          />
+          <div className="px-3 py-2 text-xs text-gray-500 bg-amber-50 border-t border-amber-200">
+            可用變數: <code className="bg-white px-1">${"{day}"}</code> 天數 · <code className="bg-white px-1">${"{theme}"}</code> 主題 · <code className="bg-white px-1">${"{events}"}</code> 行程 · <code className="bg-white px-1">${"{icons}"}</code> 圖示
+          </div>
+        </details>
+
+        {/* Day cards — 2026-06-12: 聖上拍板 1×8 垂直 stack, 寬卡 16:9 橫式 */}
+        <div className="flex flex-col gap-4 mb-6">
           {days.map(day => {
             const dayEvents = itinerary.filter(e => e.day === day);
             const img = generatedImages[day];
             return (
-              <div key={day} className="flex flex-col gap-2">
-                <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-indigo-100" style={{ background: "linear-gradient(160deg,#fef9f0 0%,#f0f7ff 100%)" }}>
-                  {/* Mini header */}
-                  <div style={{ background: "linear-gradient(90deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%)", padding: "12px 16px" }}>
-                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11 }}>{DAY_META[day].theme}</div>
-                    <div style={{ color: "white", fontSize: 16, fontWeight: 900 }}>{DAY_META[day].label} · {DAY_META[day].date}</div>
-                  </div>
-                  {/* Top half: events (40%) */}
-                  <div style={{ height: "40%", overflowY: "auto", padding: "8px 14px" }}>
-                    {(["morning","afternoon","night"] as Period[]).map(period => {
-                      const pe = dayEvents.filter(e => e.period === period);
-                      if (!pe.length) return null;
-                      const pcfg = PERIOD_CONFIG[period];
-                      return (
-                        <div key={period} style={{ marginBottom: 6 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
-                            <span style={{ fontSize: 11 }}>{pcfg.icon}</span>
-                            <span style={{ fontSize: 9, color: "#9ca3af", fontWeight: 700, textTransform: "uppercase" }}>{period}</span>
-                          </div>
-                          {pe.map((e, i) => {
-                            const cat = CATEGORY_CONFIG[e.category as Category];
-                            return (
-                              <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
-                                <span style={{ fontSize: 11, flexShrink: 0 }}>{cat.icon}</span>
-                                <span style={{ fontSize: 11, fontWeight: 600, color: "#374151" }}>{e.title}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                    {/* Visual keywords */}
-                    <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid #e5e7eb" }}>
-                      <div style={{ fontSize: 8, color: "#a5b4fc", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>Visual</div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-                        {DAY_META[day].visual.map((v, i) => (
-                          <span key={i} style={{ fontSize: 8, padding: "1px 5px", background: "#eef2ff", color: "#6366f1", borderRadius: 20, border: "1px solid #c7d2fe" }}>{v}</span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom half: AI image (60%) */}
-                  <div style={{ height: "60%", padding: "8px", position: "relative" }}>
+              <div key={day} className="rounded-2xl overflow-hidden shadow-xl border-2 border-indigo-100 bg-white" style={{ background: "linear-gradient(160deg,#fef9f0 0%,#f0f7ff 100%)" }}>
+                <div className="flex flex-col md:flex-row">
+                  {/* Left 60% — 16:9 AI image (or placeholder) */}
+                  <div className="md:w-3/5 w-full" style={{ aspectRatio: "16/9", position: "relative" }}>
                     {img ? (
-                      <div style={{ width: "100%", height: "100%", borderRadius: 10, overflow: "hidden", border: "2px solid #fda4af" }}>
-                        <img src={`data:image/png;base64,${img}`} alt={`Day ${day}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                      </div>
+                      <img src={`data:image/png;base64,${img}`} alt={`Day ${day}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                     ) : (
-                      <div style={{ width: "100%", height: "100%", borderRadius: 10, background: "#fdf2f8", border: "2px dashed #fda4af", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <span style={{ color: "#fda4af", fontSize: 10, fontWeight: 600 }}>🎨</span>
+                      <div style={{ width: "100%", height: "100%", background: "#fdf2f8", border: "2px dashed #fda4af", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <span style={{ color: "#fda4af", fontSize: 14, fontWeight: 600 }}>🎨 等待生成</span>
                       </div>
                     )}
                   </div>
-                  {/* Footer */}
-                  <div style={{ padding: "6px 14px", borderTop: "1px solid #f3f4f6", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: 12 }}>{DAY_META[day].icons.join(" ")}</span>
-                    <span style={{ fontSize: 9, color: "#d1d5db" }}>✈️ 杭州之旅</span>
+                  {/* Right 40% — meta + actions */}
+                  <div className="md:w-2/5 w-full p-4 flex flex-col gap-2">
+                    {/* Mini header */}
+                    <div style={{ background: "linear-gradient(90deg,#6366f1 0%,#8b5cf6 50%,#a78bfa 100%)", borderRadius: 8, padding: "10px 12px" }}>
+                      <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11 }}>{DAY_META[day].theme}</div>
+                      <div style={{ color: "white", fontSize: 16, fontWeight: 900 }}>{DAY_META[day].label} · {DAY_META[day].date}</div>
+                    </div>
+                    {/* Events (morning/afternoon/night) */}
+                    <div style={{ overflowY: "auto", maxHeight: 220, fontSize: 11 }}>
+                      {(["morning","afternoon","night"] as Period[]).map(period => {
+                        const pe = dayEvents.filter(e => e.period === period);
+                        if (!pe.length) return null;
+                        const pcfg = PERIOD_CONFIG[period];
+                        return (
+                          <div key={period} style={{ marginBottom: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 4, marginBottom: 3 }}>
+                              <span style={{ fontSize: 11 }}>{pcfg.icon}</span>
+                              <span style={{ fontSize: 9, color: "#9ca3af", fontWeight: 700, textTransform: "uppercase" }}>{period}</span>
+                            </div>
+                            {pe.map((e, i) => {
+                              const cat = CATEGORY_CONFIG[e.category as Category];
+                              return (
+                                <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 2 }}>
+                                  <span style={{ fontSize: 11, flexShrink: 0 }}>{cat.icon}</span>
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: "#374151" }}>{e.title}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                      {/* Visual keywords */}
+                      <div style={{ marginTop: 6, paddingTop: 6, borderTop: "1px solid #e5e7eb" }}>
+                        <div style={{ fontSize: 8, color: "#a5b4fc", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 3 }}>Visual</div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                          {DAY_META[day].visual.map((v, i) => (
+                            <span key={i} style={{ fontSize: 8, padding: "1px 5px", background: "#eef2ff", color: "#6366f1", borderRadius: 20, border: "1px solid #c7d2fe" }}>{v}</span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Action buttons */}
+                    <div className="flex gap-1 mt-auto">
+                      <button
+                        onClick={() => { setPlayingDay(day); }}
+                        className="flex-1 py-1.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold rounded-lg hover:from-amber-500 hover:to-orange-500"
+                      >🎵</button>
+                      <button
+                        onClick={() => generateDayImage(day)}
+                        disabled={generatingDay === day || generatingAll}
+                        className="flex-1 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold rounded-lg hover:from-pink-600 hover:to-rose-600 disabled:opacity-50"
+                      >
+                        {generatingDay === day ? "⏳" : "🎨"}
+                      </button>
+                      <button
+                        onClick={() => startEdit(day)}
+                        className="flex-1 py-1.5 bg-white text-gray-600 text-xs font-medium rounded-lg border hover:bg-gray-50"
+                      >✏️</button>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 text-xs text-gray-400">
+                      <span>{DAY_META[day].icons.join(" ")}</span>
+                      <span>✈️ 杭州之旅</span>
+                    </div>
                   </div>
-                </div>
-                {/* Action buttons */}
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => { setPlayingDay(day); }}
-                    className="flex-1 py-1.5 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold rounded-lg hover:from-amber-500 hover:to-orange-500"
-                  >
-                    🎵
-                  </button>
-                  <button
-                    onClick={() => generateDayImage(day)}
-                    disabled={generatingDay === day || generatingAll}
-                    className="flex-1 py-1.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-bold rounded-lg hover:from-pink-600 hover:to-rose-600 disabled:opacity-50"
-                  >
-                    {generatingDay === day ? "⏳" : "🎨"}
-                  </button>
-                  <button
-                    onClick={() => startEdit(day)}
-                    className="flex-1 py-1.5 bg-white text-gray-600 text-xs font-medium rounded-lg border hover:bg-gray-50"
-                  >✏️</button>
                 </div>
               </div>
             );

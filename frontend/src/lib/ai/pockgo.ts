@@ -53,7 +53,7 @@ function getModel(): string {
 
 const DEFAULT_TIMEOUT = 35_000;  // gemini-2.5-flash-image 出圖 ~10-20s, 留 buffer
 const DOWNLOAD_TIMEOUT = 25_000; // 4K 圖大, 下載 5-15s
-const ASPECT_RATIO = "9:16";     // postcard 固定直式
+const ASPECT_RATIO = "16:9";     // 2026-06-12: 聖上拍板橫式寬卡 (中國風 scroll painting)
 
 /**
  * 從 content 字串抽出第一張圖 URL。
@@ -116,16 +116,18 @@ export async function generatePockgoImage(opts: GenerateImageOpts): Promise<stri
     },
     body: JSON.stringify({
       model,
-      // 9:16 比例控制 — 透過 extra_body + 開頭 system message (rentry 規格)
+      // 16:9 寬卡 + 4K 解析度 (2026-06-12 聖上拍板)
+      // 4K 透過 extra_body.imageConfig 設定 (rentry 規格 + gemini 2.5 支援)
       extra_body: {
         imageConfig: {
           aspectRatio: ASPECT_RATIO,
+          imageSize: "4K",
         },
       },
       messages: [
         {
           role: "system",
-          content: JSON.stringify({ imageConfig: { aspectRatio: ASPECT_RATIO } }),
+          content: JSON.stringify({ imageConfig: { aspectRatio: ASPECT_RATIO, imageSize: "4K" } }),
         },
         {
           role: "user",
