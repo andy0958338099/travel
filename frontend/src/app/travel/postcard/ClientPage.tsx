@@ -11,60 +11,48 @@ const SONG_STORAGE_KEY = "hangzhou-trip-postcard-song-";
 const PROMPT_STORAGE_KEY = "postcard_prompt_v1";  // 2026-06-12: 聖上拍板可改 prompt
 
 // 2026-06-12: USER 給的 prompt 模板 (中國風 + 16:9 + 4K + 完整 typography 要求)
-// 8 天共用 base, ${theme} ${events} ${icons} 自動代入當天資料
-const DEFAULT_PROMPT_TEMPLATE = `Create a horizontal Chinese travel itinerary infographic.
+// 8 天共用 base, ${day} ${theme} ${events} ${icons} 自動代入當天資料
+// 2026-06-12 聖上指示: prompt 只寫風格調配, 具體 attractions/foods 由程式從 itinerary 代入
+const DEFAULT_PROMPT_TEMPLATE = `Create a horizontal Chinese travel itinerary infographic in 16:9 ultra wide landscape format.
 
-Ultra wide layout.
+Style and aesthetic:
+- Traditional Chinese cultural tourism guide
+- Chinese hand-drawn travel atlas
+- Ancient Chinese scroll painting composition
+- Song Dynasty aesthetic (宋畫)
+- Chinese ink and watercolor illustration
+- Vintage parchment paper texture background
+- Elegant Chinese decorative borders and cloud patterns (雲紋)
+- Cute detailed illustrations with rich storytelling
+- Travel handbook style
 
-Aspect ratio 16:9.
+Layout and composition:
+- Ultra wide panoramic travel guide layout
+- Timeline flows from left to right across the entire width
+- Each day occupies one wide horizontal band
+- Visual arrows connecting days
+- Decorative route map integrated naturally
+- Generous white space for elegance
 
-Traditional Chinese cultural tourism guide.
+Typography (CRITICAL):
+- LARGE Traditional Chinese (繁體中文) labels for headings
+- Big bold Traditional Chinese characters for section titles
+- Perfect Traditional Chinese characters throughout
+- NO spelling errors, NO garbled text
+- NO fake Chinese characters, NO random symbols
+- Clean readable Chinese typography
+- Looks like an official Chinese tourism bureau publication
 
-Chinese hand-drawn travel atlas.
+Visual elements to include:
+- Decorative Chinese-style borders and frames (中式窗格)
+- Seal stamps (印章) as accents
+- Cloud and wave patterns (雲紋水波)
+- Ink brushstrokes and watercolor washes
+- Lantern motifs where appropriate
 
-Ancient Chinese scroll painting composition.
+Day ${"{day}"}: ${"{theme}"}
 
-Timeline flows from left to right.
-
-Each day arranged horizontally.
-
-Large panoramic travel guide.
-
-Elegant Chinese decorative borders.
-
-Vintage parchment paper texture.
-
-Song Dynasty aesthetic.
-
-Chinese ink and watercolor illustration.
-
-Travel handbook style.
-
-Cute detailed illustrations.
-
-Rich storytelling.
-
-Include:
-• attractions for Day ${"{day}"}: ${"{events}"}
-• local foods of ${"{theme}"}
-• transportation icons: ${"{icons}"}
-• arrows
-• timeline
-• route map
-
-Typography:
-Large Traditional Chinese labels for "${"{theme}"}".
-Perfect Traditional Chinese characters.
-No spelling errors.
-No garbled text.
-No fake Chinese characters.
-No random symbols.
-
-Looks like an official Chinese tourism bureau travel guide.
-
-Highly detailed.
-
-4K resolution.`;
+Highly detailed composition. 4K resolution.`;
 
 // ── Song data type ─────────────────────────────────────────────────────────────
 type SongData = {
@@ -528,7 +516,15 @@ export default function PostcardPage() {
   const [imageModel, setImageModel] = useState<"minimax" | "pockgo">("pockgo");
   const [providerSwitchToast, setProviderSwitchToast] = useState<string | null>(null);
   // 2026-06-12: prompt template 可改 (聖上要求), default = 聖上給的中國風 prompt
-  const [promptTemplate, setPromptTemplate] = useState<string>(DEFAULT_PROMPT_TEMPLATE);
+  // 2026-06-12: 用 lazy init 從 localStorage 讀, USER 改的 prompt 直接變預設 (reload 後不會回到 default)
+  const [promptTemplate, setPromptTemplate] = useState<string>(() => {
+    if (typeof window === "undefined") return DEFAULT_PROMPT_TEMPLATE;
+    try {
+      return localStorage.getItem(PROMPT_STORAGE_KEY) || DEFAULT_PROMPT_TEMPLATE;
+    } catch {
+      return DEFAULT_PROMPT_TEMPLATE;
+    }
+  });
   const [exportingMerged, setExportingMerged] = useState(false);
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [editEvents, setEditEvents] = useState<ItineraryEvent[]>([]);
@@ -589,11 +585,22 @@ export default function PostcardPage() {
     if (typeof window !== "undefined") localStorage.setItem(providerKey, imageModel);
   }, [imageModel]);
 
-  // 2026-06-12: 載入 prompt template (從 localStorage 或 default)
+  // 2026-06-12: 載入圖片從 IndexedDB (替換 localStorage 5MB limit)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = localStorage.getItem(PROMPT_STORAGE_KEY);
-    if (saved) setPromptTemplate(saved);
+    (async () => {
+      try {
+        const { loadAllImages } = await import("@/lib/postcard-storage");
+        const all = await loadAllImages();
+        const imgs: Record<number, string> = {};
+        for (const [dayStr, data] of Object.entries(all)) {
+          imgs[parseInt(dayStr, 10)] = data.url;
+        }
+        setGeneratedImages(imgs);
+      } catch (e) {
+        console.warn("[postcard] IndexedDB load failed, fallback memory-only:", e);
+      }
+    })();
   }, []);
 
   // Generate image for one day
@@ -614,12 +621,12 @@ export default function PostcardPage() {
         ? generatePockgoImage(prompt)
         : generateMiniMaxImage(prompt));
       if (img) {
-        // 2026-06-12: pockgo 4K 圖 2-3MB, 8 個 18MB+ 超 localStorage 5MB limit.
-        // try/catch 包 setItem, 失敗只 warn, 不影響 state 更新 (UI 仍要顯示)
+        // 2026-06-12: 改用 IndexedDB 持久化 (localStorage 5MB 不夠 8 個 1.7MB 圖)
         try {
-          localStorage.setItem(`${IMG_STORAGE_KEY}${day}`, JSON.stringify({ url: img, prompt, provider: imageModel }));
+          const { saveImage } = await import("@/lib/postcard-storage");
+          await saveImage(day, { url: img, prompt, provider: imageModel });
         } catch (e: any) {
-          console.warn(`[postcard] localStorage quota 滿, day ${day} 圖只存記憶體:`, e?.message);
+          console.warn(`[postcard] IndexedDB save failed, day ${day} 圖只存記憶體:`, e?.message);
         }
         setGeneratedImages(prev => ({ ...prev, [day]: img }));
       }
