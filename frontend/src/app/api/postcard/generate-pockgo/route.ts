@@ -11,7 +11,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateImage } from "@/lib/ai/pockgo";
 
-export const maxDuration = 30;
+// 2026-06-12: 4K gemini-3.1 出圖 ~30-50s, free plan 30s cap 會撞, 設 60 給 Pro plan
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {

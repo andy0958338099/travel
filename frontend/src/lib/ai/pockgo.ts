@@ -1,8 +1,10 @@
 /**
  * Pockgo API client — server-side only.
  *
+ * 2026-06-12 rewrite per rentry.org/tangguoapi spec (USER 提供).
+ *
  * Wraps pockgo.com's OpenAI-compatible `/v1/chat/completions` endpoint for
- * text-to-image generation via Gemini models.
+ * text-to-image generation via Gemini models (default: gemini-3.1-flash-image-preview-4k).
  *
  * Flow:
  *   1. POST chat/completions with prompt → response contains Markdown image
@@ -11,7 +13,9 @@
  *   3. Returns GeneratedImage[] matching minimax.ts interface
  *
  * ⚠️ pockgo 圖床 URL 24h 過期 — 必須 server 端立刻下載轉 base64
- * ⚠️ API_IMAGE_URL 環境變數已含 `/v1/` 結尾，code 只 append `chat/completions`
+ * ⚠️ AI_IMAGE_API_URL 環境變數只放 base (e.g. https://newapi.pockgo.com/v1/),
+ *    code 自動補 chat/completions. 若 env 含完整 path 也會自動 strip.
+ * ⚠️ 4K model 出圖 ~30-50s, Netlify free 30s cap 會撞牆, 需 Pro $19/mo
  */
 
 import type { GeneratedImage } from "./minimax";
@@ -22,21 +26,31 @@ function getApiKey(): string {
   return key;
 }
 
+/**
+ * AI_IMAGE_API_URL 兼容 3 種輸入:
+ *   1. https://newapi.pockgo.com           → 加 /v1/
+ *   2. https://newapi.pockgo.com/v1        → 加 /
+ *   3. https://newapi.pockgo.com/v1/       → 原樣
+ *   4. https://newapi.pockgo.com/v1/chat/completions  → strip 最後段
+ * 統一回 https://newapi.pockgo.com/v1/
+ */
 function getApiBaseUrl(): string {
   const raw = process.env.AI_IMAGE_API_URL || "https://newapi.pockgo.com/v1/";
-  // 統一 strip 結尾斜線，然後保證有 /v1/
-  const trimmed = raw.replace(/\/+$/, "");
-  if (/\/v1$/.test(trimmed)) return trimmed + "/";
-  // 沒 /v1 就補上
-  return trimmed + "/v1/";
+  let u = raw.replace(/\/+$/, "");              // 去尾斜線
+  // 砍掉 /v1/chat/completions 之類的尾段
+  u = u.replace(/\/(v1|chat|completions)(\/(v1|chat|completions))*$/i, "/v1");
+  // 沒 /v1 結尾就補
+  if (!/\/v1$/i.test(u)) u = u + "/v1";
+  return u + "/";
 }
 
 function getModel(): string {
-  return process.env.AI_MODEL_3 || "gemini-2.5-flash-image";
+  return process.env.AI_MODEL_3 || "gemini-3.1-flash-image-preview-4k";
 }
 
-const DEFAULT_TIMEOUT = 30_000; // 30s（gemini 已知 ~10s，留 buffer）
-const DOWNLOAD_TIMEOUT = 15_000;
+const DEFAULT_TIMEOUT = 55_000;  // 4K gemini-3.1 出圖 ~30-50s, 留 5s buffer
+const DOWNLOAD_TIMEOUT = 30_000; // 4K 圖大, 下載可能 15-25s
+const ASPECT_RATIO = "9:16";     // postcard 固定直式
 
 /**
  * 從 content 字串抽出第一張圖 URL。
@@ -46,9 +60,9 @@ const DOWNLOAD_TIMEOUT = 15_000;
 function extractImageUrl(content: string): string {
   const md = content.match(/!\[.*?\]\((https?:\/\/[^\s\)]+)\)/);
   if (md) return md[1];
-  const ext = content.match(/(https?:\/\/[^\s\)\]"\']+\.(?:png|jpg|jpeg|webp|gif))/i);
+  const ext = content.match(/(https?:\/\/[^\s\)\]\"\'\']+\.(?:png|jpg|jpeg|webp|gif))/i);
   if (ext) return ext[1];
-  const any = content.match(/(https?:\/\/[^\s\)\]"\']+)/);
+  const any = content.match(/(https?:\/\/[^\s\)\]\"\'\']+)/);
   if (any) return any[1];
   throw new Error("pockgo response missing image URL");
 }
@@ -78,8 +92,11 @@ export interface GenerateImageOpts {
 /**
  * 走 pockgo chat completions 生成單張圖，回傳 base64 字串。
  *
- * 不像 minimax 支援 i2i 跟多 n — pockgo Gemini 走 chat content array 可加 image_url，
- * 但這次只做 t2i 跟 minimax 對照測試。
+ * Per rentry 規格:
+ * - content 是 array of {type: text/image_url, ...} (multi-part)
+ * - 9:16 比例: extra_body.imageConfig.aspectRatio + 開頭 system message
+ * - max_tokens: 150 (文件建議)
+ * - temperature: 0.7
  */
 export async function generatePockgoImage(opts: GenerateImageOpts): Promise<string> {
   const apiKey = getApiKey();
@@ -96,10 +113,27 @@ export async function generatePockgoImage(opts: GenerateImageOpts): Promise<stri
     },
     body: JSON.stringify({
       model,
+      // 9:16 比例控制 — 透過 extra_body + 開頭 system message (rentry 規格)
+      extra_body: {
+        imageConfig: {
+          aspectRatio: ASPECT_RATIO,
+        },
+      },
       messages: [
-        { role: "user", content: opts.prompt },
+        {
+          role: "system",
+          content: JSON.stringify({ imageConfig: { aspectRatio: ASPECT_RATIO } }),
+        },
+        {
+          role: "user",
+          // content 是 array, 跟 OpenAI multi-part 一樣 (rentry 規格)
+          content: [
+            { type: "text", text: opts.prompt },
+          ],
+        },
       ],
-      max_tokens: 1024,
+      max_tokens: 150,
+      temperature: 0.7,
     }),
     signal: AbortSignal.timeout(DEFAULT_TIMEOUT),
   });
@@ -118,7 +152,11 @@ export async function generatePockgoImage(opts: GenerateImageOpts): Promise<stri
   const imageUrl = extractImageUrl(content);
   const base64 = await downloadToBase64(imageUrl);
   const t1 = Date.now();
-  console.log(`[pockgo] ${model} 圖生成 OK  gen=${t1 - t0}ms  url=${imageUrl.slice(0, 60)}...  base64=${Math.round(base64.length / 1024)}KB`);
+  const sizeKB = Math.round(base64.length / 1024);
+  console.log(`[pockgo] ${model} 圖生成 OK  gen=${t1 - t0}ms  url=${imageUrl.slice(0, 60)}...  base64=${sizeKB}KB`);
+  if (sizeKB > 1500) {
+    console.warn(`[pockgo] WARN: 4K image ${sizeKB}KB > 1.5MB, browser memory risk`);
+  }
   return base64;
 }
 

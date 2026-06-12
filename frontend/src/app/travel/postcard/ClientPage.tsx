@@ -517,19 +517,15 @@ export default function PostcardPage() {
     if (itinerary.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(itinerary));
   }, [itinerary]);
 
-  // 2026-06-12: 切換 provider → 清空舊圖 (避免「一鍵生成」跳過)
+  // 2026-06-12: 切換 provider → 不刪舊圖 (USER 抱怨: 浪費), 只給提示
+  // 舊圖仍保留, 按 🎨 或「🔄 強制重跑」才會覆蓋
   useEffect(() => {
     const providerKey = "postcard_img_provider_v1";
     const prev = typeof window !== "undefined" ? localStorage.getItem(providerKey) : null;
     if (prev && prev !== imageModel) {
-      // 清空 generatedImages + 對應 localStorage
-      for (let d = 1; d <= 8; d++) {
-        localStorage.removeItem(`${IMG_STORAGE_KEY}${d}`);
-      }
-      setGeneratedImages({});
       const providerLabel = imageModel === "pockgo" ? "🆕 pockgo" : "🎨 MiniMax";
-      setProviderSwitchToast(`已切到 ${providerLabel}, 舊圖已清空, 請按 🎨 或「一鍵生成」重跑`);
-      setTimeout(() => setProviderSwitchToast(null), 5000);
+      setProviderSwitchToast(`已切到 ${providerLabel}, 舊圖保留。要用新 provider? 按 🎨 重跑單天 或 「🔄 強制重跑」`);
+      setTimeout(() => setProviderSwitchToast(null), 6000);
     }
     if (typeof window !== "undefined") localStorage.setItem(providerKey, imageModel);
   }, [imageModel]);
@@ -547,18 +543,19 @@ export default function PostcardPage() {
         ? generatePockgoImage(prompt)
         : generateMiniMaxImage(prompt));
       if (img) {
-        localStorage.setItem(`${IMG_STORAGE_KEY}${day}`, JSON.stringify({ url: img, prompt }));
+        localStorage.setItem(`${IMG_STORAGE_KEY}${day}`, JSON.stringify({ url: img, prompt, provider: imageModel }));
         setGeneratedImages(prev => ({ ...prev, [day]: img }));
       }
     } catch (err) { console.error(err); }
     finally { setGeneratingDay(null); }
   };
 
-  // Generate all 8 days sequentially
-  const generateAllDays = async () => {
+  // Generate all 8 days sequentially — 預設跳過已有圖 (增量)
+  // 2026-06-12: 加 force 旗標, force=true 永遠全部跑 (覆蓋現有)
+  const generateAllDays = async (force = false) => {
     setGeneratingAll(true);
     for (let d = 1; d <= 8; d++) {
-      if (!generatedImages[d]) {
+      if (force || !generatedImages[d]) {
         await generateDayImage(d);
         await new Promise(r => setTimeout(r, 500)); // brief pause between calls
       }
@@ -762,12 +759,25 @@ export default function PostcardPage() {
               </div>
             )}
             <button
-              onClick={generateAllDays}
+              onClick={() => { generateAllDays(false); }}
               disabled={generatingAll || generatingDay !== null}
               className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold rounded-xl hover:from-pink-600 hover:to-rose-600 transition-all shadow disabled:opacity-50 text-sm flex items-center gap-1.5"
             >
               <span>{generatingAll ? "⏳" : ""}</span>
               {generatingAll ? "生成中..." : "一鍵生成 8 天圖片"}
+            </button>
+            {/* 2026-06-12: 強制重跑 8 天 (覆蓋現有), 切換 provider 後用這個 */}
+            <button
+              onClick={() => {
+                if (confirm(`確定要強制重跑 8 天圖片嗎? 將覆蓋現有 ${Object.keys(generatedImages).filter(k => generatedImages[+k]).length} 張圖`)) {
+                  generateAllDays(true);
+                }
+              }}
+              disabled={generatingAll || generatingDay !== null}
+              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow disabled:opacity-50 text-sm flex items-center gap-1.5"
+              title="覆蓋現有 8 天圖, 用當前 provider 強制重跑 (切 provider 後必按)"
+            >
+              🔄 強制重跑 8 天
             </button>
             <button
               onClick={exportMergedPoster}
