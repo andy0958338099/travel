@@ -45,14 +45,14 @@ function getApiBaseUrl(): string {
 }
 
 function getModel(): string {
-  // 2026-06-12: pockgo 平台 Google Gemini 共 66 個 model, 唯一 image model 是
-  //   gemini-2.5-flash-image (按次計費 ¥0.07/次). USER 之前給的 3.1-flash-image-preview-4k 不存在.
+  // 2026-06-12 聖上確認: gemini-3.1-flash-image-preview-4k 在 pockgo 平台可用
+  // (中堂 1 次 curl 確認: 12.4s 出圖 1372KB, USER 之前就堅持這個 model, 中堂擅自改成 2.5 是錯的)
   // USER 可在 Netlify env AI_MODEL_3 覆蓋, 不設則 fallback 此 default.
-  return process.env.AI_MODEL_3 || "gemini-2.5-flash-image";
+  return process.env.AI_MODEL_3 || "gemini-3.1-flash-image-preview-4k";
 }
 
-const DEFAULT_TIMEOUT = 35_000;  // gemini-2.5-flash-image 出圖 ~10-20s, 留 buffer
-const DOWNLOAD_TIMEOUT = 25_000; // 4K 圖大, 下載 5-15s
+const DEFAULT_TIMEOUT = 55_000;  // gemini-3.1-flash-image-preview-4k 出圖 ~12-40s, 留 buffer
+const DOWNLOAD_TIMEOUT = 30_000; // 4K 圖大, 下載 10-25s
 const ASPECT_RATIO = "16:9";     // 2026-06-12: 聖上拍板橫式寬卡 (中國風 scroll painting)
 
 /**

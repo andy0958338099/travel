@@ -11,8 +11,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateImage } from "@/lib/ai/pockgo";
 
-// 2026-06-12: gemini-2.5-flash-image 出圖 ~10-20s, free plan 30s cap 內可跑
-export const maxDuration = 30;
+// 2026-06-12: gemini-3.1-flash-image-preview-4k 出圖 ~12-40s, 設 60s 留 buffer (4K 偶爾撞 30s)
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
