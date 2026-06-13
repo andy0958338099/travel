@@ -725,6 +725,8 @@ export default function PostcardPage() {
   );
   const [selectedModel, setSelectedModel] = useState<string>(FALLBACK_MODEL);
   const [showAllModels, setShowAllModels] = useState(false);
+  // 2026-06-14 聖上怒: 出圖失敗時顯眼顯示, 不再靜默 (USER 看不到錯誤以為 model 沒換 = 浪費 token)
+  const [imageErrors, setImageErrors] = useState<Record<number, string>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mergedRef = useRef<HTMLDivElement>(null);
 
@@ -776,6 +778,11 @@ export default function PostcardPage() {
     }
     if (typeof window !== "undefined") localStorage.setItem(providerKey, imageModel);
   }, [imageModel]);
+
+  // 2026-06-14 聖上怒修法: 切 model 時清舊 imageErrors (避免舊 model 失敗 badge 殘留誤導 USER)
+  useEffect(() => {
+    setImageErrors({});
+  }, [selectedModel]);
 
   // 2026-06-12: 載入圖片從 IndexedDB (替換 localStorage 5MB limit)
   useEffect(() => {
@@ -832,10 +839,13 @@ export default function PostcardPage() {
   }, [selectedModel]);
 
   // Generate image for one day
+  // 2026-06-14 聖上怒修法: catch error 顯眼 toast + 記錄到 imageErrors (USER 看到失敗, 不會誤以為 model 沒換)
   const generateDayImage = async (day: number) => {
     const dayEvents = itinerary.filter(e => e.day === day);
     const meta = DAY_META[day];
     if (!meta) return;
+    // 切 model 前先清舊錯誤, 避免上一個 model 的錯誤誤導
+    setImageErrors(prev => { const next = { ...prev }; delete next[day]; return next; });
     setGeneratingDay(day);
     try {
       // 2026-06-12 聖上拍板: 程式自動 per-day 組裝 prompt (從 itinerary + DAY_META)
@@ -848,13 +858,28 @@ export default function PostcardPage() {
         // 2026-06-12: 改用 IndexedDB 持久化 (localStorage 5MB 不夠 8 個 1.7MB 圖)
         try {
           const { saveImage } = await import("@/lib/postcard-storage");
-          await saveImage(day, { url: img, prompt, provider: imageModel });
+          await saveImage(day, { url: img, prompt, provider: imageModel, model: selectedModel });
         } catch (e: any) {
           console.warn(`[postcard] IndexedDB save failed, day ${day} 圖只存記憶體:`, e?.message);
         }
         setGeneratedImages(prev => ({ ...prev, [day]: img }));
+        setImageErrors(prev => { const next = { ...prev }; delete next[day]; return next; });
+        toast.success(`Day ${day} 出圖成功 (${imageModel === "pockgo" ? selectedModel : "minimax"})`);
+      } else {
+        // 2026-06-14 聖上怒修法: null result (server 端 throw 但 catch 內部) — 顯眼錯誤
+        const errMsg = `❌ ${selectedModel} 出圖失敗 (回傳 null)`;
+        setImageErrors(prev => ({ ...prev, [day]: errMsg }));
+        toast.error(errMsg);
       }
-    } catch (err) { console.error(err); }
+    } catch (err: any) {
+      // 2026-06-14 聖上怒修法: 顯眼 toast + 卡片 ❌ 標記, USER 不會再誤以為「model 沒換」
+      const errBody = err?.message || "unknown error";
+      const shortErr = errBody.replace(/^pockgo\s+\S+\s+/, '').slice(0, 150);
+      const errMsg = `❌ ${selectedModel} 出圖失敗: ${shortErr}`;
+      console.error(`[postcard] day ${day} failed:`, err);
+      setImageErrors(prev => ({ ...prev, [day]: errMsg }));
+      toast.error(errMsg);
+    }
     finally { setGeneratingDay(null); }
   };
 
@@ -1153,9 +1178,29 @@ export default function PostcardPage() {
                 <div className="w-full" style={{ aspectRatio: "16/9", position: "relative", background: "#fdf2f8" }}>
                   {img ? (
                     <img src={`data:image/png;base64,${img}`} alt={DAY_META[day].label} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  ) : imageErrors[day] ? (
+                    // 2026-06-14 聖上怒修法: 失敗時沒圖 → 紅色「❌ 出圖失敗」提示 (USER 一眼看到失敗)
+                    <div
+                      data-testid={`err-noimg-${day}`}
+                      style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "#dc2626", fontWeight: 700, background: "rgba(254,226,226,0.6)", padding: 16, textAlign: "center", gap: 4 }}
+                    >
+                      <div style={{ fontSize: 28 }}>❌</div>
+                      <div style={{ fontSize: 12, lineHeight: 1.4 }}>出圖失敗 (沒舊圖)</div>
+                      <div style={{ fontSize: 10, color: "#7f1d1d", maxWidth: "90%" }}>{imageErrors[day]?.slice(0, 80)}</div>
+                    </div>
                   ) : (
                     <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fda4af", fontWeight: 600 }}>
                       🎨 等待生成
+                    </div>
+                  )}
+                  {/* 2026-06-14 聖上怒修法: 有舊圖但最後一次出圖失敗 → 左上角 ❌ badge 標記 (不擋 overlay) */}
+                  {img && imageErrors[day] && (
+                    <div
+                      data-testid={`err-badge-${day}`}
+                      title={imageErrors[day]}
+                      style={{ position: "absolute", top: 8, left: 8, zIndex: 6, background: "#dc2626", color: "white", padding: "4px 10px", borderRadius: 8, fontSize: 11, fontWeight: 800, boxShadow: "0 2px 6px rgba(0,0,0,0.3)", display: "flex", alignItems: "center", gap: 4, pointerEvents: "auto" }}
+                    >
+                      ❌ {selectedModel}
                     </div>
                   )}
                   {/* Generating overlay */}

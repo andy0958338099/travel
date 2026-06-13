@@ -37,6 +37,7 @@ export interface StoredImage {
   url: string;       // base64
   prompt: string;
   provider: string;
+  model?: string;    // 2026-06-14: 記下是用哪個 model 出的圖, 方便 debug 「圖都一樣」誤會
   savedAt: number;   // Date.now()
 }
 
