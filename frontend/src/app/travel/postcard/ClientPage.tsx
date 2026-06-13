@@ -520,6 +520,8 @@ export default function PostcardPage() {
   const [generatingMusic, setGeneratingMusic] = useState<number | null>(null);        // which day is generating
   const [currentlyPlaying, setCurrentlyPlaying] = useState<number | null>(null);       // playing day
   const [lyricsMode, setLyricsMode] = useState<number | null>(null);                 // day for full lyrics page
+  // 2026-06-14 聖上拍板 🅐: 中文 Overlay 開關 (gemini 繁中文字偶有錯字, HTML overlay 中文保證 100% 對)
+  const [showOverlay, setShowOverlay] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mergedRef = useRef<HTMLDivElement>(null);
 
@@ -589,6 +591,17 @@ export default function PostcardPage() {
       }
     })();
   }, []);
+
+  // 2026-06-14 聖上拍板 🅐: 載入 Overlay 開關 (localStorage 持久化)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const v = localStorage.getItem("postcard_overlay_v1");
+    if (v !== null) setShowOverlay(v === "1");
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("postcard_overlay_v1", showOverlay ? "1" : "0");
+  }, [showOverlay]);
 
   // Generate image for one day
   const generateDayImage = async (day: number) => {
@@ -814,6 +827,19 @@ export default function PostcardPage() {
                 🆕 pockgo
               </button>
             </div>
+            {/* 2026-06-14 聖上拍板 🅐: 中文 Overlay 開關 (gemini 中文錯字 → HTML overlay 100% 對) */}
+            <label
+              data-testid="overlay-toggle"
+              className="flex items-center gap-1.5 bg-white rounded-xl p-2 shadow border border-amber-100 cursor-pointer hover:bg-amber-50 transition-colors"
+            >
+              <input
+                type="checkbox"
+                checked={showOverlay}
+                onChange={e => setShowOverlay(e.target.checked)}
+                className="w-4 h-4 accent-amber-500"
+              />
+              <span className="text-xs font-bold text-gray-700">🪧 中文 Overlay</span>
+            </label>
             {/* 2026-06-12: provider 切換 toast 提示 */}
             {providerSwitchToast && (
               <div
@@ -895,6 +921,78 @@ export default function PostcardPage() {
                   {generatingDay === day && (
                     <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: 18 }}>
                       ⏳ 生成中... (約 15s)
+                    </div>
+                  )}
+                  {/* 2026-06-14 聖上拍板 🅐: 中文 Overlay Layer (HTML 100% 中文對, 不依賴 gemini 圖) */}
+                  {showOverlay && img && (
+                    <div data-testid={`overlay-${day}`} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
+                      {/* Top gradient mask (深→透) */}
+                      <div style={{
+                        position: "absolute", top: 0, left: 0, right: 0, height: "45%",
+                        background: "linear-gradient(180deg, rgba(15,23,42,0.75) 0%, rgba(15,23,42,0.4) 50%, transparent 100%)",
+                      }} />
+                      {/* Bottom gradient mask (透→深) */}
+                      <div style={{
+                        position: "absolute", bottom: 0, left: 0, right: 0, height: "55%",
+                        background: "linear-gradient(0deg, rgba(15,23,42,0.88) 0%, rgba(15,23,42,0.5) 55%, transparent 100%)",
+                      }} />
+                      {/* Top-left: Day label + date (思源宋體大字) */}
+                      <div style={{
+                        position: "absolute", top: 14, left: 20, color: "white",
+                        fontFamily: "'Noto Serif TC', 'Songti TC', 'STSong', serif",
+                        textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                      }}>
+                        <div style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.7)", letterSpacing: 2 }}>{DAY_META[day].label}</div>
+                        <div style={{ fontSize: 24, fontWeight: 900, marginTop: 1, letterSpacing: 1.5 }}>{DAY_META[day].date}</div>
+                      </div>
+                      {/* Top-right: 朱紅印章「杭」字 (globals.css .chinese-seal) */}
+                      <div
+                        className="chinese-seal"
+                        style={{
+                          position: "absolute", top: 12, right: 18, width: 42, height: 42,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 22, transform: "rotate(-6deg)", borderRadius: 4,
+                        }}
+                        title="杭州之旅 2026"
+                      >
+                        杭
+                      </div>
+                      {/* Top-center: theme (紅金 gradient 大字) */}
+                      <div style={{
+                        position: "absolute", top: 20, left: 0, right: 0, textAlign: "center",
+                        fontFamily: "'Noto Serif TC', 'Songti TC', serif",
+                        pointerEvents: "none",
+                      }}>
+                        <span style={{
+                          display: "inline-block", fontSize: 20, fontWeight: 900, letterSpacing: 3,
+                          background: "linear-gradient(90deg,#fbbf24 0%,#f59e0b 45%,#dc2626 100%)",
+                          WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                          textShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                          padding: "0 10px",
+                        }}>
+                          {DAY_META[day].theme}
+                        </span>
+                      </div>
+                      {/* Bottom: visual keywords (中文標籤) + icons */}
+                      <div style={{
+                        position: "absolute", bottom: 16, left: 20, right: 20,
+                        display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12,
+                      }}>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 5, flex: 1, maxWidth: "72%" }}>
+                          {DAY_META[day].visual.slice(0, 4).map((v, i) => (
+                            <span key={i} style={{
+                              fontSize: 11, fontWeight: 600, color: "white",
+                              background: "rgba(220,38,38,0.78)", padding: "3px 9px",
+                              borderRadius: 12, border: "1px solid rgba(245,158,11,0.5)",
+                              fontFamily: "'Noto Sans TC', 'PingFang TC', sans-serif",
+                              textShadow: "0 1px 2px rgba(0,0,0,0.3)",
+                            }}>{v}</span>
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 20, flexShrink: 0, textShadow: "0 2px 4px rgba(0,0,0,0.6)", lineHeight: 1 }}>
+                          {DAY_META[day].icons.slice(0, 4).join(" ")}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
