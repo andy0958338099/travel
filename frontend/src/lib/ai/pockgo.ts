@@ -19,6 +19,7 @@
  */
 
 import type { GeneratedImage } from "./minimax";
+import { FALLBACK_MODEL } from "@/lib/pockgo-image-models";
 
 function getApiKey(): string {
   const key = process.env.AI_IMAGE_API_KEY;
@@ -44,11 +45,11 @@ function getApiBaseUrl(): string {
   return u + "/";
 }
 
-function getModel(): string {
-  // 2026-06-12 聖上確認: gemini-3.1-flash-image-preview-4k 在 pockgo 平台可用
-  // (中堂 1 次 curl 確認: 12.4s 出圖 1372KB, USER 之前就堅持這個 model, 中堂擅自改成 2.5 是錯的)
-  // USER 可在 Netlify env AI_MODEL_3 覆蓋, 不設則 fallback 此 default.
-  return process.env.AI_MODEL_3 || "gemini-3.1-flash-image-preview-4k";
+// 2026-06-14 聖上拍板: model 完全 client-side 控制, 不再讀 Netlify env
+// 從 request body 拿 model name, fallback 到 FALLBACK_MODEL (gemini-3.1-flash-image-preview-4k 6-12 4K verify 成功)
+// 聖上原話: 「避免寫在 netlify 環境變數, 而要一直改來改去」
+export function getModel(clientModel?: string): string {
+  return clientModel || FALLBACK_MODEL;
 }
 
 // 2026-06-13 聖上換 qwen-image-2512 發現不生圖:
@@ -99,6 +100,8 @@ async function downloadToBase64(url: string): Promise<string> {
 
 export interface GenerateImageOpts {
   prompt: string;
+  /** 2026-06-14: client 傳的 model name, 不再 env 預設 */
+  model?: string;
 }
 
 /**
@@ -113,7 +116,7 @@ export interface GenerateImageOpts {
 export async function generatePockgoImage(opts: GenerateImageOpts): Promise<string> {
   const apiKey = getApiKey();
   const base = getApiBaseUrl();
-  const model = getModel();
+  const model = getModel(opts.model);
   const endpoint = `${base}chat/completions`;
 
   const t0 = Date.now();

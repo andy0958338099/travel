@@ -3,6 +3,16 @@ import React, { useState, useEffect, useRef } from "react";
 import html2canvas from "html2canvas";
 import ShareButtons from "@/components/ShareButtons";
 import { toast } from "@/components/GlobalToastHost";
+// 2026-06-14 聖上拍板: 生圖模型庫 (25 個 pockgo image model, 從 pricing API 抽出)
+import {
+  POCKGO_IMAGE_MODELS,
+  DEFAULT_ENABLED_MODELS,
+  FALLBACK_MODEL,
+  ENABLED_MODELS_KEY,
+  SELECTED_MODEL_KEY,
+  type PockgoImageModel,
+  type ModelSeries,
+} from "@/lib/pockgo-image-models";
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "hangzhou-trip-postcard";
@@ -328,12 +338,13 @@ async function generateMiniMaxImage(prompt: string): Promise<string | null> {
 
 // ── Pockgo image generator (server-side proxy via /api/postcard/generate-pockgo) ──
 //    2026-06-11 新增 — 跟 minimax 並存，UI 可切換
-async function generatePockgoImage(prompt: string): Promise<string | null> {
+//    2026-06-14 聖上拍板: model 從 25 個模型庫選, 不再 env
+async function generatePockgoImage(prompt: string, model?: string): Promise<string | null> {
   try {
     const res = await fetch("/api/postcard/generate-pockgo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, model }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -502,6 +513,189 @@ function MergedPoster({ itinerary, generatedImages }: { itinerary: ItineraryEven
   );
 }
 
+// 2026-06-14 聖上拍板: 生圖模型庫組件
+// 25 個 pockgo image model 表列 + 勾選啟用 + ✕ 隱藏 + 點選為當前 model
+// 聖上原話: 「直接表列在頁面上方讓我選擇後使用再生成, 若我覺得不好則刪除」
+function ModelLibrary({
+  enabledModels,
+  setEnabledModels,
+  selectedModel,
+  setSelectedModel,
+  showAllModels,
+  setShowAllModels,
+}: {
+  enabledModels: Set<string>;
+  setEnabledModels: (s: Set<string>) => void;
+  selectedModel: string;
+  setSelectedModel: (m: string) => void;
+  showAllModels: boolean;
+  setShowAllModels: (b: boolean) => void;
+}) {
+  // 篩選: 已啟用 vs 全部 (含已隱藏)
+  const visibleModels = showAllModels
+    ? POCKGO_IMAGE_MODELS
+    : POCKGO_IMAGE_MODELS.filter(m => enabledModels.has(m.name));
+
+  // 各系列已啟用統計
+  const seriesStats: Record<string, { enabled: number; total: number }> = {};
+  POCKGO_IMAGE_MODELS.forEach(m => {
+    if (!seriesStats[m.series]) seriesStats[m.series] = { enabled: 0, total: 0 };
+    seriesStats[m.series].total++;
+    if (enabledModels.has(m.name)) seriesStats[m.series].enabled++;
+  });
+
+  const toggleEnabled = (name: string) => {
+    const next = new Set(enabledModels);
+    if (next.has(name)) {
+      next.delete(name);
+      // 如果刪的是當前選的, 切到第一個還啟用的 (避免刪了選不到)
+      if (selectedModel === name) {
+        const first = [...next][0];
+        if (first) setSelectedModel(first);
+      }
+    } else {
+      next.add(name);
+    }
+    setEnabledModels(next);
+  };
+
+  const statusBadge = (m: PockgoImageModel) => {
+    if (m.status === "verified") return <span title="6-12 4K verify 成功 1510KB">✅</span>;
+    if (m.status === "known-bad") return <span title={m.notes ?? "已知失敗"}>❌</span>;
+    return <span className="opacity-40" title="未測試">❓</span>;
+  };
+
+  return (
+    <div
+      className="mb-4 bg-gradient-to-br from-amber-50 to-rose-50 rounded-2xl p-4 shadow border-2 border-amber-200"
+      data-testid="model-library"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <div>
+          <h2
+            className="text-lg font-black text-gray-800"
+            style={{ fontFamily: "'Noto Serif TC', 'Songti TC', serif" }}
+          >
+            🖼️ 生圖模型庫
+            <span className="ml-2 text-sm font-bold text-amber-700">
+              已啟用 {enabledModels.size} / 25
+            </span>
+            {selectedModel !== FALLBACK_MODEL && (
+              <span className="ml-2 text-xs text-rose-700 font-bold">
+                · 當前: <span className="font-mono">{selectedModel}</span>
+              </span>
+            )}
+          </h2>
+          <p className="text-xs text-gray-500 mt-0.5">
+            勾選啟用 · 點選為當前 model · ✕ 隱藏 (壞的刪掉) · 來源 https://newapi.pockgo.com/api/pricing
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowAllModels(!showAllModels)}
+            className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-50"
+            data-testid="toggle-show-all"
+            title={showAllModels ? "只看啟用" : "看全部 (含已隱藏)"}
+          >
+            {showAllModels ? "📋 只看啟用" : "👁️ 看全部"}
+          </button>
+          <button
+            onClick={() => {
+              if (confirm("確定要重置成預設 3 個啟用嗎? 會清空你的客製化清單")) {
+                setEnabledModels(new Set(DEFAULT_ENABLED_MODELS));
+                setSelectedModel(FALLBACK_MODEL);
+              }
+            }}
+            className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-gray-300 text-gray-600 hover:bg-gray-50"
+            title="清空客製化, 回到預設 3 個"
+          >
+            ↺ 重置預設
+          </button>
+        </div>
+      </div>
+
+      {/* Model list */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+        {visibleModels.map(m => {
+          const isEnabled = enabledModels.has(m.name);
+          const isSelected = selectedModel === m.name;
+          return (
+            <div
+              key={m.name}
+              className={`relative flex items-center gap-2 p-2.5 rounded-lg border-2 transition-all ${
+                isSelected
+                  ? "border-amber-500 bg-gradient-to-r from-amber-100 to-rose-100 shadow-md"
+                  : isEnabled
+                    ? "border-amber-200 bg-white"
+                    : "border-gray-200 bg-gray-50 opacity-60"
+              }`}
+              data-testid={`model-${m.name}`}
+            >
+              <input
+                type="checkbox"
+                checked={isEnabled}
+                onChange={() => toggleEnabled(m.name)}
+                className="w-4 h-4 accent-amber-500 flex-shrink-0"
+                title="啟用此 model"
+                data-testid={`toggle-${m.name}`}
+              />
+              <button
+                onClick={() => isEnabled && setSelectedModel(m.name)}
+                disabled={!isEnabled}
+                className="flex-1 text-left min-w-0 disabled:cursor-not-allowed"
+                title={isSelected ? "當前選用" : "點擊設為當前 model"}
+              >
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-sm">{statusBadge(m)}</span>
+                  <span
+                    className={`text-xs font-mono font-bold truncate ${
+                      isSelected ? "text-rose-700" : "text-gray-800"
+                    }`}
+                  >
+                    {m.name}
+                  </span>
+                  {isSelected && <span className="text-xs">👉</span>}
+                </div>
+                <div className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-500 flex-wrap">
+                  <span className="px-1.5 py-0.5 bg-white rounded border border-gray-200">{m.vendor}</span>
+                  <span className="font-bold text-amber-700">¥{m.price}</span>
+                  {m.resolution && (
+                    <span className="px-1.5 py-0.5 bg-rose-100 text-rose-700 rounded font-bold">
+                      {m.resolution}
+                    </span>
+                  )}
+                  {m.notes && <span className="italic">{m.notes}</span>}
+                </div>
+              </button>
+              <button
+                onClick={() => toggleEnabled(m.name)}
+                className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 rounded font-bold text-base"
+                title={isEnabled ? "隱藏 (USER 試不 work 的刪掉)" : "啟用"}
+                data-testid={`delete-${m.name}`}
+              >
+                {isEnabled ? "✕" : "+"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 系列統計 footer */}
+      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] text-gray-500">
+        {Object.entries(seriesStats).map(([series, stats]) => (
+          <span
+            key={series}
+            className="px-2 py-0.5 bg-white rounded border border-amber-200"
+          >
+            <span className="font-bold text-amber-700">{series}</span>: {stats.enabled}/{stats.total}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────
 export default function PostcardPage() {
   const [itinerary, setItinerary] = useState<ItineraryEvent[]>([]);
@@ -522,6 +716,15 @@ export default function PostcardPage() {
   const [lyricsMode, setLyricsMode] = useState<number | null>(null);                 // day for full lyrics page
   // 2026-06-14 聖上拍板 🅐: 中文 Overlay 開關 (gemini 繁中文字偶有錯字, HTML overlay 中文保證 100% 對)
   const [showOverlay, setShowOverlay] = useState(true);
+  // 2026-06-14 聖上拍板: 生圖模型庫 (25 個 pockgo image model, client-side 控制, 不再寫 env)
+  // enabledModels: USER 啟用清單 (勾選中) — 存 localStorage
+  // selectedModel: 當前要用的 model (預設 FALLBACK_MODEL) — 存 localStorage
+  // showAllModels: 是否顯示「已刪除」(隱藏的) model, 用於從垃圾桶恢復
+  const [enabledModels, setEnabledModels] = useState<Set<string>>(
+    () => new Set(DEFAULT_ENABLED_MODELS)
+  );
+  const [selectedModel, setSelectedModel] = useState<string>(FALLBACK_MODEL);
+  const [showAllModels, setShowAllModels] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const mergedRef = useRef<HTMLDivElement>(null);
 
@@ -603,6 +806,31 @@ export default function PostcardPage() {
     localStorage.setItem("postcard_overlay_v1", showOverlay ? "1" : "0");
   }, [showOverlay]);
 
+  // 2026-06-14 聖上拍板: 載入 + 持久化 生圖模型庫
+  // 載入: 啟用清單 + 當前選用 model
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const enabledStr = localStorage.getItem(ENABLED_MODELS_KEY);
+    if (enabledStr) {
+      try {
+        const arr = JSON.parse(enabledStr) as string[];
+        // 過濾掉已從 POCKGO_IMAGE_MODELS 移除的 (中堂之後改 metadata 也不會 crash)
+        const valid = arr.filter(name => POCKGO_IMAGE_MODELS.some(m => m.name === name));
+        if (valid.length > 0) setEnabledModels(new Set(valid));
+      } catch { /* keep default */ }
+    }
+    const selected = localStorage.getItem(SELECTED_MODEL_KEY);
+    if (selected) setSelectedModel(selected);
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(ENABLED_MODELS_KEY, JSON.stringify([...enabledModels]));
+  }, [enabledModels]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(SELECTED_MODEL_KEY, selectedModel);
+  }, [selectedModel]);
+
   // Generate image for one day
   const generateDayImage = async (day: number) => {
     const dayEvents = itinerary.filter(e => e.day === day);
@@ -612,8 +840,9 @@ export default function PostcardPage() {
     try {
       // 2026-06-12 聖上拍板: 程式自動 per-day 組裝 prompt (從 itinerary + DAY_META)
       const prompt = buildDayPrompt(day, dayEvents, meta);
+      // 2026-06-14 聖上拍板: 傳 selectedModel 給 pockgo (從 25 個 model 庫選)
       const img = await (imageModel === "pockgo"
-        ? generatePockgoImage(prompt)
+        ? generatePockgoImage(prompt, selectedModel)
         : generateMiniMaxImage(prompt));
       if (img) {
         // 2026-06-12: 改用 IndexedDB 持久化 (localStorage 5MB 不夠 8 個 1.7MB 圖)
@@ -900,6 +1129,18 @@ export default function PostcardPage() {
             </button>
           </div>
         </div>
+
+        {/* 2026-06-14 聖上拍板: 生圖模型庫 (25 個 pockgo image model, 勾選啟用 + ✕ 隱藏 + 點選用為當前 model) */}
+        {imageModel === "pockgo" && (
+          <ModelLibrary
+            enabledModels={enabledModels}
+            setEnabledModels={setEnabledModels}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            showAllModels={showAllModels}
+            setShowAllModels={setShowAllModels}
+          />
+        )}
 
         {/* Day cards — 2026-06-12 聖上拍板: 滿圖效果, 移除標題, prompt 自動 per-day */}
         <div className="flex flex-col gap-3 mb-6">
