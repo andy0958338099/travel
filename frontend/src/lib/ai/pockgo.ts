@@ -147,6 +147,44 @@ function isNoChannelError(err: any): boolean {
 }
 
 /**
+ * 提取 pockgo (或 fetch) 錯誤的結構化資訊, 給 client 端顯示。
+ * - status: HTTP 狀態碼 (network 錯誤可能 null)
+ * - message: distributor 錯誤訊息 (截 500 chars 避免 base64 爆炸)
+ */
+function extractErrInfo(err: any, model: string): { model: string; status: number | null; message: string } {
+  return {
+    model,
+    status: err?.response?.status ?? null,
+    message: String(err?.response?.data?.error?.message || err?.message || "unknown").slice(0, 500),
+  };
+}
+
+/**
+ * 2026-06-14 聖上怒修法 B: 結構化錯誤, 帶 .details 給 route 端回傳 client。
+ *
+ * 場景: 第 1 選失敗 (no-channel) → 跑 fallback → fallback 也失敗
+ * USER 報「主+備都失敗」, 但 client 端只看到「❌ qwen-image-2512 出圖失敗」
+ * 看不到 gemini 備失敗的具體原因 (timeout / 4xx / 5xx / 還是 distributor 政策)
+ *
+ * 修法: throw 自訂 Error class, 帶 .details 結構化欄位
+ * route 端 catch e 看到 .details → response 帶給 client
+ * client 端 toast/badge 顯示「主: X | 備: Y」具體錯誤
+ */
+export class PockgoFallbackError extends Error {
+  details: {
+    requested: string;
+    mainError: { model: string; status: number | null; message: string };
+    fallbackError: { model: string; status: number | null; message: string };
+    autoFallback: boolean;
+  };
+  constructor(message: string, details: PockgoFallbackError["details"]) {
+    super(message);
+    this.name = "PockgoFallbackError";
+    this.details = details;
+  }
+}
+
+/**
  * 走 pockgo chat completions 生成單張圖，回傳 base64 字串。
  *
  * Per rentry 規格:
@@ -288,10 +326,14 @@ export async function generateImageWithFallback(
       console.log(`[pockgo] ✅ fallback ${fallback} 出圖 OK`);
       return { base64, modelUsed: fallback, isFallback: true, fallbackReason: reason };
     } catch (fallbackErr: any) {
-      // 第 3 試也失敗: 合併錯誤方便 debug
-      const mainMsg = err?.response?.data?.error?.message || err?.message || "unknown";
-      const fbMsg = fallbackErr?.response?.data?.error?.message || fallbackErr?.message || "unknown";
-      throw new Error(`主+備模型都失敗: 主(${requested}) ${mainMsg}; 備(${fallback}) ${fbMsg}`);
+      // 第 3 試也失敗: 結構化錯誤, 帶 .details 給 route 端回傳 client
+      // 2026-06-14 聖上怒修法 B: USER 看不到備失敗原因, 改成顯示主+備各自 status + message
+      const mainErr = extractErrInfo(err, requested);
+      const fbErr = extractErrInfo(fallbackErr, fallback);
+      throw new PockgoFallbackError(
+        `主+備模型都失敗: 主(${requested}) [${mainErr.status ?? "?"}] ${mainErr.message}; 備(${fallback}) [${fbErr.status ?? "?"}] ${fbErr.message}`,
+        { requested, mainError: mainErr, fallbackError: fbErr, autoFallback: true }
+      );
     }
   }
 }

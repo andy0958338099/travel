@@ -40,6 +40,14 @@ export async function POST(req: NextRequest) {
       fallbackReason: result.fallbackReason ?? null,
     });
   } catch (e: any) {
+    // 2026-06-14 聖上怒修法 B: PockgoFallbackError 帶 .details 結構化錯誤
+    // 聖上看得到「主: qwen no-channel | 備: gemini 4xx timeout」具體原因
+    if (e?.details) {
+      return NextResponse.json({
+        error: e.message || "pockgo generate failed",
+        details: e.details,
+      }, { status: 500 });
+    }
     return NextResponse.json({ error: e.message || "pockgo generate failed" }, { status: 500 });
   }
 }

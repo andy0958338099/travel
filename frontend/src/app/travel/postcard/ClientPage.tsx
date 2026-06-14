@@ -341,11 +341,19 @@ async function generateMiniMaxImage(prompt: string): Promise<string | null> {
 //    2026-06-14 聖上拍板: model 從 25 個模型庫選, 不再 env
 //    2026-06-14 聖上拍板 A: 帶 autoFallback flag, server 端 fallback 到 FALLBACK_MODEL
 //      回傳 modelUsed + isFallback + fallbackReason 給 UI
+//    2026-06-14 聖上怒修法 B: 失敗時帶 errorInfo (主+備各自 status/message)
+//      給 UI 顯示具體錯誤, USER 不用去查 Netlify log
 type PockgoGenResult = {
-  base64: string;
-  modelUsed: string;       // server 實際出圖成功的 model
+  base64: string | null;     // 成功才有值, 失敗 = null
+  modelUsed: string;          // 成功 = 實際出圖 model, 失敗 = client 傳的 model
   isFallback: boolean;
   fallbackReason: string | null;
+  errorInfo?: {               // 失敗時帶 (server 端 throw 結構化錯誤)
+    requested: string;
+    mainError: { model: string; status: number | null; message: string };
+    fallbackError?: { model: string; status: number | null; message: string };
+    autoFallback: boolean;
+  };
 };
 async function generatePockgoImage(prompt: string, model?: string, autoFallback: boolean = true): Promise<PockgoGenResult | null> {
   try {
@@ -356,8 +364,16 @@ async function generatePockgoImage(prompt: string, model?: string, autoFallback:
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      console.error(`[pockgo] HTTP ${res.status}:`, data.error || "(no body)");
-      return null;
+      console.error(`[pockgo] HTTP ${res.status}:`, data.error || "(no body)", "details:", data.details);
+      // 失敗時 base64 = null, 帶 errorInfo 給 UI 顯示具體主+備錯誤
+      // fetch 失敗 / server 沒給 details → errorInfo 也可能 undefined
+      return {
+        base64: null,
+        modelUsed: model ?? "unknown",
+        isFallback: false,
+        fallbackReason: null,
+        errorInfo: data.details ?? undefined,
+      };
     }
     const data = await res.json();
     return {
@@ -941,19 +957,27 @@ export default function PostcardPage() {
       if (customPrompt) console.log(`[postcard] day ${day} 用自訂 prompt (${customPrompt.length} chars), 自動模板 fallback ${defaultPrompt.length} chars`);
       // 2026-06-14 聖上拍板: 傳 selectedModel + autoFallback 給 pockgo
       // 2026-06-14 聖上拍板 A: 拆 pockgo result → base64 + 追蹤 usedModel/isFallback
+      // 2026-06-14 聖上怒修法 B: 失敗時存 pockgoError 拿 .errorInfo 顯示主+備具體錯誤
       const isPockgo = imageModel === "pockgo";
       let imgBase64: string | null = null;
       let usedModel = selectedModel;     // 實際出圖的 model (可能 != selectedModel, fallback 後)
       const usedProvider = imageModel;   // provider 切換時跟著變 (不重複賦值)
       let pockgoFallback: { isFallback: boolean; reason: string | null } = { isFallback: false, reason: null };
+      let pockgoError: PockgoGenResult | null = null;  // 失敗時存, 給下面錯誤處理用 .errorInfo
 
       if (isPockgo) {
         const result = await generatePockgoImage(prompt, selectedModel, autoFallback);
         if (result) {
-          imgBase64 = result.base64;
-          usedModel = result.modelUsed;
-          pockgoFallback = { isFallback: result.isFallback, reason: result.fallbackReason };
+          if (result.base64) {
+            imgBase64 = result.base64;
+            usedModel = result.modelUsed;
+            pockgoFallback = { isFallback: result.isFallback, reason: result.fallbackReason };
+          } else {
+            // result 有但 base64 null = server throw 結構化錯誤 (主+備失敗)
+            pockgoError = result;
+          }
         }
+        // result = null = fetch 失敗 (network / CORS), pockgoError 保持 null
       } else {
         imgBase64 = await generateMiniMaxImage(prompt);
         usedModel = "minimax";
@@ -977,12 +1001,34 @@ export default function PostcardPage() {
           toast.success(`Day ${day} 出圖成功 (${usedModel})`);
         }
       } else {
-        // 2026-06-14 聖上怒修法: null result (server 端 throw 但 catch 內部) — 顯眼錯誤
-        // 2026-06-14 A: 提示 autoFallback 是否開 + 實際嘗試的 model
-        const fallbackHint = autoFallback ? " (autoFallback 已開, 主+備都失敗)" : " (autoFallback 關, 第 1 選就失敗)";
-        const errMsg = `❌ ${selectedModel} 出圖失敗${fallbackHint}`;
-        setImageErrors(prev => ({ ...prev, [day]: errMsg }));
-        toast.error(errMsg);
+        // 2026-06-14 聖上怒修法 B: 用 pockgoError.errorInfo 顯示主+備各自 status + message
+        // 之前只顯示「主+備都失敗」, USER 看不到備失敗具體原因 (timeout/4xx/5xx/channel 拿掉)
+        // toast 顯示簡化版, imageErrors 存詳細版 (給 day card ❌ badge hover title)
+        let errShort: string;  // toast 用
+        let errDetail: string; // imageErrors state 用
+        if (pockgoError?.errorInfo) {
+          const info = pockgoError.errorInfo;
+          const mainShort = `[${info.mainError.status ?? "?"}] ${info.mainError.message.slice(0, 60)}`;
+          const fbShort = info.fallbackError
+            ? `[${info.fallbackError.status ?? "?"}] ${info.fallbackError.message.slice(0, 60)}`
+            : "未跑 fallback";
+          errShort = `❌ ${selectedModel} | 主 ${mainShort} | 備 ${fbShort}`;
+          const mainFull = `主 ${info.mainError.model} [${info.mainError.status ?? "?"}] ${info.mainError.message}`;
+          const fbFull = info.fallbackError
+            ? `備 ${info.fallbackError.model} [${info.fallbackError.status ?? "?"}] ${info.fallbackError.message}`
+            : `(未跑 fallback: ${info.autoFallback ? "跳過 no-channel 檢查" : "autoFallback 關"})`;
+          errDetail = `❌ ${selectedModel} 出圖失敗\n${mainFull}\n${fbFull}`;
+        } else if (pockgoError) {
+          // result 有但沒 errorInfo (server 沒給 details)
+          errShort = `❌ ${selectedModel} 出圖失敗 (autoFallback ${autoFallback ? "開" : "關"}, server 無詳細錯誤)`;
+          errDetail = errShort;
+        } else {
+          // generatePockgoImage return null = fetch 失敗
+          errShort = `❌ ${selectedModel} 出圖失敗 (fetch 失敗, 可能是網路或 CORS)`;
+          errDetail = errShort;
+        }
+        setImageErrors(prev => ({ ...prev, [day]: errDetail }));
+        toast.error(errShort);
       }
     } catch (err: any) {
       // 2026-06-14 聖上怒修法: 顯眼 toast + 卡片 ❌ 標記, USER 不會再誤以為「model 沒換」
