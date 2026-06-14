@@ -11,8 +11,17 @@ import {
   ENABLED_MODELS_KEY,
   SELECTED_MODEL_KEY,
   type PockgoImageModel,
-  type ModelSeries,
 } from "@/lib/pockgo-image-models";
+// 2026-06-14 聖上拍板 B: distributor 24h 緩存 + 4 種 verify badge
+import {
+  getCachedVerification,
+  setCachedVerification,
+  setVerifying,
+  isVerifiedFresh,
+  clearExpiredVerifications,
+  type VerificationEntry,
+  type VerifyStatus,
+} from "@/lib/pockgo-verified-cache";
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 const STORAGE_KEY = "hangzhou-trip-postcard";
@@ -549,6 +558,7 @@ function MergedPoster({ itinerary, generatedImages }: { itinerary: ItineraryEven
 // 25 個 pockgo image model 表列 + 勾選啟用 + ✕ 隱藏 + 點選為當前 model
 // 聖上原話: 「直接表列在頁面上方讓我選擇後使用再生成, 若我覺得不好則刪除」
 // 2026-06-14 聖上拍板 A: 加 🛡️ 自動 fallback checkbox (default on)
+// 2026-06-14 聖上拍板 B: 加 distributor 24h verify badge (verified/verifying/no-channel/timeout/error)
 function ModelLibrary({
   enabledModels,
   setEnabledModels,
@@ -558,6 +568,7 @@ function ModelLibrary({
   setShowAllModels,
   autoFallback,
   setAutoFallback,
+  verifiedCache,
 }: {
   enabledModels: Set<string>;
   setEnabledModels: (s: Set<string>) => void;
@@ -567,6 +578,7 @@ function ModelLibrary({
   setShowAllModels: (b: boolean) => void;
   autoFallback: boolean;
   setAutoFallback: (b: boolean) => void;
+  verifiedCache: Record<string, VerificationEntry>;
 }) {
   // 篩選: 已啟用 vs 全部 (含已隱藏)
   const visibleModels = showAllModels
@@ -597,9 +609,15 @@ function ModelLibrary({
   };
 
   const statusBadge = (m: PockgoImageModel) => {
-    if (m.status === "verified") return <span title="6-12 4K verify 成功 1510KB">✅</span>;
-    if (m.status === "known-bad") return <span title={m.notes ?? "已知失敗"}>❌</span>;
-    return <span className="opacity-40" title="未測試">❓</span>;
+    // 2026-06-14 B: 4 種 verify badge 取代 hard-code status
+    const v = verifiedCache[m.name];
+    if (!v) return <span className="opacity-40" title="未 verify">❓</span>;
+    if (v.status === "verified") return <span title={`verified (${v.latencyMs ?? "?"}ms)`}>✅</span>;
+    if (v.status === "verifying") return <span className="animate-spin inline-block" title="verifying...">🔄</span>;
+    if (v.status === "no-channel") return <span title="distributor 無 channel">❌</span>;
+    if (v.status === "bad-request") return <span title={`bad-request ${v.httpStatus ?? "?"}: ${v.errorMsg?.slice(0, 60) ?? ""}`}>❌</span>;
+    if (v.status === "timeout") return <span title={`timeout ${v.latencyMs ?? "?"}ms`}>⏱️</span>;
+    return <span title={v.errorMsg?.slice(0, 80) ?? "error"}>❌</span>;
   };
 
   return (
@@ -786,6 +804,17 @@ export default function PostcardPage() {
   // 預設 true: client 選的 model distributor 無 channel → 自動 fallback 到 FALLBACK_MODEL
   // false: 第 1 選失敗直接報 (USER 明確要「不要 fallback, 我要看真實錯誤」)
   const [autoFallback, setAutoFallback] = useState<boolean>(true);
+  // 2026-06-14 聖上拍板 B: distributor 24h 緩存 verify 結果 (initial 從 localStorage 載入)
+  const [verifiedCache, setVerifiedCache] = useState<Record<string, VerificationEntry>>(() => {
+    if (typeof window === "undefined") return {};
+    clearExpiredVerifications();
+    const out: Record<string, VerificationEntry> = {};
+    for (const m of POCKGO_IMAGE_MODELS) {
+      const e = getCachedVerification(m.name);
+      if (e) out[m.name] = e;
+    }
+    return out;
+  });
   // 2026-06-14 聖上拍板 🆎: 自訂 prompt (per-day) — 留空=用 buildDayPrompt() 自動模板, 有值=覆蓋
   // 存 localStorage (`postcard_prompt_v1` key 已預留, 6-12 拍板可改但當時未實作)
   const [customPrompts, setCustomPrompts] = useState<Record<number, string>>({});
@@ -898,6 +927,70 @@ export default function PostcardPage() {
     if (typeof window === "undefined") return;
     localStorage.setItem(ENABLED_MODELS_KEY, JSON.stringify([...enabledModels]));
   }, [enabledModels]);
+  // 2026-06-14 聖上拍板 B: trigger verify
+  // 刷新頁面 + 勾新 model 都觸發
+  // 1s throttle + 5 個 parallel cap 避免 distributor rate limit
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const verify = async (modelName: string) => {
+      if (cancelled) return;
+      // 標記 verifying 讓 UI 顯示 🔄
+      setVerifying(modelName);
+      setVerifiedCache(prev => ({ ...prev, [modelName]: { status: "verifying", checkedAt: Date.now() } }));
+      try {
+        const res = await fetch("/api/postcard/verify-pockgo-model", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: modelName }),
+        });
+        if (cancelled) return;
+        const data = await res.json();
+        const entry: VerificationEntry = {
+          status: data.status as VerifyStatus,
+          checkedAt: Date.now(),
+          httpStatus: data.httpStatus,
+          errorMsg: data.errorMsg,
+          latencyMs: data.latencyMs,
+        };
+        setCachedVerification(modelName, entry);
+        setVerifiedCache(prev => ({ ...prev, [modelName]: entry }));
+      } catch (e: any) {
+        if (cancelled) return;
+        const entry: VerificationEntry = {
+          status: "error",
+          checkedAt: Date.now(),
+          errorMsg: String(e?.message || "fetch failed").slice(0, 200),
+        };
+        setCachedVerification(modelName, entry);
+        setVerifiedCache(prev => ({ ...prev, [modelName]: entry }));
+      }
+    };
+
+    // 找到 enabled 但沒 cache 或 expired 的 model
+    const enabled = [...enabledModels];
+    const needVerify = enabled.filter(m => {
+      const e = verifiedCache[m];
+      return !isVerifiedFresh(e);
+    });
+
+    if (needVerify.length === 0) return;
+
+    // Throttle: 1s 內最多 5 個 parallel
+    const BATCH = 5;
+    const DELAY_MS = 1000;
+    (async () => {
+      for (let i = 0; i < needVerify.length; i += BATCH) {
+        if (cancelled) return;
+        const batch = needVerify.slice(i, i + BATCH);
+        await Promise.allSettled(batch.map(verify));
+        if (i + BATCH < needVerify.length) await new Promise(r => setTimeout(r, DELAY_MS));
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [enabledModels]);  // eslint-disable-line react-hooks/exhaustive-deps
+  // 只在 enabledModels 變化時 trigger (新勾 model 自動 verify), 不依賴 verifiedCache 否則會無限循環
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem(SELECTED_MODEL_KEY, selectedModel);
@@ -1339,6 +1432,7 @@ export default function PostcardPage() {
             setShowAllModels={setShowAllModels}
             autoFallback={autoFallback}
             setAutoFallback={setAutoFallback}
+            verifiedCache={verifiedCache}
           />
         )}
 
