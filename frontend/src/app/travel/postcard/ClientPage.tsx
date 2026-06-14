@@ -725,6 +725,10 @@ export default function PostcardPage() {
   );
   const [selectedModel, setSelectedModel] = useState<string>(FALLBACK_MODEL);
   const [showAllModels, setShowAllModels] = useState(false);
+  // 2026-06-14 聖上拍板 🆎: 自訂 prompt (per-day) — 留空=用 buildDayPrompt() 自動模板, 有值=覆蓋
+  // 存 localStorage (`postcard_prompt_v1` key 已預留, 6-12 拍板可改但當時未實作)
+  const [customPrompts, setCustomPrompts] = useState<Record<number, string>>({});
+  const [showPromptModal, setShowPromptModal] = useState(false);
   // 2026-06-14 聖上怒: 出圖失敗時顯眼顯示, 不再靜默 (USER 看不到錯誤以為 model 沒換 = 浪費 token)
   const [imageErrors, setImageErrors] = useState<Record<number, string>>({});
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -838,6 +842,30 @@ export default function PostcardPage() {
     localStorage.setItem(SELECTED_MODEL_KEY, selectedModel);
   }, [selectedModel]);
 
+  // 2026-06-14 聖上拍板 🆎: 載入 + 持久化 自訂 prompt (per-day 覆蓋 buildDayPrompt 自動模板)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = localStorage.getItem(PROMPT_STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as Record<string, string>;
+        // 確保 key 是 number, 過濾空字串
+        const cleaned: Record<number, string> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          const day = parseInt(k, 10);
+          if (Number.isInteger(day) && day >= 1 && day <= 8 && typeof v === "string" && v.trim()) {
+            cleaned[day] = v;
+          }
+        }
+        if (Object.keys(cleaned).length > 0) setCustomPrompts(cleaned);
+      } catch { /* keep default */ }
+    }
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(PROMPT_STORAGE_KEY, JSON.stringify(customPrompts));
+  }, [customPrompts]);
+
   // Generate image for one day
   // 2026-06-14 聖上怒修法: catch error 顯眼 toast + 記錄到 imageErrors (USER 看到失敗, 不會誤以為 model 沒換)
   const generateDayImage = async (day: number) => {
@@ -849,7 +877,11 @@ export default function PostcardPage() {
     setGeneratingDay(day);
     try {
       // 2026-06-12 聖上拍板: 程式自動 per-day 組裝 prompt (從 itinerary + DAY_META)
-      const prompt = buildDayPrompt(day, dayEvents, meta);
+      // 2026-06-14 聖上拍板 🆎: customPrompts[day] 優先 (USER 編輯的), 沒有才用自動模板
+      const defaultPrompt = buildDayPrompt(day, dayEvents, meta);
+      const customPrompt = customPrompts[day]?.trim();
+      const prompt = customPrompt || defaultPrompt;
+      if (customPrompt) console.log(`[postcard] day ${day} 用自訂 prompt (${customPrompt.length} chars), 自動模板 fallback ${defaultPrompt.length} chars`);
       // 2026-06-14 聖上拍板: 傳 selectedModel 給 pockgo (從 25 個 model 庫選)
       const img = await (imageModel === "pockgo"
         ? generatePockgoImage(prompt, selectedModel)
@@ -1152,6 +1184,20 @@ export default function PostcardPage() {
             >
               🎵 歌詞專頁
             </button>
+            {/* 2026-06-14 聖上拍板 🆎: 編輯 8 天生圖 prompt (留空=用自動模板) */}
+            <button
+              onClick={() => setShowPromptModal(true)}
+              data-testid="open-prompt-editor"
+              className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow text-sm flex items-center gap-1.5"
+              title="自訂 8 天生圖 prompt · 留空用自動模板"
+            >
+              ✏️ 編輯 8 天 prompt
+              {Object.keys(customPrompts).length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 bg-white/30 rounded text-xs font-black">
+                  {Object.keys(customPrompts).length}/8
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -1284,7 +1330,18 @@ export default function PostcardPage() {
                 </div>
                 {/* 下方小字 + 3 按鈕 (聖上拍板: 沒標題, 只 metadata) */}
                 <div className="flex items-center justify-between px-3 py-2 text-xs text-gray-500">
-                  <span className="font-bold text-gray-700">{DAY_META[day].label}</span>
+                  <span className="font-bold text-gray-700 flex items-center gap-1">
+                    {DAY_META[day].label}
+                    {customPrompts[day]?.trim() && (
+                      <span
+                        title={`已自訂 prompt (${customPrompts[day].trim().length} chars)\n按 ✏️ 編輯 8 天 prompt 改`}
+                        className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-black rounded"
+                        data-testid={`day-custom-badge-${day}`}
+                      >
+                        ✏️ 自訂
+                      </span>
+                    )}
+                  </span>
                   <span className="flex-1 mx-2 truncate">{DAY_META[day].date} · {DAY_META[day].theme}</span>
                   <div className="flex gap-1 flex-shrink-0">
                     <button
@@ -1557,6 +1614,127 @@ export default function PostcardPage() {
             </div>
           );
         })()}
+
+        {/* 2026-06-14 聖上拍板 🆎: 8 天 prompt 編輯器 (留空=用 buildDayPrompt 自動模板) */}
+        {showPromptModal && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" data-testid="prompt-editor-modal">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 border-b bg-gradient-to-r from-emerald-50 to-teal-50 rounded-t-2xl flex-shrink-0">
+                <div>
+                  <h2 className="text-xl font-black text-gray-800">✏️ 編輯 8 天生圖 prompt</h2>
+                  <p className="text-xs text-gray-500 mt-1">留空 = 用 buildDayPrompt() 自動模板 · 有內容 = 覆蓋該天生圖 prompt</p>
+                </div>
+                <button
+                  onClick={() => setShowPromptModal(false)}
+                  className="text-gray-400 hover:text-gray-700 text-2xl font-bold"
+                  aria-label="關閉"
+                >×</button>
+              </div>
+              {/* Body (scrollable) */}
+              <div className="p-5 space-y-4 overflow-y-auto flex-1">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(day => {
+                  const meta = DAY_META[day];
+                  const dayEvents = itinerary.filter(e => e.day === day);
+                  const defaultPrompt = buildDayPrompt(day, dayEvents, meta);
+                  const currentValue = customPrompts[day] ?? "";
+                  const isCustom = currentValue.trim().length > 0;
+                  return (
+                    <div key={day} className="rounded-xl border-2 border-gray-200 p-4 bg-gray-50" data-testid={`prompt-card-${day}`}>
+                      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-gray-800">{meta.label}</span>
+                          <span className="text-xs text-gray-500">({meta.date})</span>
+                          <span className="text-xs text-gray-400">·</span>
+                          <span className="text-xs font-bold text-indigo-700">{meta.theme}</span>
+                          {isCustom && (
+                            <span className="px-2 py-0.5 bg-emerald-500 text-white text-xs font-black rounded" data-testid={`prompt-custom-badge-${day}`}>
+                              ✏️ 自訂
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 font-mono">{currentValue.length} chars</span>
+                          {isCustom && (
+                            <button
+                              onClick={() => {
+                                const next = { ...customPrompts };
+                                delete next[day];
+                                setCustomPrompts(next);
+                              }}
+                              className="px-2 py-1 text-xs font-bold rounded border border-gray-300 text-gray-600 hover:bg-gray-100"
+                              title="清除自訂, 改用自動模板"
+                            >
+                              ↺ 預設
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <textarea
+                        data-testid={`prompt-textarea-${day}`}
+                        value={currentValue}
+                        onChange={e => {
+                          const v = e.target.value;
+                          setCustomPrompts(prev => {
+                            const next = { ...prev };
+                            if (v.trim()) next[day] = v;
+                            else delete next[day];
+                            return next;
+                          });
+                        }}
+                        placeholder={defaultPrompt}
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg text-sm font-mono focus:border-emerald-400 focus:outline-none resize-y"
+                        style={{ minHeight: 96, lineHeight: 1.5 }}
+                      />
+                      {!isCustom && (
+                        <details className="mt-2">
+                          <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-600">👁 預覽自動模板 ({defaultPrompt.length} chars)</summary>
+                          <pre className="mt-2 p-2 bg-white border rounded text-xs text-gray-600 whitespace-pre-wrap break-words font-mono" style={{ maxHeight: 200, overflowY: "auto" }}>{defaultPrompt}</pre>
+                        </details>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* Footer */}
+              <div className="flex gap-3 p-5 border-t bg-gray-50 rounded-b-2xl flex-shrink-0">
+                <button
+                  onClick={() => {
+                    if (confirm("確定清空所有 8 天自訂 prompt, 改用自動模板?")) {
+                      setCustomPrompts({});
+                      toast.success("已重置 8 天回自動模板");
+                    }
+                  }}
+                  disabled={Object.keys(customPrompts).length === 0}
+                  className="px-3 py-2 rounded-xl border border-gray-300 text-gray-600 font-bold hover:bg-gray-100 disabled:opacity-40 text-sm"
+                >
+                  ↺ 重置全部
+                </button>
+                <div className="flex-1" />
+                <button
+                  onClick={() => setShowPromptModal(false)}
+                  className="px-4 py-2 rounded-xl border text-gray-600 font-bold hover:bg-gray-100 text-sm"
+                >
+                  關閉
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPromptModal(false);
+                    const customCount = Object.keys(customPrompts).filter(d => customPrompts[+d]?.trim()).length;
+                    toast.success(
+                      customCount > 0
+                        ? `✅ 已儲存 ${customCount} 天自訂 prompt · 按 🎨 套用`
+                        : "✅ 8 天都用自動模板"
+                    );
+                  }}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold hover:from-emerald-600 hover:to-teal-600 text-sm"
+                >
+                  💾 完成
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
