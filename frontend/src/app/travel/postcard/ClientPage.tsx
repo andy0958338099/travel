@@ -339,12 +339,20 @@ async function generateMiniMaxImage(prompt: string): Promise<string | null> {
 // ── Pockgo image generator (server-side proxy via /api/postcard/generate-pockgo) ──
 //    2026-06-11 新增 — 跟 minimax 並存，UI 可切換
 //    2026-06-14 聖上拍板: model 從 25 個模型庫選, 不再 env
-async function generatePockgoImage(prompt: string, model?: string): Promise<string | null> {
+//    2026-06-14 聖上拍板 A: 帶 autoFallback flag, server 端 fallback 到 FALLBACK_MODEL
+//      回傳 modelUsed + isFallback + fallbackReason 給 UI
+type PockgoGenResult = {
+  base64: string;
+  modelUsed: string;       // server 實際出圖成功的 model
+  isFallback: boolean;
+  fallbackReason: string | null;
+};
+async function generatePockgoImage(prompt: string, model?: string, autoFallback: boolean = true): Promise<PockgoGenResult | null> {
   try {
     const res = await fetch("/api/postcard/generate-pockgo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, model }),
+      body: JSON.stringify({ prompt, model, autoFallback }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -352,8 +360,16 @@ async function generatePockgoImage(prompt: string, model?: string): Promise<stri
       return null;
     }
     const data = await res.json();
-    return data.image ?? null;
-  } catch (e) { console.error("[pockgo] fetch err:", e); return null; }
+    return {
+      base64: data.image,
+      modelUsed: data.model ?? model ?? "unknown",
+      isFallback: !!data.isFallback,
+      fallbackReason: data.fallbackReason ?? null,
+    };
+  } catch (e) {
+    console.error("[pockgo] fetch err:", e);
+    return null;
+  }
 }
 
 // ── MiniMax music generator (server-side proxy via /api/postcard/music) ──
@@ -516,6 +532,7 @@ function MergedPoster({ itinerary, generatedImages }: { itinerary: ItineraryEven
 // 2026-06-14 聖上拍板: 生圖模型庫組件
 // 25 個 pockgo image model 表列 + 勾選啟用 + ✕ 隱藏 + 點選為當前 model
 // 聖上原話: 「直接表列在頁面上方讓我選擇後使用再生成, 若我覺得不好則刪除」
+// 2026-06-14 聖上拍板 A: 加 🛡️ 自動 fallback checkbox (default on)
 function ModelLibrary({
   enabledModels,
   setEnabledModels,
@@ -523,6 +540,8 @@ function ModelLibrary({
   setSelectedModel,
   showAllModels,
   setShowAllModels,
+  autoFallback,
+  setAutoFallback,
 }: {
   enabledModels: Set<string>;
   setEnabledModels: (s: Set<string>) => void;
@@ -530,6 +549,8 @@ function ModelLibrary({
   setSelectedModel: (m: string) => void;
   showAllModels: boolean;
   setShowAllModels: (b: boolean) => void;
+  autoFallback: boolean;
+  setAutoFallback: (b: boolean) => void;
 }) {
   // 篩選: 已啟用 vs 全部 (含已隱藏)
   const visibleModels = showAllModels
@@ -592,6 +613,26 @@ function ModelLibrary({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* 2026-06-14 A: 🛡️ 自動 fallback 開關 (聖上拍板 client-side 控制) */}
+          <label
+            data-testid="auto-fallback-toggle"
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border-2 cursor-pointer transition-colors ${
+              autoFallback
+                ? "bg-amber-100 border-amber-500 text-amber-900 hover:bg-amber-200"
+                : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+            }`}
+            title={autoFallback
+              ? "✅ 已開: client 選的 model 失敗 (no channel) → 自動 fallback 到 gemini-2.5-flash-image"
+              : "❌ 已關: 第 1 選失敗直接報, 不 fallback"}
+          >
+            <input
+              type="checkbox"
+              checked={autoFallback}
+              onChange={e => setAutoFallback(e.target.checked)}
+              className="w-3.5 h-3.5 accent-amber-500"
+            />
+            <span>🛡️ 自動 fallback</span>
+          </label>
           <button
             onClick={() => setShowAllModels(!showAllModels)}
             className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-amber-300 text-amber-800 hover:bg-amber-50"
@@ -725,6 +766,10 @@ export default function PostcardPage() {
   );
   const [selectedModel, setSelectedModel] = useState<string>(FALLBACK_MODEL);
   const [showAllModels, setShowAllModels] = useState(false);
+  // 2026-06-14 聖上拍板 A: 主+備模型 auto fallback 開關
+  // 預設 true: client 選的 model distributor 無 channel → 自動 fallback 到 FALLBACK_MODEL
+  // false: 第 1 選失敗直接報 (USER 明確要「不要 fallback, 我要看真實錯誤」)
+  const [autoFallback, setAutoFallback] = useState<boolean>(true);
   // 2026-06-14 聖上拍板 🆎: 自訂 prompt (per-day) — 留空=用 buildDayPrompt() 自動模板, 有值=覆蓋
   // 存 localStorage (`postcard_prompt_v1` key 已預留, 6-12 拍板可改但當時未實作)
   const [customPrompts, setCustomPrompts] = useState<Record<number, string>>({});
@@ -842,6 +887,18 @@ export default function PostcardPage() {
     localStorage.setItem(SELECTED_MODEL_KEY, selectedModel);
   }, [selectedModel]);
 
+  // 2026-06-14 聖上拍板 A: 載入 + 持久化 autoFallback 開關
+  const AUTO_FALLBACK_KEY = "postcard_auto_fallback_v1";
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const v = localStorage.getItem(AUTO_FALLBACK_KEY);
+    if (v !== null) setAutoFallback(v === "1");
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(AUTO_FALLBACK_KEY, autoFallback ? "1" : "0");
+  }, [autoFallback]);
+
   // 2026-06-14 聖上拍板 🆎: 載入 + 持久化 自訂 prompt (per-day 覆蓋 buildDayPrompt 自動模板)
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -882,24 +939,48 @@ export default function PostcardPage() {
       const customPrompt = customPrompts[day]?.trim();
       const prompt = customPrompt || defaultPrompt;
       if (customPrompt) console.log(`[postcard] day ${day} 用自訂 prompt (${customPrompt.length} chars), 自動模板 fallback ${defaultPrompt.length} chars`);
-      // 2026-06-14 聖上拍板: 傳 selectedModel 給 pockgo (從 25 個 model 庫選)
-      const img = await (imageModel === "pockgo"
-        ? generatePockgoImage(prompt, selectedModel)
-        : generateMiniMaxImage(prompt));
-      if (img) {
+      // 2026-06-14 聖上拍板: 傳 selectedModel + autoFallback 給 pockgo
+      // 2026-06-14 聖上拍板 A: 拆 pockgo result → base64 + 追蹤 usedModel/isFallback
+      const isPockgo = imageModel === "pockgo";
+      let imgBase64: string | null = null;
+      let usedModel = selectedModel;     // 實際出圖的 model (可能 != selectedModel, fallback 後)
+      const usedProvider = imageModel;   // provider 切換時跟著變 (不重複賦值)
+      let pockgoFallback: { isFallback: boolean; reason: string | null } = { isFallback: false, reason: null };
+
+      if (isPockgo) {
+        const result = await generatePockgoImage(prompt, selectedModel, autoFallback);
+        if (result) {
+          imgBase64 = result.base64;
+          usedModel = result.modelUsed;
+          pockgoFallback = { isFallback: result.isFallback, reason: result.fallbackReason };
+        }
+      } else {
+        imgBase64 = await generateMiniMaxImage(prompt);
+        usedModel = "minimax";
+      }
+
+      if (imgBase64) {
         // 2026-06-12: 改用 IndexedDB 持久化 (localStorage 5MB 不夠 8 個 1.7MB 圖)
+        // 2026-06-14 A: 存 usedModel (實際出圖的), 切換/重出後查得出來
         try {
           const { saveImage } = await import("@/lib/postcard-storage");
-          await saveImage(day, { url: img, prompt, provider: imageModel, model: selectedModel });
+          await saveImage(day, { url: imgBase64, prompt, provider: usedProvider, model: usedModel });
         } catch (e: any) {
           console.warn(`[postcard] IndexedDB save failed, day ${day} 圖只存記憶體:`, e?.message);
         }
-        setGeneratedImages(prev => ({ ...prev, [day]: img }));
+        setGeneratedImages(prev => ({ ...prev, [day]: imgBase64! }));
         setImageErrors(prev => { const next = { ...prev }; delete next[day]; return next; });
-        toast.success(`Day ${day} 出圖成功 (${imageModel === "pockgo" ? selectedModel : "minimax"})`);
+        // 2026-06-14 A: 顯示實際出圖 model. fallback 時多一行原因
+        if (pockgoFallback.isFallback) {
+          toast.success(`Day ${day} ✅ 用 ${usedModel} (fallback from ${selectedModel}, ${pockgoFallback.reason ?? "no channel"})`);
+        } else {
+          toast.success(`Day ${day} 出圖成功 (${usedModel})`);
+        }
       } else {
         // 2026-06-14 聖上怒修法: null result (server 端 throw 但 catch 內部) — 顯眼錯誤
-        const errMsg = `❌ ${selectedModel} 出圖失敗 (回傳 null)`;
+        // 2026-06-14 A: 提示 autoFallback 是否開 + 實際嘗試的 model
+        const fallbackHint = autoFallback ? " (autoFallback 已開, 主+備都失敗)" : " (autoFallback 關, 第 1 選就失敗)";
+        const errMsg = `❌ ${selectedModel} 出圖失敗${fallbackHint}`;
         setImageErrors(prev => ({ ...prev, [day]: errMsg }));
         toast.error(errMsg);
       }
@@ -1210,6 +1291,8 @@ export default function PostcardPage() {
             setSelectedModel={setSelectedModel}
             showAllModels={showAllModels}
             setShowAllModels={setShowAllModels}
+            autoFallback={autoFallback}
+            setAutoFallback={setAutoFallback}
           />
         )}
 

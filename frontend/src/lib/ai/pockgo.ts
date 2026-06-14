@@ -105,6 +105,48 @@ export interface GenerateImageOpts {
 }
 
 /**
+ * 2026-06-14 聖上拍板: 帶 fallback 的生圖選項
+ *
+ * 貼圖大亨 (sticker-tycoonV.801) AI_MODEL_3 + AI_MODEL 雙模型 fallback
+ * 機制驗證有效, 旅遊明信片跟進。
+ *
+ * - 第 1 試: client 選的 model (clientModel)
+ * - 第 2 試 (僅當第 1 試是「distributor 無 channel」): FALLBACK_MODEL
+ * - 第 3 試失敗: throw
+ *
+ * USER distributor `newapi.pockgo.com` 客觀只有 1 個 model 有 channel
+ * (`gemini-2.5-flash-image`), 其他 24 個 → 503 `No available channel for model ...`
+ * Fallback 不修 distributor 政策, 但避免單一點擊直接 503 報錯。
+ */
+export interface GenerateImageWithFallbackOpts extends GenerateImageOpts {
+  /** 預設 true. false 時跳過 fallback, 第 1 試失敗直接 throw */
+  autoFallback?: boolean;
+}
+
+export interface GenerateImageWithFallbackResult {
+  base64: string;
+  /** 實際出圖成功的 model (可能 != client 選的) */
+  modelUsed: string;
+  /** 是否走了 fallback */
+  isFallback: boolean;
+  /** 走 fallback 的原因 (user-facing) */
+  fallbackReason?: string;
+}
+
+/**
+ * 識別「distributor 沒 channel」錯誤。
+ * pockgo 對沒 channel 的 model 會回:
+ *   HTTP 503
+ *   { error: { message: "No available channel for model <name>" } }
+ */
+function isNoChannelError(err: any): boolean {
+  const status = err?.response?.status;
+  const errorMsg = err?.response?.data?.error?.message || err?.message || "";
+  if (status !== 503) return false;
+  return /No available channel/i.test(String(errorMsg));
+}
+
+/**
  * 走 pockgo chat completions 生成單張圖，回傳 base64 字串。
  *
  * Per rentry 規格:
@@ -196,4 +238,60 @@ export async function generatePockgoImage(opts: GenerateImageOpts): Promise<stri
 export async function generateImage(opts: GenerateImageOpts): Promise<GeneratedImage[]> {
   const base64 = await generatePockgoImage(opts);
   return [{ base64, success: true }];
+}
+
+/**
+ * 2026-06-14 聖上拍板: 帶 fallback 的生圖 (主+備模型)。
+ *
+ * 流程:
+ *   1. 用 client 選的 model 跑
+ *   2. 失敗時, 如果 autoFallback !== false 且是「no channel」錯誤
+ *      → 用 FALLBACK_MODEL 重試
+ *   3. 仍失敗 → throw (route 端會回 500)
+ *
+ * 注意:
+ *   - autoFallback=false 時, 第 1 試失敗直接 throw (USER 明確要「不要 fallback」)
+ *   - 第 1 選 == FALLBACK_MODEL 時, fallback 跳過避免無限循環
+ *   - 只對 no-channel 錯誤 fallback, 其他錯誤 (timeout / 400 / 5xx 等) 直接報
+ *     避免掩蓋真問題
+ */
+export async function generateImageWithFallback(
+  opts: GenerateImageWithFallbackOpts
+): Promise<GenerateImageWithFallbackResult> {
+  const requested = getModel(opts.model);
+  const wantFallback = opts.autoFallback !== false;  // 預設 true
+  const fallback = FALLBACK_MODEL;
+
+  // 第 1 試: client 選的 model
+  try {
+    const base64 = await generatePockgoImage({ prompt: opts.prompt, model: requested });
+    return { base64, modelUsed: requested, isFallback: false };
+  } catch (err: any) {
+    // USER 明確關掉 fallback → 直接報
+    if (!wantFallback) {
+      throw err;
+    }
+    // 不是 no-channel 錯誤 (timeout/400/5xx 等) → 直接報, 不掩蓋
+    if (!isNoChannelError(err)) {
+      throw err;
+    }
+    // 第 1 選 == fallback → 別循環, 直接報
+    if (requested === fallback) {
+      throw err;
+    }
+
+    // 第 2 試: fallback model
+    const reason = `${requested} distributor 無 channel`;
+    console.warn(`[pockgo] ⚠️ ${reason}, fallback 到 ${fallback}`);
+    try {
+      const base64 = await generatePockgoImage({ prompt: opts.prompt, model: fallback });
+      console.log(`[pockgo] ✅ fallback ${fallback} 出圖 OK`);
+      return { base64, modelUsed: fallback, isFallback: true, fallbackReason: reason };
+    } catch (fallbackErr: any) {
+      // 第 3 試也失敗: 合併錯誤方便 debug
+      const mainMsg = err?.response?.data?.error?.message || err?.message || "unknown";
+      const fbMsg = fallbackErr?.response?.data?.error?.message || fallbackErr?.message || "unknown";
+      throw new Error(`主+備模型都失敗: 主(${requested}) ${mainMsg}; 備(${fallback}) ${fbMsg}`);
+    }
+  }
 }
