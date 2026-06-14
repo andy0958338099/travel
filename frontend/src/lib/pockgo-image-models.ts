@@ -83,15 +83,15 @@ export const POCKGO_IMAGE_MODELS: PockgoImageModel[] = [
   { name: "grok-imagine-image",                    series: "grok", vendor: "xAI", price: 0.07, defaultEnabled: false },
 
   // ── z-image — 1 個 ──
-  { name: "z-image-turbo",                         series: "z-image", vendor: "Alibaba", price: 0.10, defaultEnabled: false },
+  { name: "z-image-turbo",                         series: "z-image", vendor: "Alibaba", price: 0.10, defaultEnabled: true, notes: "USER distributor 6-14 漏驗, 6-14 B 修法 verify 確認 ✅ verified (10.2s, 8 張 9-23s, 105-134KB)" },
 ];
 
-/** 預設啟用 model name 清單 (gemini-2.5-flash-image 唯一已知能跑) */
+/** 預設啟用 model name 清單 (gemini-2.5-flash-image 已知能跑, z-image-turbo 6-14 B 修法 verify 確認也能跑) */
 export const DEFAULT_ENABLED_MODELS: string[] = POCKGO_IMAGE_MODELS
   .filter(m => m.defaultEnabled)
   .map(m => m.name);
 
-/** 預設 default model (中堂 6-14 11.4s 1468KB verify 成功) */
+/** 預設 default model (中堂 6-14 11.4s 1468KB verify 成功, USER distributor 唯一能跑的 2 個 model 之一) */
 export const FALLBACK_MODEL = "gemini-2.5-flash-image";
 
 /** localStorage key: 啟用清單 */
