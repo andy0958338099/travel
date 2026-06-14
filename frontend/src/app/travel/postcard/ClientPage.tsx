@@ -879,20 +879,33 @@ export default function PostcardPage() {
   }, [selectedModel]);
 
   // 2026-06-12: 載入圖片從 IndexedDB (替換 localStorage 5MB limit)
+  // 2026-06-14 聖上拍板: IndexedDB 空時 fallback 從 /postcard-images/day-N.png 載入
+  // (中堂 6-14 預先生成 + push 8 個 PNG, USER 開頁面就有 8 張圖可看, 不用等重新生圖)
   useEffect(() => {
     if (typeof window === "undefined") return;
     (async () => {
+      const imgs: Record<number, string> = {};
+      // 1) 先嘗試 IndexedDB
       try {
         const { loadAllImages } = await import("@/lib/postcard-storage");
         const all = await loadAllImages();
-        const imgs: Record<number, string> = {};
         for (const [dayStr, data] of Object.entries(all)) {
           imgs[parseInt(dayStr, 10)] = data.url;
         }
-        setGeneratedImages(imgs);
       } catch (e) {
         console.warn("[postcard] IndexedDB load failed, fallback memory-only:", e);
       }
+      // 2) 缺的 1-8 天從 /postcard-images/day-N.png fallback (中堂 6-14 預先生成的)
+      for (let day = 1; day <= 8; day++) {
+        if (imgs[day]) continue;
+        try {
+          const res = await fetch(`/postcard-images/day${day}.png`, { cache: "no-store" });
+          if (!res.ok) continue;
+          const blob = await res.blob();
+          imgs[day] = URL.createObjectURL(blob);
+        } catch { /* skip */ }
+      }
+      setGeneratedImages(imgs);
     })();
   }, []);
 
