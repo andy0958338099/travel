@@ -134,28 +134,63 @@ export interface GenerateImageWithFallbackResult {
 }
 
 /**
- * 識別「distributor 沒 channel」錯誤。
- * pockgo 對沒 channel 的 model 會回:
- *   HTTP 503
- *   { error: { message: "No available channel for model <name>" } }
+ * 識別「distributor 沒 channel」錯誤。pockgo 對沒 channel 的 model 會回 503 + 訊息含 "No available channel"。
+ *
+ * 兩種錯誤結構都要支援 (修法: USER 報「server 無詳細錯誤」, 根因是中堂原版只認 axios
+ * .response 風格, 沒認 fetch 風格 Error("pockgo {model} {status}: {text}")):
+ *   1. axios 風格: err.response.status === 503 && err.response.data.error.message 含 no-channel
+ *   2. fetch 風格 (generatePockgoImage 用): err.message = "pockgo {model} {status}: {text}"
  */
 function isNoChannelError(err: any): boolean {
-  const status = err?.response?.status;
-  const errorMsg = err?.response?.data?.error?.message || err?.message || "";
-  if (status !== 503) return false;
-  return /No available channel/i.test(String(errorMsg));
+  // axios 風格
+  if (err?.response?.status === 503) {
+    const msg = err?.response?.data?.error?.message || "";
+    if (/No available channel/i.test(String(msg))) return true;
+  }
+  // fetch 風格: "pockgo {model} {status}: {text}"
+  const msg = String(err?.message || "");
+  const m = msg.match(/pockgo\s+\S+\s+(\d{3}):\s*([\s\S]+)/);
+  if (m) {
+    const status = parseInt(m[1], 10);
+    const text = m[2];
+    if (status === 503 && /No available channel/i.test(text)) return true;
+  }
+  return false;
 }
 
 /**
  * 提取 pockgo (或 fetch) 錯誤的結構化資訊, 給 client 端顯示。
  * - status: HTTP 狀態碼 (network 錯誤可能 null)
  * - message: distributor 錯誤訊息 (截 500 chars 避免 base64 爆炸)
+ *
+ * 兩種錯誤結構都要支援 (修法同上 isNoChannelError):
+ *   1. axios 風格: err.response.status + err.response.data.error.message
+ *   2. fetch 風格: err.message = "pockgo {model} {status}: {text}"
  */
 function extractErrInfo(err: any, model: string): { model: string; status: number | null; message: string } {
+  // axios 風格
+  if (err?.response) {
+    return {
+      model,
+      status: err.response.status ?? null,
+      message: String(err.response.data?.error?.message || err.message || "unknown").slice(0, 500),
+    };
+  }
+  // fetch 風格: "pockgo {model} {status}: {text}"
+  const msg = String(err?.message || "");
+  const m = msg.match(/pockgo\s+\S+\s+(\d{3}):\s*([\s\S]+)/);
+  if (m) {
+    return {
+      model,
+      status: parseInt(m[1], 10),
+      message: m[2].slice(0, 500),
+    };
+  }
+  // 完全沒結構 (network 錯誤 / TypeError), 用 message 兜底
   return {
     model,
-    status: err?.response?.status ?? null,
-    message: String(err?.response?.data?.error?.message || err?.message || "unknown").slice(0, 500),
+    status: null,
+    message: msg.slice(0, 500) || "unknown",
   };
 }
 
