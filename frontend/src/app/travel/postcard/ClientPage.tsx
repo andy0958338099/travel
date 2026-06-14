@@ -779,7 +779,11 @@ export default function PostcardPage() {
   const [generatingDay, setGeneratingDay] = useState<number | null>(null);
   // 2026-06-12: 圖片模型切換 minimax / pockgo
   // 2026-06-12: 預設改 pockgo (聖上指示)
-  const [imageModel, setImageModel] = useState<"minimax" | "pockgo">("pockgo");
+  // 2026-06-14 聖上拍板: 加 "google" provider (minimax/pockgo 以外, 直接 call Google Generative AI 繞過 pockgo distributor 503)
+  // USER 6-12 拍板: API key 改來改去要 client-side → Google API key 存 localStorage
+  const [imageModel, setImageModel] = useState<"minimax" | "pockgo" | "google">("pockgo");
+  const [googleApiKey, setGoogleApiKey] = useState<string>("");   // 從 localStorage 載入, 改即寫回
+  const [showGoogleKeyInput, setShowGoogleKeyInput] = useState(false);
   const [providerSwitchToast, setProviderSwitchToast] = useState<string | null>(null);
   const [exportingMerged, setExportingMerged] = useState(false);
   const [editingDay, setEditingDay] = useState<number | null>(null);
@@ -861,17 +865,28 @@ export default function PostcardPage() {
   }, [itinerary]);
 
   // 2026-06-12: 切換 provider → 不刪舊圖 (USER 抱怨: 浪費), 只給提示
+  // 2026-06-14 聖上拍板: 載入 googleApiKey 從 localStorage (USER 6-12 拍板 client-side 控制)
   // 舊圖仍保留, 按 🎨 或「🔄 強制重跑」才會覆蓋
   useEffect(() => {
     const providerKey = "postcard_img_provider_v1";
     const prev = typeof window !== "undefined" ? localStorage.getItem(providerKey) : null;
     if (prev && prev !== imageModel) {
-      const providerLabel = imageModel === "pockgo" ? "🆕 pockgo" : "🎨 MiniMax";
+      const providerLabel = imageModel === "pockgo" ? "🆕 pockgo" : imageModel === "google" ? "🔑 Google" : "🎨 MiniMax";
       setProviderSwitchToast(`已切到 ${providerLabel}, 舊圖保留。要用新 provider? 按 🎨 重跑單天 或 「🔄 強制重跑」`);
       setTimeout(() => setProviderSwitchToast(null), 6000);
     }
     if (typeof window !== "undefined") localStorage.setItem(providerKey, imageModel);
   }, [imageModel]);
+  // 2026-06-14 聖上拍板: 載入 + 持久化 googleApiKey
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const k = localStorage.getItem("postcard_google_api_key_v1");
+    if (k) setGoogleApiKey(k);
+  }, []);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (googleApiKey) localStorage.setItem("postcard_google_api_key_v1", googleApiKey);
+  }, [googleApiKey]);
 
   // 2026-06-14 聖上怒修法: 切 model 時清舊 imageErrors (避免舊 model 失敗 badge 殘留誤導 USER)
   useEffect(() => {
@@ -879,33 +894,22 @@ export default function PostcardPage() {
   }, [selectedModel]);
 
   // 2026-06-12: 載入圖片從 IndexedDB (替換 localStorage 5MB limit)
-  // 2026-06-14 聖上拍板: IndexedDB 空時 fallback 從 /postcard-images/day-N.png 載入
-  // (中堂 6-14 預先生成 + push 8 個 PNG, USER 開頁面就有 8 張圖可看, 不用等重新生圖)
+  // 2026-06-14 聖上拍板 🅑: 移除 /postcard-images/ fallback (8 個預生成 PNG 砍了, Netlify function 250MB cap 撞牆)
+  // 中堂跑 8 張圖要靠 USER 換完 distributor + 按 🎨 重新生圖
   useEffect(() => {
     if (typeof window === "undefined") return;
     (async () => {
-      const imgs: Record<number, string> = {};
-      // 1) 先嘗試 IndexedDB
       try {
         const { loadAllImages } = await import("@/lib/postcard-storage");
         const all = await loadAllImages();
+        const imgs: Record<number, string> = {};
         for (const [dayStr, data] of Object.entries(all)) {
           imgs[parseInt(dayStr, 10)] = data.url;
         }
+        setGeneratedImages(imgs);
       } catch (e) {
         console.warn("[postcard] IndexedDB load failed, fallback memory-only:", e);
       }
-      // 2) 缺的 1-8 天從 /postcard-images/day-N.png fallback (中堂 6-14 預先生成的)
-      for (let day = 1; day <= 8; day++) {
-        if (imgs[day]) continue;
-        try {
-          const res = await fetch(`/postcard-images/day${day}.png`, { cache: "no-store" });
-          if (!res.ok) continue;
-          const blob = await res.blob();
-          imgs[day] = URL.createObjectURL(blob);
-        } catch { /* skip */ }
-      }
-      setGeneratedImages(imgs);
     })();
   }, []);
 
@@ -1084,6 +1088,24 @@ export default function PostcardPage() {
           }
         }
         // result = null = fetch 失敗 (network / CORS), pockgoError 保持 null
+      } else if (imageModel === "google") {
+        // 2026-06-14 聖上拍板: minimax 以外, 直接 call Google Generative AI (繞過 pockgo distributor 503)
+        // USER 必須先在 UI 填 Google API key (client-side localStorage 存)
+        if (!googleApiKey) {
+          throw new Error("請先填 Google API key (UI 右上 🔑)");
+        }
+        const res = await fetch("/api/postcard/generate-google", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt, model: "imagen-3.0-generate-002", apiKey: googleApiKey, aspectRatio: "16:9" }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `google ${res.status}`);
+        }
+        const data = await res.json();
+        imgBase64 = data.image;
+        usedModel = data.model || "imagen-3.0-generate-002";
       } else {
         imgBase64 = await generateMiniMaxImage(prompt);
         usedModel = "minimax";
@@ -1345,7 +1367,44 @@ export default function PostcardPage() {
               >
                 🆕 pockgo
               </button>
+              <button
+                onClick={() => setImageModel("google")}
+                className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+                  imageModel === "google"
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow"
+                    : "text-gray-500 hover:bg-gray-50"
+                }`}
+                title="Google Generative AI 直接 call (imagen-3.0, 繞過 pockgo distributor 503, 需 USER 自己提供 API key)"
+              >
+                🔑 Google
+              </button>
             </div>
+            {/* 2026-06-14 聖上拍板: Google API key 輸入框 (切到 google provider 時展開, USER 6-12 拍板 client-side 控制) */}
+            {imageModel === "google" && (
+              <div className="bg-white rounded-xl p-2 shadow border border-emerald-200" data-testid="google-api-key-input">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs font-bold text-emerald-700">🔑 Google API Key</span>
+                  <button
+                    onClick={() => setShowGoogleKeyInput(v => !v)}
+                    className="text-xs text-gray-400 hover:text-gray-600"
+                    title={showGoogleKeyInput ? "隱藏" : "顯示 / 編輯"}
+                  >
+                    {showGoogleKeyInput ? "🙈" : "👁️"}
+                  </button>
+                </div>
+                <input
+                  type={showGoogleKeyInput ? "text" : "password"}
+                  value={googleApiKey}
+                  onChange={e => setGoogleApiKey(e.target.value)}
+                  placeholder="AIza... (從 aistudio.google.com/app/apikey 拿)"
+                  className="w-full px-2 py-1 text-xs border border-emerald-200 rounded focus:outline-none focus:border-emerald-500"
+                  style={{ minWidth: 280 }}
+                />
+                <div className="text-xs text-gray-400 mt-1">
+                  存 localStorage `postcard_google_api_key_v1`, 不寫 Netlify env (USER 6-12 拍板)
+                </div>
+              </div>
+            )}
             {/* 2026-06-14 聖上拍板 🅐: 中文 Overlay 開關 (gemini 中文錯字 → HTML overlay 100% 對) */}
             <label
               data-testid="overlay-toggle"
