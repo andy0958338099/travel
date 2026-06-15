@@ -17,5 +17,7 @@
 # named "___netlify-server-handler". timeout controls the ceiling.
 # (RESTORED from 039dc681 — 6/8 折騰移除後 deploy 一直 error,
 #  恢復 039dc681 成功設定)
+# 2026-06-15 聖上拍板 🅐: 30 → 60s, USER distributor gpt-image-2-2k 中文最強
+#   但單張 39.9s+ 撞 30s cap, 升 60s 解封 (Netlify 免費 plan 支援到 60s)
 [functions."___netlify-server-handler"]
-  timeout = 30
+  timeout = 60
