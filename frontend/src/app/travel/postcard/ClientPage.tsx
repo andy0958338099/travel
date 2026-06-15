@@ -1494,6 +1494,32 @@ export default function PostcardPage() {
           </div>
         </div>
 
+        {/* 2026-06-15 聖上拍板 🅐: 8 天卡通 Q版全景圖 (nano-banana 拼 1024x8192, 1.85MB) */}
+        <div className="mb-6 bg-white rounded-2xl p-4 shadow-lg border-2 border-pink-200" data-testid="panorama-cartoon-section">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-black text-gray-800">🖼️ 8 天卡通 Q 版全景圖</h2>
+            <a
+              href="/postcard-panorama-cartoon-8day.jpg"
+              download="postcard-panorama-cartoon-8day.jpg"
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow hover:shadow-md transition-all"
+              data-testid="panorama-cartoon-download"
+            >
+              📥 下載全景圖 (1.85MB)
+            </a>
+          </div>
+          <p className="text-xs text-gray-500 mb-2">
+            模型: <span className="font-mono text-pink-600">nano-banana</span> · 8 張 1024×1024 卡通 Q版上下堆疊 · 實際尺寸 1024×8192 (1:8 比例) ·
+            <span className="text-amber-600"> nano-banana 忽略 16:9 prompt 跑出方形</span>
+          </p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/postcard-panorama-cartoon-8day.jpg"
+            alt="8 天卡通 Q 版全景圖 (江南水鄉八日)"
+            className="w-full h-auto rounded-xl shadow-md border border-gray-200"
+            loading="lazy"
+          />
+        </div>
+
         {/* 2026-06-14 聖上拍板: 生圖模型庫 (25 個 pockgo image model, 勾選啟用 + ✕ 隱藏 + 點選用為當前 model) */}
         {imageModel === "pockgo" && (
           <ModelLibrary
