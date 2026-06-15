@@ -29,16 +29,16 @@ const IMG_STORAGE_KEY = "hangzhou-trip-postcard-img-";
 const SONG_STORAGE_KEY = "hangzhou-trip-postcard-song-";
 const PROMPT_STORAGE_KEY = "postcard_prompt_v1";  // 2026-06-12: 聖上拍板可改 prompt
 
-// 2026-06-12 聖上拍板: 程式自動 per-day 組裝 prompt, USER 不再手動改
-// 從 itinerary events (morning/afternoon/night) 跟 DAY_META 自動生成完整 prompt
-// 強調繁體中文大字, 16:9 寬卡, 4K 解析度
+// 2026-06-15 聖上怒「為何無法運用成正確生成的圖」, 中堂 root cause:
+//   頁面名稱 =「卡通旅遊行程圖卡」, 但 buildDayPrompt 預設 prompt 還是 6-12 宋畫/水墨風, 名實不符
+//   改成「卡通 Q版漫畫」風格, 跟頁面名稱一致
 function buildDayPrompt(day: number, dayEvents: ItineraryEvent[], meta: DayData): string {
   const eventsByPeriod = {
     morning: dayEvents.filter(e => e.period === "morning").map(e => e.title).join(", ") || "(free time)",
     afternoon: dayEvents.filter(e => e.period === "afternoon").map(e => e.title).join(", ") || "(free time)",
     night: dayEvents.filter(e => e.period === "night").map(e => e.title).join(", ") || "(free time)",
   };
-  return `Create a horizontal Chinese travel itinerary illustration for ${meta.label} (${meta.date}) in 16:9 ultra wide landscape format.
+  return `Create a horizontal cartoon travel itinerary illustration for ${meta.label} (${meta.date}) in 16:9 ultra wide landscape format.
 
 Day ${day} theme: ${meta.theme}
 
@@ -50,22 +50,23 @@ Itinerary:
 Visual elements: ${meta.visual.join(", ")} (${meta.icons.join(" ")})
 
 Style requirements:
-- Song Dynasty ink painting aesthetic (宋畫)
-- Chinese hand-drawn travel atlas style
-- Vintage parchment paper background
-- Elegant Chinese decorative borders and cloud patterns (雲紋)
-- Seal stamps (印章) as accents
-- Traditional Chinese ink and watercolor illustration
-- Travel handbook publication style
-- 16:9 ultra wide panoramic composition
+- Cute Q-version (Q版) cartoon comic style, chibi kawaii aesthetic
+- Big-headed small-body chibi characters, expressive cute faces with big sparkly eyes
+- Cel-shaded vibrant colors, clean bold line art, flat illustration
+- Anime/manga aesthetic with comic panel borders, cute speech bubbles, action lines
+- Chinese cultural elements: lanterns, paper umbrellas, hanfu details, red envelopes, traditional snacks
+- Studio Ghibli / modern Chinese animation inspired atmosphere
+- Cute friendly playful mood, not realistic
+- 16:9 ultra wide panoramic comic strip composition
 - Timeline flows from left to right across the entire width
+- Day evolves from morning (warm sunrise) to night (cool blue) with color palette shift
 
 Typography (CRITICAL):
-- LARGE Traditional Chinese (繁體中文) labels for headings
-- Big bold Traditional Chinese characters for section titles
+- LARGE Traditional Chinese (繁體中文) labels in cute rounded speech bubbles and banners
+- Bold Traditional Chinese characters for section titles in playful comic font
 - Perfect Traditional Chinese characters throughout
 - NO spelling errors, NO garbled text, NO fake Chinese characters
-- Looks like an official Chinese tourism bureau guide
+- Looks like a cute Chinese travel comic book for young adults
 
 Highly detailed. 4K resolution.`;
 }

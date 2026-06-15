@@ -12,17 +12,22 @@
  *
  * ⚠️ 2026-06-14 聖上拍板 B: 移除 hard-code `status: "verified"|"known-bad"|"untested"` 欄位
  *    改用 runtime verify 結果決定 (見 /lib/pockgo-verified-cache.ts)
- *    之前 6-14 1 次 production curl 確認 distributor 客觀只支援 gemini-2.5-flash-image
+ * 之前 6-14 1 次 production curl 確認 distributor 客觀只支援 gemini-2.5-flash-image
  *    24 個 known-bad 是當時快照, distributor 政策可能變, runtime verify 才是真相
+ *
+ * 2026-06-15 聖上怒「為何無法運用成正確生成的圖」, 中堂重新探活 36 個 image model,
+ *    確認 distributor 客觀只 3 個有 channel: gemini-2.5-flash-image / z-image-turbo / nano-banana
+ *    其他 33 個 503 "No available channel for model X under group default (distributor)"
+ *    新加 nano-banana (Google 出品, 6-15 卡通 Q版測試 1922KB / 10.5s 細節最多)
  *
  * 用法:
  *   import { POCKGO_IMAGE_MODELS, DEFAULT_ENABLED_MODELS, FALLBACK_MODEL } from "@/lib/pockgo-image-models";
  *   - ClientPage 顯示 model 庫 UI
  *   - 啟用清單存 localStorage (postcard_enabled_models_v1)
- *   - 預設啟用 1 個: gemini-2.5-flash-image (唯一已知能跑, 首次載入聖上有圖可出)
+ *   - 預設啟用 3 個: gemini-2.5-flash-image + z-image-turbo + nano-banana (3 個 6-15 verified)
  */
 
-export type ModelSeries = "gemini" | "gpt-image" | "seedream" | "qwen" | "hunyuan" | "flux" | "grok" | "z-image";
+export type ModelSeries = "gemini" | "nano-banana" | "gpt-image" | "seedream" | "qwen" | "hunyuan" | "flux" | "grok" | "z-image";
 
 export interface PockgoImageModel {
   /** pockgo API 用的 model name (傳給 /v1/chat/completions body.model) */
@@ -43,7 +48,8 @@ export interface PockgoImageModel {
 
 export const POCKGO_IMAGE_MODELS: PockgoImageModel[] = [
   // ── gemini (Google) — 7 個 ──
-  { name: "gemini-2.5-flash-image",                series: "gemini", vendor: "Google", price: 0.04, defaultEnabled: true, notes: "唯一已知能跑 (11.4s 1468KB 6-14 verify)" },
+  { name: "gemini-2.5-flash-image",                series: "gemini", vendor: "Google", price: 0.04, defaultEnabled: true, notes: "6-14 verify (11.4s 1468KB)" },
+  { name: "nano-banana",                           series: "nano-banana", vendor: "Google", price: 0.07, defaultEnabled: true, notes: "6-15 聖上怒找模型, 中堂新發現 distributor 3 個能跑之一 (10.5s 1922KB 細節最多, 卡通 Q版最強)" },
   { name: "gemini-2.5-flash-image-preview",        series: "gemini", vendor: "Google", price: 0.05, defaultEnabled: false },
   { name: "gemini-3.1-flash-image-preview",        series: "gemini", vendor: "Google", price: 0.03, defaultEnabled: false },
   { name: "gemini-3.1-flash-image-preview-2k",     series: "gemini", vendor: "Google", price: 0.05, resolution: "2K", defaultEnabled: false },
@@ -83,15 +89,15 @@ export const POCKGO_IMAGE_MODELS: PockgoImageModel[] = [
   { name: "grok-imagine-image",                    series: "grok", vendor: "xAI", price: 0.07, defaultEnabled: false },
 
   // ── z-image — 1 個 ──
-  { name: "z-image-turbo",                         series: "z-image", vendor: "Alibaba", price: 0.10, defaultEnabled: true, notes: "USER distributor 6-14 漏驗, 6-14 B 修法 verify 確認 ✅ verified (10.2s, 8 張 9-23s, 105-134KB)" },
+  { name: "z-image-turbo",                         series: "z-image", vendor: "Alibaba", price: 0.10, defaultEnabled: true, notes: "6-15 verify (10.2s, 8 張 9-23s, 105-134KB)" },
 ];
 
-/** 預設啟用 model name 清單 (gemini-2.5-flash-image 已知能跑, z-image-turbo 6-14 B 修法 verify 確認也能跑) */
+/** 預設啟用 model name 清單 (gemini-2.5-flash-image + nano-banana + z-image-turbo, 6-15 verify 確認 distributor 客觀只這 3 個能跑) */
 export const DEFAULT_ENABLED_MODELS: string[] = POCKGO_IMAGE_MODELS
   .filter(m => m.defaultEnabled)
   .map(m => m.name);
 
-/** 預設 default model (中堂 6-14 11.4s 1468KB verify 成功, USER distributor 唯一能跑的 2 個 model 之一) */
+/** 預設 default model (gemini-2.5-flash-image, 中堂 6-14 11.4s 1468KB verify 成功, USER distributor 3 個能跑 model 之一, 當 fallback 對象) */
 export const FALLBACK_MODEL = "gemini-2.5-flash-image";
 
 /** localStorage key: 啟用清單 */
