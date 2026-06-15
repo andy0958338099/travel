@@ -1494,7 +1494,7 @@ export default function PostcardPage() {
           </div>
         </div>
 
-        {/* 2026-06-15 聖上拍板 🅐: 8 天卡通 Q版全景圖 (nano-banana 拼 1024x8192, 1.85MB) */}
+        {/* 2026-06-15 聖上拍板 🅐 升 30→60s 失敗, 退 gemini-2.5-flash-image + 中文 Overlay 修法 (USER 6-14 拍板 🅐 既有) */}
         <div className="mb-6 bg-white rounded-2xl p-4 shadow-lg border-2 border-pink-200" data-testid="panorama-cartoon-section">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-black text-gray-800">🖼️ 8 天卡通 Q 版全景圖</h2>
@@ -1508,8 +1508,8 @@ export default function PostcardPage() {
             </a>
           </div>
           <p className="text-xs text-gray-500 mb-2">
-            模型: <span className="font-mono text-pink-600">nano-banana</span> · 8 張 1024×1024 卡通 Q版上下堆疊 · 實際尺寸 1024×8192 (1:8 比例) ·
-            <span className="text-amber-600"> nano-banana 忽略 16:9 prompt 跑出方形</span>
+            模型: <span className="font-mono text-pink-600">gemini-2.5-flash-image</span> · 8 張 1024×1024 卡通 Q版上下堆疊 · 實際尺寸 1024×8192 (1:8 比例) ·
+            <span className="text-amber-600">中文字靠 HTML Overlay 修法 (USER 6-14 拍板 🅐), gemini 出圖不內含中文</span>
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
