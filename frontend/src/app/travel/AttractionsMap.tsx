@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { ALL_ATTRACTIONS, Attraction } from "./data";
@@ -59,6 +59,23 @@ export default function AttractionsMap({ selectedDay: _selectedDay, plannedAttra
   const [mapCenter, setMapCenter] = useState<[number, number]>([30.25, 120.15]);
   const [mapZoom, setMapZoom] = useState(11);
 
+  // ── React 18 Strict Mode 雙 mount race fix ──
+  // react-leaflet 4.2.1 MapContainer cleanup 依賴 context state,
+  // 第一次 unmount 時 context 還是 null → map.remove() 不執行 → DOM 上 _leaflet_id 殘留
+  // 第二次 mount 報 "Map container is already initialized"
+  // 修法: 在 wrapper cleanup 強制清掉內部 leaflet-container 的 _leaflet_id, dev-only
+  const mapWrapperRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    return () => {
+      const el = mapWrapperRef.current?.querySelector(".leaflet-container") as
+        | (HTMLDivElement & { _leaflet_id?: number })
+        | null;
+      if (el) {
+        delete el._leaflet_id;
+      }
+    };
+  }, []);
+
   const filteredAttractions = activeFilter === 'all'
     ? ALL_ATTRACTIONS  // show ALL markers — planned ones get additional red markers below
     : ALL_ATTRACTIONS.filter(a => a.category === activeFilter);
@@ -106,7 +123,10 @@ export default function AttractionsMap({ selectedDay: _selectedDay, plannedAttra
       </div>
 
       {/* Map container */}
-      <div className="relative rounded-xl overflow-hidden border border-gray-200 h-[400px] sm:h-[500px]">
+      <div
+        ref={mapWrapperRef}
+        className="relative rounded-xl overflow-hidden border border-gray-200 h-[400px] sm:h-[500px]"
+      >
         <MapContainer
           center={mapCenter}
           zoom={mapZoom}
