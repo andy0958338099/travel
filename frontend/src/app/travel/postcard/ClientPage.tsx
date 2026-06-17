@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import html2canvas from "html2canvas";
 import ShareButtons from "@/components/ShareButtons";
 import { toast } from "@/components/GlobalToastHost";
+import { createClient } from "@/utils/supabase/client";
 // 2026-06-17 聖上拍板: 刪生圖模型庫 + 8 day cards 圖 (Target 1 + 🅐-4)
 // 相關 imports 已移除 (POCKGO_IMAGE_MODELS, verified cache, PockgoImageModel type)
 
@@ -16,10 +17,17 @@ const PROMPT_STORAGE_KEY = "postcard_prompt_v1";  // 2026-06-12: 聖上拍板可
 //   頁面名稱 =「卡通旅遊行程圖卡」, 但 buildDayPrompt 預設 prompt 還是 6-12 宋畫/水墨風, 名實不符
 //   改成「卡通 Q版漫畫」風格, 跟頁面名稱一致
 function buildDayPrompt(day: number, dayEvents: ItineraryEvent[], meta: DayData): string {
+  // 2026-06-18 USER 拍板 Q8🅐: 擴展讀 location + description, 讓每張圖反映完整行程細節
+  //   舊版只讀 title, 行程地點/描述細節丟失
+  const fmt = (e: ItineraryEvent) => {
+    const loc = e.location ? ` @ ${e.location}` : "";
+    const desc = e.description ? ` (${e.description})` : "";
+    return `${e.title}${loc}${desc}`;
+  };
   const eventsByPeriod = {
-    morning: dayEvents.filter(e => e.period === "morning").map(e => e.title).join(", ") || "(free time)",
-    afternoon: dayEvents.filter(e => e.period === "afternoon").map(e => e.title).join(", ") || "(free time)",
-    night: dayEvents.filter(e => e.period === "night").map(e => e.title).join(", ") || "(free time)",
+    morning: dayEvents.filter(e => e.period === "morning").map(fmt).join(", ") || "(free time)",
+    afternoon: dayEvents.filter(e => e.period === "afternoon").map(fmt).join(", ") || "(free time)",
+    night: dayEvents.filter(e => e.period === "night").map(fmt).join(", ") || "(free time)",
   };
   return `Create a horizontal cartoon travel itinerary illustration for ${meta.label} (${meta.date}) in 16:9 ultra wide landscape format.
 
@@ -346,6 +354,238 @@ async function generateMiniMaxMusic(prompt: string, lyrics: string): Promise<str
 // (Target 1 = ModelLibrary UI, 🅐-4 = 8 day cards section)
 // ModelLibrary function (L352-L562) 已刪除
 
+// ── 8 Day Cards Section (2026-06-18 USER 拍板 Q1-Q8) ─────────────────────
+//   Q1🅐-A: gpt-image-2-2k 中文最強 + fallback gemini-2.5-flash-image (USER 6-15 distributor verified)
+//   Q2🅑:   用戶手動一張一張點
+//   Q3🅐:   共用 buildDayPrompt template (已擴展讀 location + description, Q8🅐)
+//   Q4🅐:   ❌ badge + 一鍵 retry
+//   Q5🅑:   Supabase user_state table (免建 schema, 沿用 navOrderService 模式)
+//   Q6🅑:   8 張在全景圖下面共存 (在此 sub-component render)
+//   Q7🅐:   接受 Netlify 30s 撞牆 retry (Q4🅐 retry 處理)
+//   Q8🅐:   buildDayPrompt 已擴展讀 location + description (看上方函數)
+type DayImageRecord = {
+  dataUrl: string;
+  generatedAt: string;
+  prompt: string;
+  modelUsed: string;
+  isFallback: boolean;
+};
+
+const DAY_IMAGE_KEY = (d: number) => `postcard_day_image_${d}`;
+
+function DayCardsSection({ itinerary }: { itinerary: ItineraryEvent[] }) {
+  const [dayImages, setDayImages] = useState<Record<number, DayImageRecord>>({});
+  const [generatingDay, setGeneratingDay] = useState<number | null>(null);
+  const [dayImageErrors, setDayImageErrors] = useState<Record<number, string>>({});
+
+  // Mount: load 8 張 from Supabase user_state
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const sb = createClient();
+        const { data, error } = await sb
+          .from("user_state")
+          .select("key, value")
+          .in(
+            "key",
+            Array.from({ length: 8 }, (_, i) => DAY_IMAGE_KEY(i + 1))
+          );
+        if (error || !data) return;
+        const map: Record<number, DayImageRecord> = {};
+        for (const row of data) {
+          const m = row.key.match(/^postcard_day_image_(\d+)$/);
+          if (!m) continue;
+          const day = parseInt(m[1], 10);
+          if (day >= 1 && day <= 8 && row.value) {
+            map[day] = row.value as DayImageRecord;
+          }
+        }
+        if (mounted) setDayImages(map);
+      } catch {
+        // Supabase 失敗不影響 UI, 用戶之後生成會 save 上去
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function generateDayImage(day: number) {
+    if (generatingDay !== null) return;
+    setGeneratingDay(day);
+    setDayImageErrors((prev) => {
+      const { [day]: _omit, ...rest } = prev;
+      return rest;
+    });
+
+    const dayEvents = itinerary.filter((e) => e.day === day);
+    const meta = DAY_META[day];
+    const prompt = buildDayPrompt(day, dayEvents, meta);
+
+    try {
+      const res = await fetch("/api/postcard/generate-pockgo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, model: "gpt-image-2-2k", autoFallback: true }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const record: DayImageRecord = {
+        dataUrl: `data:image/png;base64,${data.image}`,
+        generatedAt: new Date().toISOString(),
+        prompt,
+        modelUsed: data.model,
+        isFallback: !!data.isFallback,
+      };
+      setDayImages((prev) => ({ ...prev, [day]: record }));
+      // Save to Supabase user_state (Q5🅑)
+      try {
+        const sb = createClient();
+        await sb.from("user_state").upsert({
+          key: DAY_IMAGE_KEY(day),
+          value: record as unknown as object,
+          updated_at: new Date().toISOString(),
+        });
+      } catch {
+        // Save 失敗不影響本次生成 (用戶可重新生成重試 save)
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "生成失敗";
+      setDayImageErrors((prev) => ({ ...prev, [day]: msg }));
+    } finally {
+      setGeneratingDay(null);
+    }
+  }
+
+  return (
+    <div className="mb-6 bg-white rounded-2xl p-4 shadow-lg border-2 border-amber-200" data-testid="day-cards-section">
+      <h2 className="text-lg font-black text-gray-800 mb-2">🎨 8 天每日獨立卡通 Q 版圖</h2>
+      <p className="text-xs text-gray-500 mb-3">
+        模型: <span className="font-mono text-pink-600">gpt-image-2-2k</span> (中文最強, fallback
+        gemini-2.5-flash-image USER 6-15 distributor verified) · 每張用 <code className="font-mono">buildDayPrompt</code>
+        自動帶入當天 itinerary 細節 (title + location + description, USER Q8🅐) · 同一畫風 (16:9 Q版
+        comic strip) · 每張約 25-35s · Q4🅐 ❌ retry · 雲端存 Supabase
+      </p>
+      <div className="space-y-3">
+        {Array.from({ length: 8 }, (_, i) => i + 1).map((day) => {
+          const meta = DAY_META[day];
+          const img = dayImages[day];
+          const err = dayImageErrors[day];
+          const isGen = generatingDay === day;
+          const isOtherGen = generatingDay !== null && !isGen;
+          return (
+            <div
+              key={day}
+              className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-200"
+            >
+              <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-gray-800">
+                    {meta.label} · {meta.theme}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {meta.date} · {meta.visual.slice(0, 3).join(" / ")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {img && (
+                    <span className="text-xs text-gray-500 font-mono">
+                      {img.isFallback ? "🔁 " : ""}
+                      {img.modelUsed} · {Math.round(img.dataUrl.length / 1024)}KB
+                    </span>
+                  )}
+                  {!img && !isGen && !err && (
+                    <button
+                      onClick={() => generateDayImage(day)}
+                      disabled={isOtherGen}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
+                      data-testid={`day-gen-${day}`}
+                    >
+                      🎨 生成 {meta.label}
+                    </button>
+                  )}
+                  {isGen && (
+                    <span className="text-xs text-amber-700 font-bold" data-testid={`day-loading-${day}`}>
+                      ⏳ 生成中 (約 25-35s)
+                    </span>
+                  )}
+                  {err && !isGen && !img && (
+                    <button
+                      onClick={() => generateDayImage(day)}
+                      disabled={isOtherGen}
+                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-red-500 to-rose-500 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
+                      data-testid={`day-retry-${day}`}
+                    >
+                      🔄 重試 {meta.label}
+                    </button>
+                  )}
+                  {img && !isGen && (
+                    <>
+                      <button
+                        onClick={() => generateDayImage(day)}
+                        disabled={isOtherGen}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-violet-400 to-purple-400 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
+                        data-testid={`day-regen-${day}`}
+                      >
+                        🔄 重新生成
+                      </button>
+                      <a
+                        href={img.dataUrl}
+                        download={`postcard-day-${day}-${meta.label.replace(/\s+/g, "-").toLowerCase()}.png`}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow hover:shadow-md transition-all"
+                        data-testid={`day-download-${day}`}
+                      >
+                        📥 下載
+                      </a>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {err && (
+                <div
+                  className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700"
+                  data-testid={`day-err-${day}`}
+                >
+                  ❌ {err}
+                </div>
+              )}
+
+              {img && (
+                <details className="mb-2">
+                  <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                    📝 顯示 prompt (USER 6-12 拍板可改)
+                  </summary>
+                  <pre className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600 overflow-x-auto whitespace-pre-wrap font-mono">
+                    {img.prompt}
+                  </pre>
+                </details>
+              )}
+
+              {img && (
+                <div className="rounded-lg overflow-hidden border border-amber-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.dataUrl}
+                    alt={`${meta.label} 卡通 Q 版圖`}
+                    className="w-full h-auto"
+                    loading="lazy"
+                    data-testid={`day-img-${day}`}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────
 export default function PostcardPage() {
   // 2026-06-17 聖上拍板 🅐-4 + Target 1: 生圖狀態全砍 (generatedImages/generatingAll/generatingDay/imageModel/googleApiKey/
@@ -565,7 +805,12 @@ export default function PostcardPage() {
 
         {/* 2026-06-17 聖上拍板 🅐-4 + Target 1: ModelLibrary UI + 8 day cards 圖整段刪除
             (生圖模型庫 + 每張圖的卡片渲染 + ❌ 失敗 badge + generating overlay + 中文 overlay 全不需要)
-            全景圖 (上方 gpt-image-2-2k 預生成 8 天 jpg, 2.36MB) 仍保留, 已是單一圖展示. */}
+            全景圖 (上方 gpt-image-2-2k 預生成 8 天 jpg, 2.36MB) 仍保留, 已是單一圖展示.
+
+            2026-06-18 USER 反悔拍板: 重新加 8 day cards 圖, 每天獨立生圖, 用行程規劃器細節
+            (Q1-Q8 拍板, 看 sub-component DayCardsSection 上方註解) */}
+
+        <DayCardsSection itinerary={itinerary} />
 
         {/* Edit Modal */}
         {editingDay !== null && (
