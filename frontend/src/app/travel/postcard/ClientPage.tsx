@@ -531,9 +531,10 @@ export default function PostcardPage() {
           </div>
         </div>
 
-        {/* 2026-06-15 聖上拍板 🅐 升 30→60s 失敗, 退 gemini-2.5-flash-image + 中文 Overlay 修法 (USER 6-14 拍板 🅐 既有) */}
+        {/* 2026-06-15 22:12 聖上拍板 🅐: 升 2K gpt-image-2-2k 8 張卡通 Q 版全景 (442s 跑完, 2f33e3d)
+            中文最強 (USER 6-15 distributor 6 model 實測), 出圖已含正確中文字, 不再需要 HTML Overlay 修法 */}
         <div className="mb-6 bg-white rounded-2xl p-4 shadow-lg border-2 border-pink-200" data-testid="panorama-cartoon-section">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 mb-3 flex-wrap">
             <h2 className="text-lg font-black text-gray-800">🖼️ 8 天卡通 Q 版全景圖</h2>
             <a
               href="/postcard-panorama-cartoon-8day.jpg"
@@ -541,12 +542,17 @@ export default function PostcardPage() {
               className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow hover:shadow-md transition-all"
               data-testid="panorama-cartoon-download"
             >
-              📥 下載全景圖 (1.85MB)
+              📥 下載全景圖 (2.36MB)
             </a>
+            <ShareButtons
+              variant="compact"
+              title="江南水鄉 8 天卡通 Q 版全景圖"
+              text="🖼️ 江南水鄉 8 天卡通 Q 版全景圖 · gpt-image-2-2k 生成 · 1024×7228"
+            />
           </div>
           <p className="text-xs text-gray-500 mb-2">
-            模型: <span className="font-mono text-pink-600">gemini-2.5-flash-image</span> · 8 張 1024×1024 卡通 Q版上下堆疊 · 實際尺寸 1024×8192 (1:8 比例) ·
-            <span className="text-amber-600">中文字靠 HTML Overlay 修法 (USER 6-14 拍板 🅐), gemini 出圖不內含中文</span>
+            模型: <span className="font-mono text-pink-600">gpt-image-2-2k</span> · 8 張 1024×1024 卡通 Q版上下堆疊 · 實際尺寸 1024×7228 (JPEG 壓縮縮減, 原始 1:8 比例) ·
+            <span className="text-emerald-600">中文最強 (USER 6-15 distributor 6 model 實測), 出圖已含正確中文字</span>
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -559,7 +565,7 @@ export default function PostcardPage() {
 
         {/* 2026-06-17 聖上拍板 🅐-4 + Target 1: ModelLibrary UI + 8 day cards 圖整段刪除
             (生圖模型庫 + 每張圖的卡片渲染 + ❌ 失敗 badge + generating overlay + 中文 overlay 全不需要)
-            全景圖 (上方 gemini 預生成 8 天 jpg) 仍保留, 已是單一圖展示. */}
+            全景圖 (上方 gpt-image-2-2k 預生成 8 天 jpg, 2.36MB) 仍保留, 已是單一圖展示. */}
 
         {/* Edit Modal */}
         {editingDay !== null && (
