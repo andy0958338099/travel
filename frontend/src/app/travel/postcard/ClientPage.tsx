@@ -787,7 +787,7 @@ export default function PostcardPage() {
             <ShareButtons
               variant="compact"
               title="江南水鄉 8 天卡通 Q 版全景圖"
-              text="🖼️ 江南水鄉 8 天卡通 Q 版全景圖 · gpt-image-2-2k 生成 · 1024×7228"
+              text="🖼️ 江南水鄉 8 天卡通 Q 版全景圖"
             />
           </div>
           <p className="text-xs text-gray-500 mb-2">
