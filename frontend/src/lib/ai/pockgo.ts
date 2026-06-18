@@ -67,7 +67,10 @@ function isGeminiModel(model: string): boolean {
   return /^gemini-/i.test(model);
 }
 
-const DEFAULT_TIMEOUT = 55_000;  // gemini-3.1-flash-image-preview-4k 出圖 ~12-40s, 留 buffer
+// 2026-06-18 聖上拍板 B 案: env-driven, localhost + deploy 雙顧
+//   - dev: 120s 給 gpt-image-2-2k 47s avg + Next.js HMR/compile buffer + retry safety
+//   - prod: 55s 維持原值 (Netlify 30s 會先 kill function, 55s 永遠到不了, 但保守寫著備用)
+const DEFAULT_TIMEOUT = process.env.NODE_ENV === "development" ? 120_000 : 55_000;
 const DOWNLOAD_TIMEOUT = 30_000; // 4K 圖大, 下載 10-25s
 const ASPECT_RATIO = "16:9";     // 2026-06-12: 聖上拍板橫式寬卡 (中國風 scroll painting)
 
