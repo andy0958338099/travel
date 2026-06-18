@@ -377,23 +377,61 @@ function DayCardsSection({ itinerary }: { itinerary: ItineraryEvent[] }) {
   const [dayImages, setDayImages] = useState<Record<number, DayImageRecord>>({});
   const [generatingDay, setGeneratingDay] = useState<number | null>(null);
   const [dayImageErrors, setDayImageErrors] = useState<Record<number, string>>({});
+  const [reloadingDay, setReloadingDay] = useState<number | null>(null);
+
+  // 2026-06-18 聖上拍板: 加 reload 從雲端單張重載按鈕
+  //   PostgREST 5.5MB value 偶爾 statement timeout, mount load 不一定全 8 張都成功
+  //   用戶點 reload 只撈該 key, 不重 AI 生圖, 省 47s + $0.14
+  async function reloadDayFromCloud(day: number) {
+    if (reloadingDay !== null) return;
+    setReloadingDay(day);
+    setDayImageErrors((prev) => {
+      const { [day]: _omit, ...rest } = prev;
+      return rest;
+    });
+    try {
+      const sb = createClient();
+      const { data, error } = await sb
+        .from("user_state")
+        .select("key, value")
+        .eq("key", DAY_IMAGE_KEY(day))
+        .maybeSingle();
+      if (error || !data) {
+        throw new Error(error?.message || "雲端無資料");
+      }
+      setDayImages((prev) => ({ ...prev, [day]: data.value as DayImageRecord }));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "重載失敗";
+      setDayImageErrors((prev) => ({ ...prev, [day]: msg }));
+    } finally {
+      setReloadingDay(null);
+    }
+  }
 
   // Mount: load 8 張 from Supabase user_state
+  // 2026-06-18 聖上拍板 B 案: 8 個 single-key 平行查 (1 key ≈ 5.5MB, 1.5s)
+  //   原 .in(8 keys) 撈 40MB → PostgREST statement timeout (57014) → load 永遠空
+  //   8 平行單查, 任一失敗不波及其他, 總耗時 ≈ max(1.5s) 而非 sum
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         const sb = createClient();
-        const { data, error } = await sb
-          .from("user_state")
-          .select("key, value")
-          .in(
-            "key",
-            Array.from({ length: 8 }, (_, i) => DAY_IMAGE_KEY(i + 1))
-          );
-        if (error || !data) return;
+        const keys = Array.from({ length: 8 }, (_, i) => DAY_IMAGE_KEY(i + 1));
+        const rows = await Promise.all(
+          keys.map(async (key) => {
+            const { data, error } = await sb
+              .from("user_state")
+              .select("key, value")
+              .eq("key", key)
+              .maybeSingle();
+            if (error || !data) return null;
+            return data;
+          })
+        );
         const map: Record<number, DayImageRecord> = {};
-        for (const row of data) {
+        for (const row of rows) {
+          if (!row) continue;
           const m = row.key.match(/^postcard_day_image_(\d+)$/);
           if (!m) continue;
           const day = parseInt(m[1], 10);
@@ -499,14 +537,24 @@ function DayCardsSection({ itinerary }: { itinerary: ItineraryEvent[] }) {
                     </span>
                   )}
                   {!img && !isGen && !err && (
-                    <button
-                      onClick={() => generateDayImage(day)}
-                      disabled={isOtherGen}
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
-                      data-testid={`day-gen-${day}`}
-                    >
-                      🎨 生成 {meta.label}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => generateDayImage(day)}
+                        disabled={isOtherGen}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-400 to-orange-400 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
+                        data-testid={`day-gen-${day}`}
+                      >
+                        🎨 生成 {meta.label}
+                      </button>
+                      <button
+                        onClick={() => reloadDayFromCloud(day)}
+                        disabled={isOtherGen || reloadingDay !== null}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-sky-400 to-blue-400 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
+                        data-testid={`day-reload-${day}`}
+                      >
+                        {reloadingDay === day ? "⏳ 重載中" : "🔄 從雲端重載"}
+                      </button>
+                    </>
                   )}
                   {isGen && (
                     <span className="text-xs text-amber-700 font-bold" data-testid={`day-loading-${day}`}>
@@ -514,14 +562,24 @@ function DayCardsSection({ itinerary }: { itinerary: ItineraryEvent[] }) {
                     </span>
                   )}
                   {err && !isGen && !img && (
-                    <button
-                      onClick={() => generateDayImage(day)}
-                      disabled={isOtherGen}
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-red-500 to-rose-500 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
-                      data-testid={`day-retry-${day}`}
-                    >
-                      🔄 重試 {meta.label}
-                    </button>
+                    <>
+                      <button
+                        onClick={() => generateDayImage(day)}
+                        disabled={isOtherGen}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-red-500 to-rose-500 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
+                        data-testid={`day-retry-${day}`}
+                      >
+                        🔄 重試 {meta.label}
+                      </button>
+                      <button
+                        onClick={() => reloadDayFromCloud(day)}
+                        disabled={isOtherGen || reloadingDay !== null}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-sky-400 to-blue-400 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
+                        data-testid={`day-reload-${day}`}
+                      >
+                        {reloadingDay === day ? "⏳ 重載中" : "🔄 從雲端重載"}
+                      </button>
+                    </>
                   )}
                   {img && !isGen && (
                     <>
