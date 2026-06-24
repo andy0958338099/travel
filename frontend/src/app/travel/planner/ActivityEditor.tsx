@@ -22,7 +22,9 @@ export default function ActivityEditor({
   const [duration, setDuration] = useState(activity.duration);
   const [color, setColor] = useState(activity.color);
   const [cost, setCost] = useState(activity.cost ?? 0);
-  const [costType, setCostType] = useState(activity.costType || 'ticket');
+  const [costType, setCostType] = useState<Exclude<Activity['costType'], undefined>>(
+    activity.costType || 'ticket'
+  );
   const [tickets, setTickets] = useState<TicketType[]>(
     Array.isArray(activity.tickets)
       ? activity.tickets
@@ -95,7 +97,7 @@ export default function ActivityEditor({
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => setCostType(opt.value as Activity['costType'])}
+                  onClick={() => setCostType(opt.value)}
                   className={`
                     px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors
                     ${costType === opt.value
