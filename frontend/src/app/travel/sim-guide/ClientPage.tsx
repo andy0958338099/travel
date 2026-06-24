@@ -3,15 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
-// ─── 資料：6 個常見大陸 APP（icon 從 iTunes Search API 抓的 256x256） ────────
-type AppInfo = { id: string; name: string; nameEn: string; icon: string; category: string };
+// ─── 資料：6 個常見大陸 APP ─────────────────────────────────────────────────
+// 2026-06-24 聖上拍板: 保留原 iTunes 真實 icon (用戶辨識用), Q版圖另做輔助解說
+// 6 張 Q版 chibi icon 從 nano-banana 跑出, 放在 hero banner 頁頂裝飾用
+type AppInfo = { id: string; name: string; nameEn: string; icon: string; qIcon: string; category: string };
 const APPS: AppInfo[] = [
-  { id: 'wechat',  name: '微信',     nameEn: 'WeChat',  icon: '/sim-guide/icons/wechat.jpg',  category: '通訊+支付' },
-  { id: 'alipay',  name: '支付寶',   nameEn: 'Alipay',  icon: '/sim-guide/icons/alipay.jpg',  category: '支付' },
-  { id: 'meituan', name: '美團',     nameEn: 'Meituan', icon: '/sim-guide/icons/meituan.jpg', category: '外賣+訂票' },
-  { id: 'amap',    name: '高德地圖', nameEn: 'Amap',    icon: '/sim-guide/icons/amap.jpg',    category: '導航+打車' },
-  { id: 'didi',    name: '滴滴出行', nameEn: 'DiDi',    icon: '/sim-guide/icons/didi.jpg',    category: '打車' },
-  { id: '12306',   name: '12306',    nameEn: '12306',   icon: '/sim-guide/icons/12306.jpg',   category: '高鐵火車票' },
+  { id: 'wechat',  name: '微信',     nameEn: 'WeChat',  icon: '/sim-guide/icons/wechat.jpg',  qIcon: '/sim-guide/q/q-wechat.jpg',  category: '通訊+支付' },
+  { id: 'alipay',  name: '支付寶',   nameEn: 'Alipay',  icon: '/sim-guide/icons/alipay.jpg',  qIcon: '/sim-guide/q/q-alipay.jpg',  category: '支付' },
+  { id: 'meituan', name: '美團',     nameEn: 'Meituan', icon: '/sim-guide/icons/meituan.jpg', qIcon: '/sim-guide/q/q-meituan.jpg', category: '外賣+訂票' },
+  { id: 'amap',    name: '高德地圖', nameEn: 'Amap',    icon: '/sim-guide/icons/amap.jpg',    qIcon: '/sim-guide/q/q-amap.jpg',    category: '導航+打車' },
+  { id: 'didi',    name: '滴滴出行', nameEn: 'DiDi',    icon: '/sim-guide/icons/didi.jpg',    qIcon: '/sim-guide/q/q-didi.jpg',    category: '打車' },
+  { id: '12306',   name: '12306',    nameEn: '12306',   icon: '/sim-guide/icons/12306.jpg',   qIcon: '/sim-guide/q/q-12306.jpg',   category: '高鐵火車票' },
 ];
 
 // 各 APP 對兩種方案的支援度（門號 vs eSIM）
@@ -37,21 +39,23 @@ const QUICK_COMPARE = [
 ];
 
 // ─── 三大電信 SIM 方案（價格為約略值, 最後更新 2026-06-06） ───────────────
+// 2026-06-24 聖上拍板: 移除具體 NT$ 報價 (寫死常數 = 亂寫風險), 改為「查證時間戳」+ 通路連結
+// 中國官網境外 IP 100% 被擋, 無法即時抓報價; 用戶需自行點連結查當下價格
+// 中堂提供「印象估算區間」標示為「⚠️ 估算」, 仍可作為快速參考但非保證值
 const SIM_PLANS = [
-  { operator: '中國移動', brand: '动感地带',   days: 8,  data: '20GB',  voice: '100分鐘', priceTWD: 480, note: '港澳台用戶專屬, 機場服務台辦理' },
-  { operator: '中國聯通', brand: '沃派',       days: 8,  data: '30GB',  voice: '200分鐘', priceTWD: 550, note: '訊號涵蓋廣, 高鐵沿線穩定' },
-  { operator: '中國電信', brand: '天翼旅遊卡', days: 8,  data: '25GB',  voice: '150分鐘', priceTWD: 520, note: 'CDMA 機型不適用, 注意雙卡支援' },
-  { operator: '中國移動', brand: '动感地带',   days: 15, data: '50GB',  voice: '300分鐘', priceTWD: 780, note: '深度旅遊 15 天加長版' },
-  { operator: '中國聯通', brand: '沃派',       days: 30, data: '100GB', voice: '500分鐘', priceTWD: 1100, note: '長期居留/出差適用' },
+  { operator: '中國移動', brand: '动感地带 / 港澳台旅遊卡', days: 8,  data: '20GB',  voice: '100分鐘', searchHint: '淘寶 m.tmall.com 搜「中國移動 港澳台 8天 20GB」', priceNote: '請至淘寶官方旗艦店查當下報價', estMin: 400, estMax: 600 },
+  { operator: '中國聯通', brand: '沃派 / 港澳台旅遊卡',   days: 8,  data: '30GB',  voice: '200分鐘', searchHint: '淘寶 m.tmall.com 搜「中國聯通 沃派 港澳台 30GB」', priceNote: '請至淘寶官方旗艦店查當下報價', estMin: 450, estMax: 650 },
+  { operator: '中國電信', brand: '天翼旅遊卡 / 港澳台專屬', days: 8,  data: '25GB',  voice: '150分鐘', searchHint: '淘寶 m.tmall.com 搜「中國電信 天翼 港澳台 8天」', priceNote: '請至淘寶官方旗艦店查當下報價', estMin: 450, estMax: 650 },
+  { operator: '中國移動', brand: '15 天加長版',          days: 15, data: '50GB',  voice: '300分鐘', searchHint: '淘寶 m.tmall.com 搜「中國移動 港澳台 15天 50GB」', priceNote: '請至淘寶官方旗艦店查當下報價', estMin: 700, estMax: 900 },
+  { operator: '中國聯通', brand: '30 天長期版',          days: 30, data: '100GB', voice: '500分鐘', searchHint: '淘寶 m.tmall.com 搜「中國聯通 港澳台 30天 100GB」', priceNote: '請至淘寶官方旗艦店查當下報價', estMin: 1000, estMax: 1300 },
 ];
-
-// ─── eSIM 平台（價格為約略值, 最後更新 2026-06-06） ──────────────────────
+// 2026-06-24 改: 同上移除 USD 報價, Airalo/Holafly 官網境外可達, 標「以官網/app 當下為準」
 const ESIM_PLANS = [
-  { provider: 'Airalo',    region: '中國大陸', data: '5GB',  days: 7,  priceTWD: 320, note: '全球最大 eSIM 平台, 支援 eSIM 機型最廣' },
-  { provider: 'Holafly',   region: '中國大陸', data: '無限',  days: 5,  priceTWD: 480, note: '歐洲品牌, 免翻牆 (中國 IP 直連)' },
-  { provider: 'eSIM123',   region: '中國+港澳', data: '10GB', days: 8,  priceTWD: 380, note: '台灣本土公司, 中英客服, 港澳漫遊' },
-  { provider: '中國聯通 eSIM', region: '中國大陸', data: '20GB', days: 8,  priceTWD: 420, note: '需中國身份認證, 觀光客不易辦' },
-  { provider: 'Airalo',    region: '亞洲 12 國', data: '10GB', days: 15, priceTWD: 600, note: '多國旅遊適用 (港澳+東南亞)' },
+  { provider: 'Airalo',  region: '中國大陸', data: '1GB-50GB',  days: '7-30',  url: 'https://www.airalo.com/china-esim', priceNote: '以 app/官網當下報價為準 (官網標 from US$4 起)', estMin: 320, estMax: 600 },
+  { provider: 'Holafly', region: '中國大陸', data: '∞ 無限流量',  days: '5-20',  url: 'https://esim.holafly.com/china/',    priceNote: '以 app/官網當下報價為準', estMin: 480, estMax: 1200 },
+  { provider: 'eSIM123', region: '中國+港澳', data: '10GB',      days: 8,      url: 'https://www.esim123.com/',          priceNote: '請上官網查當下報價 (台灣本土公司)', estMin: 350, estMax: 500 },
+  { provider: '中國聯通 eSIM', region: '中國大陸', data: '20GB',  days: 8,      url: 'https://www.10010.com',            priceNote: '需中國身份認證, 觀光客不易辦', estMin: 380, estMax: 500 },
+  { provider: 'Airalo',  region: '亞洲 12 國', data: '10GB',      days: 15,     url: 'https://www.airalo.com/asia',       priceNote: '以 app/官網當下報價為準', estMin: 550, estMax: 800 },
 ];
 
 // ─── 真實情境案例 ─────────────────────────────────────────────────────────
@@ -142,7 +146,31 @@ export default function SimGuidePage() {
         </div>
       </header>
 
+      {/* ══════ 2026-06-24 Q版 hero banner (聖上拍板 A: 真實 icon 留原位, Q版圖裝飾用) ══════ */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-8">
+        <section className="bg-gradient-to-br from-amber-50 via-white to-rose-50 rounded-2xl shadow-xl p-6 sm:p-8 mb-8 border-2 border-amber-200">
+          <div className="text-center mb-4">
+            <div className="text-sm uppercase tracking-widest text-orange-600 font-bold mb-1">🎨 6 大陸 APP 場景速覽</div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900">用卡通圖看 APP 用途 · 1 秒理解要裝哪些</h2>
+            <p className="text-sm text-slate-500 mt-1">Q版人物場景圖（AI 生成）搭配下方真實 icon 對照</p>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-4">
+            {APPS.map(app => (
+              <div key={app.id} className="flex flex-col items-center gap-2 group">
+                <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden shadow-md ring-2 ring-white group-hover:ring-orange-300 transition-all">
+                  <img src={app.qIcon} alt={app.name} className="w-full h-full object-cover" />
+                </div>
+                <div className="text-center">
+                  <div className="text-xs sm:text-sm font-bold text-slate-900">{app.name}</div>
+                  <div className="text-[10px] sm:text-xs text-slate-500 mt-0.5">{app.category}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
 
         {/* ══════ Section 1: 開門見山決策樹 ══════ */}
         <section className="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-8">
@@ -308,6 +336,11 @@ export default function SimGuidePage() {
           </div>
 
           {/* Tab content */}
+          <div className="text-xs text-slate-500 mb-4 px-3 py-2 bg-rose-50 border-l-4 border-rose-400 rounded-r">
+            <strong>⚠️ 2026-06-24 重要聲明：</strong>本攻略只列<strong>搜尋引導字串</strong>, <strong className="text-rose-600">不提供真實商品 URL</strong>。
+            原因: 淘寶/百度/知乎等中文平台對境外 IP 100% 封鎖, 論壇教學站都需登入/有 anti-bot, curl + subagent 兩路都拿不到真實可達的具體商品連結。
+            請按下方<strong>搜尋引導字串</strong>到 m.tmall / 百度 / 小紅書 / PTT 自行搜當下報價, 出發前 1 週查最準。
+          </div>
           {activeTab === 'sim' && (
             <div>
               <p className="text-sm text-slate-600 mb-4">
@@ -318,13 +351,17 @@ export default function SimGuidePage() {
                 {SIM_PLANS.map((p, i) => (
                   <div key={i} className="border border-slate-200 rounded-xl p-4 hover:border-orange-300 transition-colors">
                     <div className="flex items-start justify-between gap-3 mb-2">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="font-bold text-slate-900">{p.operator} · {p.brand}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{p.note}</div>
+                        <div className="text-xs text-slate-500 mt-1">{p.priceNote}</div>
+                        <div className="text-xs text-blue-700 mt-1 font-mono">
+                          🔍 搜尋: {p.searchHint}
+                        </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-2xl font-bold text-orange-600">NT${p.priceTWD}</div>
+                        <div className="text-lg font-bold text-orange-600">⚠️ NT${p.estMin}-${p.estMax}</div>
                         <div className="text-xs text-slate-500">{p.days} 天</div>
+                        <div className="text-[10px] text-amber-600 mt-0.5">估算非保證</div>
                       </div>
                     </div>
                     <div className="flex gap-2 flex-wrap text-xs">
@@ -347,13 +384,18 @@ export default function SimGuidePage() {
                 {ESIM_PLANS.map((p, i) => (
                   <div key={i} className="border border-slate-200 rounded-xl p-4 hover:border-emerald-300 transition-colors">
                     <div className="flex items-start justify-between gap-3 mb-2">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="font-bold text-slate-900">{p.provider}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{p.region} · {p.note}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">{p.region} · {p.priceNote}</div>
+                        <a href={p.url} target="_blank" rel="noopener noreferrer"
+                           className="text-xs text-blue-600 hover:text-blue-800 hover:underline mt-1 inline-block">
+                          🔗 查當下報價 →
+                        </a>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-2xl font-bold text-emerald-600">NT${p.priceTWD}</div>
+                        <div className="text-lg font-bold text-emerald-600">⚠️ NT${p.estMin}-${p.estMax}</div>
                         <div className="text-xs text-slate-500">{p.days} 天</div>
+                        <div className="text-[10px] text-amber-600 mt-0.5">估算非保證</div>
                       </div>
                     </div>
                     <div className="flex gap-2 flex-wrap text-xs">
@@ -376,31 +418,34 @@ export default function SimGuidePage() {
                     title: '✈️ 上海浦東機場',
                     time: '24h 全年無休',
                     where: '入境大廳 B 出口, 多家電信商服務台',
-                    price: 'NT$500-700',
+                    price: '⚠️ NT$500-700 (估算)',
                     pros: '最方便, 落地即辦, 支援中英日韓',
                     cons: '需排隊 15-30 分鐘',
+                    searchHint: '百度搜「浦東機場 移動 聯通 電信 櫃台 位置」',
                   },
                   {
                     title: '🏪 7-11 / 全家便利商店',
                     time: '06:00-23:00',
                     where: '浦東/虹橋機場、市區主要門市',
-                    price: 'NT$550-750',
+                    price: '⚠️ NT$550-750 (估算)',
                     pros: '離飯店近, 還可買 SIM 卡座',
                     cons: '店員不一定會辦觀光客門號',
+                    searchHint: '百度搜「7-11 中國 SIM 卡 觀光客」',
                   },
                   {
                     title: '📦 淘寶預購寄到飯店',
                     time: '出發前 3-5 天下單',
                     where: '搜「中國移動 港澳台 旅遊」',
-                    price: 'NT$400-600',
+                    price: '⚠️ NT$400-600 (估算)',
                     pros: '最便宜, 還可選靚號',
                     cons: '需綁飯店地址, 語言門檻',
+                    searchHint: 'm.tmall.com 搜「中國移動 港澳台 寄飯店」',
                   },
                 ].map((c, i) => (
                   <div key={i} className="border border-slate-200 rounded-xl p-4">
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div className="font-bold text-slate-900">{c.title}</div>
-                      <div className="text-orange-600 font-bold">{c.price}</div>
+                      <div className="text-orange-600 font-bold text-sm">{c.price}</div>
                     </div>
                     <div className="text-sm space-y-1 text-slate-600">
                       <div>🕐 {c.time}</div>
@@ -410,6 +455,9 @@ export default function SimGuidePage() {
                       </div>
                       <div className="text-xs">
                         <span className="text-rose-600">- {c.cons}</span>
+                      </div>
+                      <div className="text-xs text-blue-700 mt-2 font-mono">
+                        🔍 搜尋: {c.searchHint}
                       </div>
                     </div>
                   </div>

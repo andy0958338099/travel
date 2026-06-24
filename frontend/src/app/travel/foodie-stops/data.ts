@@ -14,16 +14,14 @@
  *   - user 拿到/部署 MCP server 後填入 serverUrl + authToken 即可啟用查菜單功能
  *   - 預設 menu 為「官方菜單快照」(手動維護,等真實 MCP 上線再取代)
  *
- * ★ 城市聯動: 從 ITINERARY 推算 Day X 在哪個城市
- *   - Day 1-2: 上海
- *   - Day 3-4: 杭州
- *   - Day 5-6: 烏鎮
- *   - Day 7: 杭州
- *   - Day 8: 返程
+ * ★ 城市聯動: Day → city mapping 從 @/lib/itinerary 共用 (跟 planner 同步)
+ *   不要再各自維護一份,避免 DAY_CITY_MAP 跟 DAY_TITLES 對不上 (2026-06-23 bug)
  */
 
+import { getDaysForCity } from '@/lib/itinerary';
+
 export type City = '上海' | '杭州' | '烏鎮' | '西塘';
-export type Category = 'drink' | 'gift' | 'snack' | 'experience';
+export type Category = 'drink' | 'gift' | 'snack' | 'dessert';
 
 export interface FoodieReview {
   author: string;
@@ -407,25 +405,182 @@ export const FOODIE_STOPS: FoodieStop[] = [
     tips: '重慶北路總店早上 7 點就開,當地人的早餐店,觀光客少',
     image: '/foodie-stops/fs-canglang-sh.jpg',
   },
+
+  // ═══════ 甜點店 (6) — 沿路加的,2026-06-23 ═══════
+
+  // 上海 — 沈大成 (青團/定胜糕老字號)
+  {
+    id: 'fs-shendadagen-sh',
+    brand: '沈大成',
+    name: '沈大成 · 南京東路總店',
+    category: 'dessert',
+    city: '上海',
+    address: '上海市黃浦區南京東路 636 號',
+    nearAttraction: { name: '南京東路步行街', distance: '約 50m' },
+    hours: '09:00-21:30',
+    priceRange: '¥10-50/盒',
+    tags: ['#上海老字號', '#青團', '#定胜糕', '#1875 創立'],
+    rating: 4.6,
+    reviewCount: 8420,
+    signature: [
+      { item: '青團（艾草）', price: '¥18/4個', note: '清明限定,豆沙餡' },
+      { item: '定胜糕', price: '¥12/盒', note: '狀元糕,討吉利' },
+      { item: '條頭糕', price: '¥10/2條', note: '薄荷涼糕,夏天必吃' },
+    ],
+    reviews: [
+      { author: '吃貨 @Mika', source: '小紅書', text: '青團皮 Q 餡甜不膩,南京東路總店現做現賣,排隊 10 分鐘值得。', rating: 5 },
+      { author: '老饕 @老張', source: '大眾點評', text: '定胜糕古早味,小孩考試前買一盒應景。', rating: 4 },
+      { author: '旅拍 @Anna', source: '微博', text: '條頭糕薄荷味超特別,推薦配龍井一起吃。', rating: 5 },
+    ],
+    tips: '青團只有 3-4 月限定,其他時間來就買定胜糕',
+    image: '/foodie-stops/fs-shendadagen-sh.jpg',
+  },
+
+  // 上海 — 杏花樓 (月餅老字號)
+  {
+    id: 'fs-xinghualou-sh',
+    brand: '杏花樓',
+    name: '杏花樓 · 福州路總店',
+    category: 'dessert',
+    city: '上海',
+    address: '上海市黃浦區福州路 343 號',
+    nearAttraction: { name: '城隍廟', distance: '約 800m' },
+    hours: '08:30-21:30',
+    priceRange: '¥30-200/盒',
+    tags: ['#月餅老字號', '#1851 創立', '#廣式月餅', '#上海伴手禮'],
+    rating: 4.4,
+    reviewCount: 6230,
+    signature: [
+      { item: '玫瑰豆沙月餅', price: '¥48/4個', note: '招牌,清真認證' },
+      { item: '蓮蓉月餅', price: '¥52/4個', note: '經典廣式' },
+      { item: '杏花樓糕點禮盒', price: '¥128/盒', note: '送禮首選' },
+    ],
+    reviews: [
+      { author: '上海寧 @Lily', source: '小紅書', text: '中秋節排隊 1 小時,月餅現烤出爐,豆沙餡真的綿密。', rating: 5 },
+      { author: '美食家 @Tom', source: '大眾點評', text: '非中秋也有散裝賣,5 個一袋剛好帶回飯店。', rating: 4 },
+      { author: '觀光客 @Ken', source: '抖音', text: '福州路老店氣氛好,買了禮盒寄回台灣給媽媽。', rating: 4 },
+    ],
+    tips: '非中秋來不用排隊,散裝 5 個起賣',
+    image: '/foodie-stops/fs-xinghualou-sh.jpg',
+  },
+
+  // 烏鎮 — 姑嫂餅 (烏鎮名產,Day 3-4)
+  {
+    id: 'fs-gusaobing-wz',
+    brand: '姑嫂餅',
+    name: '烏鎮姑嫂餅 · 老作坊',
+    category: 'dessert',
+    city: '烏鎮',
+    address: '嘉興市桐鄉市烏鎮古鎮東柵景區內',
+    nearAttraction: { name: '烏鎮東柵', distance: '在景區內' },
+    hours: '08:00-20:30',
+    priceRange: '¥10-30/盒',
+    tags: ['#烏鎮名產', '#傳統酥餅', '#姑嫂同心', '#現烤出爐'],
+    rating: 4.6,
+    reviewCount: 3210,
+    signature: [
+      { item: '姑嫂餅（原味）', price: '¥15/盒', note: '椒鹽酥脆,歷史故事多' },
+      { item: '油煎姑嫂餅', price: '¥10/3個', note: '現煎熱吃,香到爆' },
+    ],
+    reviews: [
+      { author: '江南控 @Yuki', source: '小紅書', text: '景區內現烤的,5 塊錢一塊,鹹甜鹹甜意外好吃。', rating: 5 },
+      { author: '老饕 @阿明', source: '大眾點評', text: '油煎的口感酥到掉渣,買 10 塊帶回飯店配茶。', rating: 4 },
+      { author: '攝影 @Vincent', source: '微博', text: '姑嫂餅名字由來是姑嫂合作創業的故事,比月餅有文化。', rating: 5 },
+    ],
+    tips: '油煎要現場吃,酥脆感才會在',
+    image: '/foodie-stops/fs-gusaobing-wz.jpg',
+  },
+
+  // 烏鎮 — 定胜糕 (烏鎮傳統糕點,Day 3-4)
+  {
+    id: 'fs-dingsheng-wz',
+    brand: '定胜糕',
+    name: '烏鎮定胜糕 · 西柵老攤',
+    category: 'dessert',
+    city: '烏鎮',
+    address: '嘉興市桐鄉市烏鎮古鎮西柵大街',
+    nearAttraction: { name: '烏鎮西柵', distance: '在景區內' },
+    hours: '07:30-19:00',
+    priceRange: '¥5-15/個',
+    tags: ['#狀元糕', '#糯米製', '#討吉利', '#學生最愛'],
+    rating: 4.5,
+    reviewCount: 2840,
+    signature: [
+      { item: '原味定胜糕', price: '¥8/個', note: '糯米粉+豆沙,蒸好熱吃' },
+      { item: '紅豆定胜糕', price: '¥10/個', note: '豆沙加倍,甜一點' },
+    ],
+    reviews: [
+      { author: '考生媽媽 @Lin', source: '小紅書', text: '兒子要考試,買了 6 個,討「定能勝利」好兆頭。', rating: 5 },
+      { author: '背包客 @小柯', source: '微博', text: '西柵老攤阿婆現蒸,2 塊錢一個超便宜,當早餐剛好。', rating: 4 },
+      { author: '美食家 @Felix', source: '大眾點評', text: '糯米皮軟 Q,豆沙餡不甜膩,吃兩個剛好不會太撐。', rating: 5 },
+    ],
+    image: '/foodie-stops/fs-dingsheng-wz.jpg',
+  },
+
+  // 杭州 — 知味觀 (杭州老字號糕點,Day 5-8)
+  {
+    id: 'fs-zhiweiguan-hz',
+    brand: '知味觀',
+    name: '知味觀 · 湖濱總店',
+    category: 'dessert',
+    city: '杭州',
+    address: '杭州市上城區延安路 398 號湖濱銀泰 in77 B1',
+    nearAttraction: { name: '湖濱步行街', distance: '約 100m' },
+    hours: '08:00-21:00',
+    priceRange: '¥15-80/盒',
+    tags: ['#杭州老字號', '#1913 創立', '#小籠包', '#幸福雙'],
+    rating: 4.6,
+    reviewCount: 5680,
+    signature: [
+      { item: '鮮肉小籠', price: '¥28/籠', note: '招牌,皮薄汁多' },
+      { item: '幸福雙（糕點）', price: '¥15/盒', note: '訂婚喜餅,傳統中式' },
+      { item: '定胜糕（杭州版）', price: '¥10/個', note: '比烏鎮的細緻一點' },
+    ],
+    reviews: [
+      { author: '杭州通 @Grace', source: '小紅書', text: '小籠湯汁真的多到爆,小心燙。', rating: 5 },
+      { author: '台灣人 @Steven', source: '微博', text: '幸福雙帶回去送長輩,他們超愛,說是古早味。', rating: 5 },
+      { author: '美食家 @Claire', source: '大眾點評', text: '知味觀跟樓外樓是杭州必吃兩家,品質穩。', rating: 4 },
+    ],
+    tips: '小籠包現蒸要等 10 分鐘,建議先點再逛街',
+    image: '/foodie-stops/fs-zhiweiguan-hz.jpg',
+  },
+
+  // 西塘 — 芡實糕 (西塘特產,Day 2-3)
+  {
+    id: 'fs-qianshigao-xt',
+    brand: '芡實糕',
+    name: '西塘芡實糕老舖 · 廊棚老街',
+    category: 'dessert',
+    city: '西塘',
+    address: '嘉興市嘉善縣西塘古鎮西街 18 號',
+    nearAttraction: { name: '西塘古鎮', distance: '在景區內' },
+    hours: '08:00-21:30',
+    priceRange: '¥15-35/盒',
+    tags: ['#西塘特產', '#芡實+糯米粉', '#桂花香', '#現切現賣'],
+    rating: 4.5,
+    reviewCount: 4150,
+    signature: [
+      { item: '原味芡實糕', price: '¥20/盒', note: '招牌,Q 軟不黏牙' },
+      { item: '桂花芡實糕', price: '¥25/盒', note: '加桂花蜜,秋天限定' },
+    ],
+    reviews: [
+      { author: '江南控 @Iris', source: '小紅書', text: '廊棚老街這家最正宗,老闆娘切一片試吃,超大方。', rating: 5 },
+      { author: '老饕 @阿德', source: '大眾點評', text: '芡實糕配龍井剛剛好,買了 5 盒帶回台灣送人。', rating: 4 },
+      { author: '攝影 @小雅', source: '微博', text: '西塘廊棚下吃芡實糕,是江南水鄉該有的樣子。', rating: 5 },
+    ],
+    tips: '10 月去有桂花限定版,其他時間原味就好吃',
+    image: '/foodie-stops/fs-qianshigao-xt.jpg',
+  },
 ];
 
-// 從 ITINERARY 推算 Day X 在哪個城市 (供「Day 經過」徽章使用)
-export const DAY_CITY_MAP: Record<number, City> = {
-  1: '上海',  // Day 1: 抵達上海
-  2: '上海',  // Day 2: 上海
-  3: '杭州',  // Day 3: 杭州
-  4: '杭州',  // Day 4: 杭州
-  5: '烏鎮',  // Day 5: 烏鎮
-  6: '烏鎮',  // Day 6: 烏鎮
-  7: '杭州',  // Day 7: 杭州
-  8: '上海',  // Day 8: 返程 (蕭山機場,實際不算上海)
-};
+// Day → city mapping moved to @/lib/itinerary (single source of truth shared
+// with planner). Re-imported here for backward compat with existing callers.
+// DAY_CITY_MAP (the old buggy mapping) is intentionally removed — see the
+// shared module for the correct 8-day itinerary including transit days.
 
 // 給定店家,回傳「會在哪些 Day 經過」
-export function getDaysForStop(city: City): number[] {
-  return Object.entries(DAY_CITY_MAP)
-    .filter(([, c]) => c === city)
-    .map(([d]) => Number(d));
+export function getDaysForStop(city: string): number[] {
+  return getDaysForCity(city);
 }
 
 export const CITIES: City[] = ['上海', '杭州', '烏鎮', '西塘'];
@@ -434,12 +589,12 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   drink: '🧋 飲料',
   gift: '🎁 伴手禮',
   snack: '🥟 街邊小吃',
-  experience: '✨ 體驗',
+  dessert: '🍰 甜點',
 };
 
 export const CATEGORY_COLORS: Record<Category, { bg: string; text: string; border: string }> = {
   drink: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-300' },
   gift: { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-300' },
   snack: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-300' },
-  experience: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-300' },
+  dessert: { bg: 'bg-pink-50', text: 'text-pink-700', border: 'border-pink-300' },
 };

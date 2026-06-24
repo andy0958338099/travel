@@ -39,7 +39,6 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'foodie-stops', label: '🧋 網紅名店',     href: '/travel/foodie-stops' },
   { key: 'payment-guide', label: '💴 換匯/支付',  href: '/travel/payment-guide' },
   { key: 'toilet-tour', label: '🚻 Toilet Tour',  href: '/travel/toilet-tour' },
-  { key: 'toys-tour',   label: '🧸 Toys Tour',    href: '/travel/toys-tour'   },
 ];
 
 export const NAV_ORDER_KEY = 'travel-nav-order';

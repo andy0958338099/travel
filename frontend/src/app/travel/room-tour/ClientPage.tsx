@@ -17,12 +17,14 @@ const CATEGORIES = [
   { id: 'facility', label: '設施',     emoji: '🏋️' },
 ];
 
+// 2026-06-24 聖上指示: 每個 hotel 上方加 Q版 chibi 場景圖 (跟 foodie-stops / sim-guide 同風格)
+// 5 張 Q版圖用 nano-banana 跑出, 存在 /public/room-tour/q/{hotelKey}.jpg
 const HOTEL_META = {
-  shanghai:       { name: '上海嘉廷酒店',      nameEn: 'Kingtown Riverside Hotel Plaza Shanghai', address: '上海靜安區新閘路126號（近昌平路）',        color: 'from-blue-800 to-blue-600',   source: undefined },
-  hangzhou:        { name: '杭州大酒店',        nameEn: 'Hangzhou Hotel ★★★★',                   address: '杭州延安西路と体育場路の交差点（武林広場エリア）', color: 'from-amber-700 to-amber-500',    source: 'shanghainavi.com' },
-  wuzhenYoushe:   { name: '烏鎮悠舍悠得藝術酒店',nameEn: 'Wuzhen Youshe Art Hotel (Xizha)',       address: '烏鎮鎮環河路59號（西柵北門步行2分鐘）',        color: 'from-teal-700 to-teal-500',     source: 'cncn.com' },
-  yuzhouChangwan: { name: '西塘尋春·古韻雅居客棧',nameEn: 'Xitang Yuzhou Changwan Inn',          address: '嘉善縣西塘鎮景區內南棚下77號',                color: 'from-amber-700 to-orange-600',  source: 'wingontravel.com' },
-  wuzhenHomestay: { name: '烏鎮西柵民宿',        nameEn: 'Wuzhen Xizha Homestay',                 address: '桐鄉市烏鎮鎮西柵景區內',                       color: 'from-emerald-700 to-teal-600',  source: 'ctrip.com' },
+  shanghai:       { name: '上海嘉廷酒店',      nameEn: 'Kingtown Riverside Hotel Plaza Shanghai', address: '上海靜安區新閘路126號（近昌平路）',        color: 'from-blue-800 to-blue-600',   source: undefined, qIcon: '/room-tour/q/shanghai.jpg',       qCaption: '上海都市河岸夜景' },
+  hangzhou:        { name: '杭州大酒店',        nameEn: 'Hangzhou Hotel ★★★★',                   address: '杭州延安西路と体育場路の交差点（武林広場エリア）', color: 'from-amber-700 to-amber-500',    source: 'shanghainavi.com', qIcon: '/room-tour/q/hangzhou.jpg',        qCaption: '杭州西湖夕陽' },
+  wuzhenYoushe:   { name: '烏鎮悠舍悠得藝術酒店',nameEn: 'Wuzhen Youshe Art Hotel (Xizha)',       address: '烏鎮鎮環河路59號（西柵北門步行2分鐘）',        color: 'from-teal-700 to-teal-500',     source: 'cncn.com', qIcon: '/room-tour/q/wuzhenYoushe.jpg',  qCaption: '烏鎮西柵水巷夜' },
+  yuzhouChangwan: { name: '西塘尋春·古韻雅居客棧',nameEn: 'Xitang Yuzhou Changwan Inn',          address: '嘉善縣西塘鎮景區內南棚下77號',                color: 'from-amber-700 to-orange-600',  source: 'wingontravel.com', qIcon: '/room-tour/q/yuzhouChangwan.jpg', qCaption: '西塘廊棚老街' },
+  wuzhenHomestay: { name: '烏鎮西柵民宿',        nameEn: 'Wuzhen Xizha Homestay',                 address: '桐鄉市烏鎮鎮西柵景區內',                       color: 'from-emerald-700 to-teal-600',  source: 'ctrip.com', qIcon: '/room-tour/q/wuzhenHomestay.jpg', qCaption: '烏鎮西柵民宿清晨' },
 };
 
 type HotelKey = keyof typeof HOTEL_META;
@@ -143,6 +145,21 @@ export default function RoomTourPage() {
             >
               {editMode ? '✏️ 離開編輯' : '✏️ 編輯照片'}
             </button>
+          </div>
+
+          {/* 2026-06-24 聖上指示: 酒店名稱之上加 Q版 chibi 場景圖 (切換 hotel 時自動換圖) */}
+          <div className="mt-4 mb-3 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/20 relative aspect-video bg-black/20">
+            <img
+              key={activeHotel}
+              src={HOTEL_META[activeHotel].qIcon}
+              alt={HOTEL_META[activeHotel].qCaption}
+              className="w-full h-full object-cover transition-opacity duration-500"
+            />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-4 py-2 pointer-events-none">
+              <span className="text-white text-sm font-medium" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
+                🎨 {HOTEL_META[activeHotel].qCaption} · Q版 chibi 場景圖
+              </span>
+            </div>
           </div>
 
           <h1 className="text-4xl font-bold mb-2">🏨 Room Tour</h1>

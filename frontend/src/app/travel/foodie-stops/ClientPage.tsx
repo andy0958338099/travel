@@ -14,6 +14,17 @@ import {
   type Category,
 } from './data';
 
+// ═══════ 城市主題 Hero 配置 (A 方案, 2026-06-23 從 B 捲軸切換過來) ═══════
+// 切 ≠ 刪: B 方案的 scroll-left/right.jpg 留在 /public 備用, 不刪除。
+// 圖為 AI 生 (gpt-image-2-2k), 16:9 hero banner, 點城市 chip 切換。
+const HERO_MAP: Record<City | 'all', { img: string; subtitle: string; pinyin: string }> = {
+  all:     { img: '/foodie-stops/hero-all.jpg',      subtitle: '江南水鄉全景 · 18 家網紅名店一覽', pinyin: 'Jiangnan Panorama' },
+  上海: { img: '/foodie-stops/hero-shanghai.jpg', subtitle: '魔都風華 · 5 家必逛',           pinyin: 'Shanghai · The Bund' },
+  杭州: { img: '/foodie-stops/hero-hangzhou.jpg',  subtitle: '西湖勝境 · 8 家必逛',           pinyin: 'Hangzhou · West Lake' },
+  烏鎮: { img: '/foodie-stops/hero-wuzhen.jpg',    subtitle: '水巷古韻 · 2 家必逛',           pinyin: 'Wuzhen · Water Town' },
+  西塘: { img: '/foodie-stops/hero-xitang.jpg',    subtitle: '廊棚煙雨 · 3 家必逛',           pinyin: 'Xitang · Corridor' },
+};
+
 // ═══════ 子元件：店家卡片 ═══════
 function StopCard({ stop, onClick }: { stop: FoodieStop; onClick: () => void }) {
   const cat = CATEGORY_COLORS[stop.category];
@@ -23,7 +34,7 @@ function StopCard({ stop, onClick }: { stop: FoodieStop; onClick: () => void }) 
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden border-2 border-stone-200 hover:border-amber-400"
+      className="w-full h-full text-left bg-white rounded-2xl shadow-md hover:shadow-xl transition-all overflow-hidden border-2 border-stone-200 hover:border-amber-400 flex flex-col"
     >
       {/* 圖片區 */}
       <div className="relative aspect-[16/9] bg-stone-100 overflow-hidden">
@@ -40,52 +51,52 @@ function StopCard({ stop, onClick }: { stop: FoodieStop; onClick: () => void }) 
           }}
         />
         {/* 分類徽章 */}
-        <div className={`absolute top-3 left-3 ${cat.bg} ${cat.text} ${cat.border} border px-2 py-1 rounded-full text-xs font-bold`}>
+        <div className={`absolute top-2 left-2 ${cat.bg} ${cat.text} ${cat.border} border px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold`}>
           {CATEGORY_LABELS[stop.category]}
         </div>
         {/* Day 徽章 */}
-        <div className="absolute top-3 right-3 bg-amber-400 text-stone-900 px-2 py-1 rounded-full text-xs font-bold shadow">
+        <div className="absolute top-2 right-2 bg-amber-400 text-stone-900 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold shadow">
           🗓️ {dayLabel}
         </div>
       </div>
 
-      {/* 內容區 */}
-      <div className="p-4 space-y-2">
+      {/* 內容區 — flex-1 + flex-col 撐滿剩餘高度, mt-auto 把價格列推到底 */}
+      <div className="p-3 space-y-1.5 flex-1 flex flex-col">
         {/* 標題列 */}
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-lg text-stone-900 line-clamp-1">{stop.name}</h3>
+        <div className="flex items-start justify-between gap-1">
+          <h3 className="font-bold text-sm sm:text-base text-stone-900 line-clamp-2 leading-tight">{stop.name}</h3>
         </div>
 
         {/* 評分 + 評論數 */}
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-1 text-xs">
           <span className="text-yellow-500">{'★'.repeat(Math.floor(stop.rating))}</span>
           <span className="font-bold text-stone-700">{stop.rating}</span>
-          <span className="text-stone-500">({stop.reviewCount.toLocaleString()} 評論)</span>
+          <span className="text-stone-500">({(stop.reviewCount/1000).toFixed(1)}k)</span>
         </div>
 
-        {/* 標籤 */}
+        {/* 標籤 — 縮成 2 個避免窄卡爆字 */}
         <div className="flex flex-wrap gap-1">
-          {stop.tags.slice(0, 3).map(t => (
-            <span key={t} className="text-xs text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
+          {stop.tags.slice(0, 2).map(t => (
+            <span key={t} className="text-[10px] sm:text-xs text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-full line-clamp-1">
               {t}
             </span>
           ))}
         </div>
 
         {/* 位置資訊 */}
-        <div className="text-xs text-stone-600 space-y-0.5 pt-1">
-          <div>📍 {stop.address}</div>
+        <div className="text-[11px] sm:text-xs text-stone-600 space-y-0.5">
+          <div className="line-clamp-1">📍 {stop.address}</div>
           {stop.nearAttraction && (
-            <div className="text-emerald-700">
+            <div className="text-emerald-700 line-clamp-1">
               距「{stop.nearAttraction.name}」{stop.nearAttraction.distance}
             </div>
           )}
         </div>
 
-        {/* 價格 + 營業時間 */}
-        <div className="flex items-center justify-between text-xs pt-1 border-t border-stone-100">
+        {/* 價格 + 營業時間 — mt-auto 推到底部, 視覺一致 */}
+        <div className="flex items-center justify-between text-[11px] sm:text-xs pt-1.5 mt-auto border-t border-stone-100">
           <span className="text-stone-600">💰 {stop.priceRange}</span>
-          <span className="text-stone-600">🕐 {stop.hours}</span>
+          <span className="text-stone-600 line-clamp-1">🕐 {stop.hours}</span>
         </div>
       </div>
     </button>
@@ -396,7 +407,7 @@ Content-Type: application/json
 
 // ═══════ 主頁面 ═══════
 export default function FoodieStopsPage() {
-  const [city, setCity] = useState<City | 'all'>('all');
+  const [city, setCity] = useState<City | 'all'>('上海');
   const [category, setCategory] = useState<Category | 'all'>('all');
   const [selected, setSelected] = useState<FoodieStop | null>(null);
 
@@ -415,6 +426,7 @@ export default function FoodieStopsPage() {
     drinks: FOODIE_STOPS.filter(s => s.category === 'drink').length,
     gifts: FOODIE_STOPS.filter(s => s.category === 'gift').length,
     snacks: FOODIE_STOPS.filter(s => s.category === 'snack').length,
+    desserts: FOODIE_STOPS.filter(s => s.category === 'dessert').length,
   }), []);
 
   return (
@@ -436,11 +448,8 @@ export default function FoodieStopsPage() {
           </div>
         </div>
 
-        {/* 城市 filter */}
+        {/* 城市 filter — 2026-06-23 聖上指示: 全部 移到最後, 預設上海 */}
         <div className="max-w-5xl mx-auto px-4 pb-2 flex gap-2 overflow-x-auto">
-          <FilterChip active={city === 'all'} onClick={() => setCity('all')}>
-            全部 ({stats.total})
-          </FilterChip>
           {CITIES.map(c => {
             const count = FOODIE_STOPS.filter(s => s.city === c).length;
             return (
@@ -454,6 +463,9 @@ export default function FoodieStopsPage() {
               </FilterChip>
             );
           })}
+          <FilterChip active={city === 'all'} onClick={() => setCity('all')}>
+            全部 ({stats.total})
+          </FilterChip>
         </div>
 
         {/* 分類 filter */}
@@ -474,8 +486,15 @@ export default function FoodieStopsPage() {
         </div>
       </div>
 
-      {/* 主要內容 */}
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {/* ═══════ 城市主題 Hero (A 方案, 動態切換) ═══════
+          全寬 16:9 banner, 點 chip 切圖。圖為 AI 生 (hero-*.jpg) 已存 /public。
+          切 ≠ 刪: B 捲軸圖 (scroll-left/right) 保留在 /public 備用, 這段是純新增。 */}
+      <HeroBanner city={city} />
+
+      {/* 主要內容 — 2026-06-23 聖上指示: 100% 寬對齊 hero, 4 欄卡片撐滿 viewport
+          sticky header 維持 max-w-5xl (因 chip 列要 overflow-x-auto, 全寬沒意義)
+          info card / 卡片牆 / 底部說明 三段全寬, 跟 hero 視覺一致。 */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* 頂部說明卡 */}
         <div className="bg-gradient-to-r from-rose-100 to-amber-100 border-2 border-rose-200 rounded-2xl p-5">
           <h2 className="text-lg font-bold text-rose-900 mb-2">
@@ -483,7 +502,7 @@ export default function FoodieStopsPage() {
           </h2>
           <p className="text-sm text-stone-700 leading-relaxed">
             隨手買、外帶、打卡專用 ——
-            飲料 (瑞幸/霸王茶姬/蜜雪冰城/喜茶)、伴手禮 (龍井茶/絲綢/粽子/老字號)、街邊名小吃 (游埠豆漿/大馬弄/貓耳朵/蔥油拌麵)。
+            飲料 (瑞幸/霸王茶姬/蜜雪冰城/喜茶)、甜點 (沈大成/杏花樓/姑嫂餅/定胜糕/知味觀/芡實糕)、伴手禮 (龍井茶/絲綢/粽子/老字號)、街邊名小吃 (游埠豆漿/大馬弄/貓耳朵/蔥油拌麵)。
             每家店都標註 <strong className="text-rose-700">離哪個景點多近</strong> + <strong className="text-amber-700">你 Day X 會不會經過</strong>,
             規劃路線時可以直接看到。
           </p>
@@ -491,28 +510,29 @@ export default function FoodieStopsPage() {
             <span className="bg-white/70 px-2 py-1 rounded-full">📊 {stats.total} 家店</span>
             <span className="bg-white/70 px-2 py-1 rounded-full">🏙️ 涵蓋 {stats.cities} 個城市</span>
             <span className="bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full font-bold">🧋 飲料 {stats.drinks}</span>
+            <span className="bg-pink-100 text-pink-800 px-2 py-1 rounded-full font-bold">🍰 甜點 {stats.desserts}</span>
             <span className="bg-rose-100 text-rose-800 px-2 py-1 rounded-full font-bold">🎁 伴手禮 {stats.gifts}</span>
             <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold">🥟 小吃 {stats.snacks}</span>
           </div>
         </div>
 
-        {/* 卡片牆 */}
+        {/* 卡片牆 — 4 欄 + auto-rows-fr 等高, 全寬跟 hero 一致 */}
         {filtered.length === 0 ? (
           <div className="text-center py-12 text-stone-500">
             沒有符合條件的店家
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-fr">
             {filtered.map(s => (
               <StopCard key={s.id} stop={s} onClick={() => setSelected(s)} />
             ))}
           </div>
         )}
 
-        {/* 底部說明 */}
+        {/* 底部說明 — 全寬對齊 hero */}
         <div className="bg-stone-100 border border-stone-200 rounded-xl p-4 text-xs text-stone-600 space-y-2">
           <div>
-            <strong>📷 圖片策略</strong>: 12 個店家目前全部使用本地 placeholder。
+            <strong>📷 圖片策略</strong>: 18 個店家目前全部使用本地 placeholder。
             之後可派 subagent 抓取 Bing Image Search / Wikimedia Commons 真實店家照,
             直接覆蓋 <code>/public/foodie-stops/{'{id}'}.jpg</code> 即可替換。
           </div>
@@ -527,6 +547,48 @@ export default function FoodieStopsPage() {
 
       {/* 詳情 modal */}
       {selected && <StopDetail stop={selected} onClose={() => setSelected(null)} />}
+    </div>
+  );
+}
+
+// 2026-06-23: Hero 抽出獨立 component, 內含 fade transition + 城市名浮水印。
+function HeroBanner({ city }: { city: City | 'all' }) {
+  const hero = HERO_MAP[city];
+  return (
+    <div
+      data-testid="city-hero"
+      // 2026-06-24 聖上指示: hero 圖必須 100% 高度顯示, 不能上下切一半。
+      // 圖實際是 1920x1080 (16:9), 之前 aspect-[16/5] sm:aspect-[16/4] 把 16:9 塞進去
+      // object-cover 會切掉約 56% 上下。改用 aspect-video (16:9) 完全對齊。
+      className="relative w-full aspect-video overflow-hidden bg-stone-200"
+    >
+      <img
+        key={city}
+        src={hero.img}
+        alt={city === 'all' ? '江南水鄉' : city}
+        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+        onError={(e) => {
+          const img = e.currentTarget;
+          if (!img.dataset.fallback) {
+            img.dataset.fallback = '1';
+            img.src = '/foodie-stops/placeholder-fallback.jpg';
+          }
+        }}
+      />
+      {/* 底部漸層讓白字可讀 */}
+      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/30 to-transparent pointer-events-none" />
+      {/* 城市名 + 副標 */}
+      <div className="absolute bottom-4 left-4 sm:bottom-6 sm:left-8 text-white pointer-events-none">
+        <p className="text-xs sm:text-sm tracking-widest opacity-80 uppercase" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+          {hero.pinyin}
+        </p>
+        <h2 className="text-3xl sm:text-4xl font-bold font-serif mt-1" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
+          {city === 'all' ? '江南水鄉' : city}
+        </h2>
+        <p className="text-sm sm:text-base opacity-95 mt-1" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
+          {hero.subtitle}
+        </p>
+      </div>
     </div>
   );
 }

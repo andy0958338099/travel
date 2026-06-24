@@ -15,9 +15,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateImageWithFallback } from "@/lib/ai/pockgo";
 
-// 2026-06-12: gemini-3.1-flash-image-preview-4k 出圖 ~12-40s, 設 60s 留 buffer (4K 偶爾撞 30s)
+// 2026-06-23 中堂加: gpt-image-2-2k Q版 prompt 出圖 60-90s 撞 60s 上限, dev 改 120s
+// 2026-06-23 USER 拍板: 不要換 model (gpt-image-2-2k 才是 8 天 Q版全景圖的選),
+//   所以 dev/prod 拆: dev=120s localhost 跑得完, prod=60s 守 Netlify Pro $19/mo 60s 上限
 // Fallback 機制下: 主失敗 + 備模型重試 → 最多 2x, 60s 還是不夠但 UI 會看到「主+備都失敗」報錯
-export const maxDuration = 60;
+export const maxDuration = process.env.NODE_ENV === "production" ? 60 : 120;
 
 export async function POST(req: NextRequest) {
   try {

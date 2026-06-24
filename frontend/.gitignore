@@ -40,3 +40,12 @@ next-env.d.ts
 # netlify build artifacts
 /.netlify/
 /frontend/.netlify/
+
+# 2026-06-24 中堂加: AI 生圖 log + tmp 暫存檔 (中堂 qgen script 產出, 不該 commit)
+/tmp/qgen-*.json
+/public/**/*.log
+/public/**/*.tmp.png
+/public/**/*.tmp.jpg
+# Q版圖 raw PNG (sips 已轉 jpg, raw png 不需 commit)
+/public/**/q-*.png
+/public/**/icons/q-*.png
