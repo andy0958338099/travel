@@ -14,6 +14,10 @@ type Toilet = {
   tips: string;
   distanceFromRoute: string;
   imagePath: string;
+  // 2026-06-30 聖上拍板: 圖文改造用 — gptImagePath 有值時改用 AI 生圖 + 中文 overlay
+  // caption 是圖卡底部說文 (一句話俏皮/客觀描述); gptImagePath 指向 public/toilet-tour-gpt/
+  gptImagePath?: string;
+  caption?: string;
 };
 
 const TOILETS: Toilet[] = [
@@ -29,6 +33,8 @@ const TOILETS: Toilet[] = [
     tips: '推薦參觀完紀念館後直接使用，避開10:00-11:00參觀高峰時段。館內提供飲水機，可先補水再出發。',
     distanceFromRoute: '四行倉庫西側出口約30公尺',
     imagePath: '/toilet-tour/sh01-四行倉庫.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-sh-01.jpg',
+    caption: '參觀抗戰紀念館順路，避開 10–11 點參觀高峰',
   },
   {
     id: 'sh-03',
@@ -42,6 +48,8 @@ const TOILETS: Toilet[] = [
     tips: '南京東路步行街沿線有多處洗手間，約每200公尺一個。推薦使用下沉廣場的這間，空間較大且有空調。',
     distanceFromRoute: '南京東路步行街中央，步行約5分鐘',
     imagePath: '/toilet-tour/sh03-南京路步行街.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-sh-03.jpg',
+    caption: '步行街沿線約每 200 公尺一間，下沉廣場這間最大有空調',
   },
   {
     id: 'sh-04',
@@ -55,6 +63,8 @@ const TOILETS: Toilet[] = [
     tips: '商場洗手間裝修新，有擦手紙和洗手液。節假日人多但分流快。地下美食廣場（來福士）也有洗手間可作備選。',
     distanceFromRoute: '南京東路830號，第一百貨1樓',
     imagePath: '/toilet-tour/sh04-上海第一百货.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-sh-04.jpg',
+    caption: '商場洗手間裝修新，B1 來福士美食廣場可作備選',
   },
   {
     id: 'sh-06',
@@ -68,6 +78,8 @@ const TOILETS: Toilet[] = [
     tips: '外灘源的洗手間在外灘區域質量最高，人流相對較少。推薦在此徹底解決問題再往豫園方向前進。商場內有咖啡店和餐廳，可順路休息。',
     distanceFromRoute: '外灘最北端，往南走往外灘方向約5分鐘',
     imagePath: '/toilet-tour/sh06-外灘源.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-sh-06.jpg',
+    caption: '外灘沿線最乾淨的洗手間，配備母婴室，外國旅客友善指示',
   },
   {
     id: 'sh-07',
@@ -81,6 +93,8 @@ const TOILETS: Toilet[] = [
     tips: '豫園商城節假日人潮可達數萬，地下洗手間排隊時間高達30分鐘。建議在進入商城前先在方浜中路路邊的公共洗手間解決。商城內有飲水點。',
     distanceFromRoute: '豫園商城核心區域內，步行約2分鐘',
     imagePath: '/toilet-tour/sh07-豫园商城.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-sh-07.jpg',
+    caption: '節假日排隊可達 30 分，建議先在方浜中路路邊公共廁解決',
   },
   {
     id: 'sh-08',
@@ -94,6 +108,8 @@ const TOILETS: Toilet[] = [
     tips: '和平飯店毗鄰外灘，與南京東路步行街相連。推薦在外灘看完夜景後順路使用，是上海最高規格的洗手間之一。的非住客請在咖啡廳消費後使用，洗手間乾淨程度五星級。',
     distanceFromRoute: '外灘南京東路路口，步行約3分鐘',
     imagePath: '/toilet-tour/hangzhou-peace-1.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-sh-08.jpg',
+    caption: '上海最高規格洗手間之一，外灘看完夜景順路使用',
   },
   {
     id: 'sh-09',
@@ -107,6 +123,8 @@ const TOILETS: Toilet[] = [
     tips: '人民廣場站連接1/2/8號線，是上海地鐵網絡的心臟。站內有多家便利店和餐飲店，可順路購買零食和飲水。從這裡步行至南京東路步行街約8分鐘，至外灘約15分鐘。',
     distanceFromRoute: '人民廣場地鐵站換乘大廳，步行約5分鐘',
     imagePath: '/toilet-tour/sh-peoplesquare.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-sh-09.jpg',
+    caption: '上海地鐵心臟，1/2/8 號線交會，步行至南京東路 8 分鐘',
   },
   {
     id: 'sh-10',
@@ -120,6 +138,8 @@ const TOILETS: Toilet[] = [
     tips: '豫園老街是上海老城廂文化的代表，街兩側有大量小吃和手工藝品店。建議與豫園商城一同遊覽，先遊商城再逛老街，最後在老街上洗手間處理後離開。從老街可步行至上海古城公園。',
     distanceFromRoute: '豫園老街中段，步行約3分鐘',
     imagePath: '/toilet-tour/sh-yuyuan-oldstreet.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-sh-10.jpg',
+    caption: '老城廂文化代表，逛完美食手工藝後順路使用',
   },
 ];
 
@@ -137,6 +157,8 @@ const HANGZHOU_TOILETS: Toilet[] = [
     tips: '武林夜市是杭州最熱鬧的夜市之一，美食攤位多達200家。洗手間數量有限，建議在進入夜市前先解決。附近沒有商場，公共洗手間是唯一選擇。',
     distanceFromRoute: '武林夜市入口左側約20公尺',
     imagePath: '/toilet-tour/hangzhou-hefang-1.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-hz-01.jpg',
+    caption: '杭州最熱鬧夜市，200 家美食攤位，建議進入夜市前先解決',
   },
   {
     id: 'hz-02',
@@ -150,6 +172,8 @@ const HANGZHOU_TOILETS: Toilet[] = [
     tips: '河坊街是杭州歷史文化的縮影，保存了大量明清建築。洗手間在胡雪巖故居（胡慶余堂）對面，建議參觀完博物館後直接使用。街道兩側有多處小型餐飲店，可順路購買小龍包或定勝糕。',
     distanceFromRoute: '河坊街中段，胡慶余堂對面，步行約2分鐘',
     imagePath: '/toilet-tour/hangzhou-huqingyu-1.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-hz-02.jpg',
+    caption: '明清歷史街區，參觀胡慶余堂中醫藥博物館順路',
   },
   {
     id: 'hz-03',
@@ -163,6 +187,8 @@ const HANGZHOU_TOILETS: Toilet[] = [
     tips: '南宋御街連接河坊街和城站火車站，是杭州老城區的中軸線。建議與河坊街一併遊覽，先逛河坊街再到御街。御街地下有很多老字號零食店，如知味觀、樓外樓。',
     distanceFromRoute: '南宋御街南入口，步行約5分鐘可達河坊街',
     imagePath: '/toilet-tour/hangzhou-songcity-1.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-hz-03.jpg',
+    caption: '南宋皇宮專用道，地下商街有空調，知味觀樓外樓老字號雲集',
   },
   {
     id: 'hz-04',
@@ -176,6 +202,8 @@ const HANGZHOU_TOILETS: Toilet[] = [
     tips: '吳山廣場是杭州老城區的心臟，登上吳山可俯瞰西湖。廣場連接河坊街、十里皇城塔遺址，步行可達西湖音樂噴泉。推薦黄昏前登吳山看完日落，再下來使用洗手間。',
     distanceFromRoute: '吳山廣場東側，步行約3分鐘',
     imagePath: '/toilet-tour/hangzhou-songcity-2.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-hz-04.jpg',
+    caption: '杭州老城區心臟，登吳山看日落後下來使用',
   },
   {
     id: 'hz-05',
@@ -189,6 +217,8 @@ const HANGZHOU_TOILETS: Toilet[] = [
     tips: '胡慶余堂是中國最完整的民辦中醫藥博物館，展示了清代工商業文明。園區內有專人導覽服務（另收費），建議預留1.5-2小時。洗手間質量是整條河坊街最高者。',
     distanceFromRoute: '河坊街大井巷內，步行約3分鐘',
     imagePath: '/toilet-tour/hangzhou-hefang-3.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-hz-05.jpg',
+    caption: '整條河坊街最高規格，五星級清潔，參觀清代中醫藥博物館順路',
   },
   {
     id: 'hz-06',
@@ -202,6 +232,8 @@ const HANGZHOU_TOILETS: Toilet[] = [
     tips: '定安路站人流相對較少，不像龍翔橋那般擁擠。從這裡往西走600米可達吳山廣場，東走500米可達河坊街南端。是杭州老城區地鐵網絡中較乾淨且少排隊的選項。',
     distanceFromRoute: '地鐵站站廳層，步行約2分鐘',
     imagePath: '/toilet-tour/hangzhou-dinganlu.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-hz-06.jpg',
+    caption: '人流比龍翔橋少，西 600 米吳山廣場，東 500 米河坊街',
   },
   {
     id: 'hz-07',
@@ -215,6 +247,8 @@ const HANGZHOU_TOILETS: Toilet[] = [
     tips: '龍翔橋站是杭州地鐵最繁忙的站點之一，連接西湖大道和延安路。站內有商場和餐飲區，是武林商圈和西湖景區的中轉樞紐。從這裡步行至西湖斷橋約15分鐘，至靈隱寺有直達公交。',
     distanceFromRoute: '龍翔橋地鐵站站廳層，步行約3分鐘',
     imagePath: '/toilet-tour/hangzhou-longxiangqiao.jpg',
+    gptImagePath: '/toilet-tour-gpt/gpt-hz-07.jpg',
+    caption: '武林商圈與西湖景區中轉樞紐，步行西湖斷橋 15 分鐘',
   },
 ];
 
@@ -228,36 +262,87 @@ function StarRating({ value }: { value: number }) {
 
 function ToiletCard({ toilet }: { toilet: Toilet }) {
   const [expanded, setExpanded] = useState(false);
+  // 2026-06-30 聖上拍板: 圖文改造 — 有 gptImagePath 時切到 AI 生圖 + 中文 overlay 模式
+  const useGpt = Boolean(toilet.gptImagePath);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
       {/* Image - 2x height on desktop, compact on mobile */}
       <div className="relative w-full h-56 sm:h-72 md:h-96 overflow-hidden bg-gray-100">
         <img
-          src={toilet.imagePath}
+          src={useGpt ? toilet.gptImagePath! : toilet.imagePath}
           alt={toilet.name}
           className="w-full h-full object-cover"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        {/* Type badge */}
-        <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
-          <span className={`text-xs px-2 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold ${
-            toilet.type === 'public' ? 'bg-blue-600 text-white' :
-            toilet.type === 'mall' ? 'bg-purple-600 text-white' :
-            toilet.type === 'hotel' ? 'bg-amber-600 text-white' :
-            'bg-green-600 text-white'
-          }`}>
-            {toilet.type === 'public' ? '🏛️ 公共' : toilet.type === 'mall' ? '🏬 商場' : toilet.type === 'hotel' ? '🏨 飯店' : '🚇 地鐵'}
-          </span>
-        </div>
-        {/* Cleanliness badge */}
-        <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 flex items-center gap-1 bg-white/90 backdrop-blur rounded-full px-2 py-0.5 sm:px-3 sm:py-1">
-          <StarRating value={toilet.cleanliness} />
-          <span className="text-xs sm:text-sm font-bold text-gray-800 ml-0.5 sm:ml-1">{toilet.cleanliness}/5</span>
-        </div>
+        {/* 2026-06-30 聖上拍板: 圖文改造 — 有 gptImagePath 時加中文 overlay (postcard 🅐 機制移植) */}
+        {useGpt && (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30 pointer-events-none" />
+            {/* 標題列 (左上) */}
+            <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 right-2.5 sm:right-3 flex items-start justify-between gap-2 pointer-events-none">
+              <div className="bg-stone-900/78 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl max-w-[70%]">
+                <div className="text-[10px] font-bold text-amber-400 tracking-wider">
+                  {toilet.id.toUpperCase()} · {useGpt ? 'AI 生圖' : '實景'}
+                </div>
+                <div className="text-sm sm:text-base font-extrabold text-stone-50 leading-tight mt-0.5">
+                  {toilet.name}
+                </div>
+                <div className="text-[10px] text-stone-300 mt-1">
+                  📍 {toilet.address}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 items-end">
+                <span className={`text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-bold shadow ${
+                  toilet.type === 'public' ? 'bg-blue-600 text-white' :
+                  toilet.type === 'mall' ? 'bg-purple-600 text-white' :
+                  toilet.type === 'hotel' ? 'bg-amber-600 text-white' :
+                  'bg-green-600 text-white'
+                }`}>
+                  {toilet.type === 'public' ? '🏛️ 公共' : toilet.type === 'mall' ? '🏬 商場' : toilet.type === 'hotel' ? '🏨 飯店' : '🚇 地鐵'}
+                </span>
+                <span className="text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-bold shadow bg-amber-400 text-stone-900">
+                  ★ {toilet.cleanliness}/5 {toilet.cleanliness === 5 && '最乾淨'}
+                </span>
+                <span className="text-[10px] sm:text-xs px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-bold shadow bg-emerald-600 text-white">
+                  💰 {toilet.fee}
+                </span>
+              </div>
+            </div>
+            {/* 底部 caption 說文 */}
+            {toilet.caption && (
+              <div className="absolute bottom-0 left-0 right-0 px-3 pb-2.5 sm:px-4 sm:pb-3 pt-8 bg-gradient-to-t from-black/85 to-transparent pointer-events-none">
+                <div className="text-xs sm:text-sm font-bold text-white leading-snug drop-shadow">
+                  「{toilet.caption}」
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        {/* 非 gpt 模式保留原本的 badges (維持原樣不破壞既有) */}
+        {!useGpt && (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            {/* Type badge */}
+            <div className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3">
+              <span className={`text-xs px-2 py-0.5 sm:px-2 sm:py-1 rounded-full font-bold ${
+                toilet.type === 'public' ? 'bg-blue-600 text-white' :
+                toilet.type === 'mall' ? 'bg-purple-600 text-white' :
+                toilet.type === 'hotel' ? 'bg-amber-600 text-white' :
+                'bg-green-600 text-white'
+              }`}>
+                {toilet.type === 'public' ? '🏛️ 公共' : toilet.type === 'mall' ? '🏬 商場' : toilet.type === 'hotel' ? '🏨 飯店' : '🚇 地鐵'}
+              </span>
+            </div>
+            {/* Cleanliness badge */}
+            <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 flex items-center gap-1 bg-white/90 backdrop-blur rounded-full px-2 py-0.5 sm:px-3 sm:py-1">
+              <StarRating value={toilet.cleanliness} />
+              <span className="text-xs sm:text-sm font-bold text-gray-800 ml-0.5 sm:ml-1">{toilet.cleanliness}/5</span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Content - compact on mobile */}
