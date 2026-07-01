@@ -449,6 +449,76 @@ function DayCardsSection({ itinerary }: { itinerary: ItineraryEvent[] }) {
     };
   }, []);
 
+  // 2026-06-30 聖上拍板: 把 8 張獨立的 Q版圖組合成 1 張大圖 (上下堆疊) → 一鍵下載 + 顯示
+  // 純前端 Canvas 合成, 沒伺服器負擔. 8 張都需已生成, 否則提示缺哪幾天
+  const [merging, setMerging] = useState(false);
+  const [mergedDataUrl, setMergedDataUrl] = useState<string | null>(null);  // 2026-06-30: 也存 dataUrl 直接 render
+  async function mergeAndDownload() {
+    const missing = [1, 2, 3, 4, 5, 6, 7, 8].filter((d) => !dayImages[d]);
+    if (missing.length > 0) {
+      alert(`還缺 Day ${missing.join(", ")} 沒生成, 無法合併. 請先點各天的「🎨」生圖.`);
+      return;
+    }
+    if (merging) return;
+    setMerging(true);
+    try {
+      // 載入 8 張圖, 取實際寬高
+      const imgs = await Promise.all(
+        [1, 2, 3, 4, 5, 6, 7, 8].map(
+          (d) =>
+            new Promise<HTMLImageElement>((resolve, reject) => {
+              const img = new Image();
+              img.onload = () => resolve(img);
+              img.onerror = () => reject(new Error(`Day ${d} 圖載入失敗`));
+              img.src = dayImages[d].dataUrl;
+            })
+        )
+      );
+      // 計算畫布: 用第 1 張的寬度, 8 張高度累加
+      const w = imgs[0].naturalWidth;
+      const gap = 16; // 兩張之間留白
+      const totalH = imgs.reduce((s, i) => s + i.naturalHeight, 0) + gap * 7;
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = totalH;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas 2D 不可用");
+      // 黑色背景填補 gap
+      ctx.fillStyle = "#1c1917";
+      ctx.fillRect(0, 0, w, totalH);
+      // 上下堆疊繪製
+      let y = 0;
+      for (let i = 0; i < 8; i++) {
+        ctx.drawImage(imgs[i], 0, y);
+        y += imgs[i].naturalHeight;
+        if (i < 7) {
+          ctx.fillStyle = "#1c1917";
+          ctx.fillRect(0, y, w, gap);
+          y += gap;
+        }
+      }
+      // 2026-06-30 聖上拍板: 存 dataUrl 給 UI 直接 render 「讓大家看」
+      const dataUrl = canvas.toDataURL("image/png");
+      setMergedDataUrl(dataUrl);
+      // 同時觸發下載
+      canvas.toBlob((blob) => {
+        if (!blob) throw new Error("Canvas toBlob 失敗");
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `postcard-8day-merged-${new Date().toISOString().slice(0, 10)}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }, "image/png");
+    } catch (e) {
+      alert(`合併失敗: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setMerging(false);
+    }
+  }
+
   async function generateDayImage(day: number) {
     if (generatingDay !== null) return;
     setGeneratingDay(day);
@@ -501,7 +571,39 @@ function DayCardsSection({ itinerary }: { itinerary: ItineraryEvent[] }) {
 
   return (
     <div className="mb-6 bg-white rounded-2xl p-4 shadow-lg border-2 border-amber-200" data-testid="day-cards-section">
-      <h2 className="text-lg font-black text-gray-800 mb-2">🎨 8 天每日獨立卡通 Q 版圖</h2>
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+        <h2 className="text-lg font-black text-gray-800">🎨 8 天每日獨立卡通 Q 版圖</h2>
+        {/* 2026-06-30 聖上拍板: 一鍵合併 8 張獨立圖 → 1 張大圖下載 + 直接顯示 */}
+        <button
+          onClick={mergeAndDownload}
+          disabled={merging}
+          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow hover:shadow-md transition-all disabled:opacity-50"
+          data-testid="day-cards-merge-download"
+        >
+          {merging ? "⏳ 合併中..." : "📥 一鍵下載 8 天組合圖"}
+        </button>
+      </div>
+      {/* 2026-06-30 聖上拍板: 直接顯示組合圖, 「讓大家看」 */}
+      {mergedDataUrl && (
+        <div className="mb-3 rounded-xl overflow-hidden shadow-lg border-2 border-amber-300 bg-stone-900" data-testid="day-cards-merged-preview">
+          <div className="px-3 py-2 bg-amber-100 border-b border-amber-300 flex items-center justify-between gap-2 flex-wrap">
+            <span className="text-xs font-bold text-amber-900">🖼️ 8 天組合圖 (8 張獨立 Q版 + 16px 黑邊分隔, 自動合併下載一次)</span>
+            <a
+              href={mergedDataUrl}
+              download={`postcard-8day-merged-${new Date().toISOString().slice(0, 10)}.png`}
+              className="text-xs font-bold px-2 py-1 rounded bg-amber-500 text-white hover:bg-amber-600"
+            >
+              💾 另存 PNG
+            </a>
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={mergedDataUrl}
+            alt="8 天獨立卡通 Q 版圖 - 組合圖"
+            className="w-full h-auto block"
+          />
+        </div>
+      )}
       <p className="text-xs text-gray-500 mb-3">
         模型: <span className="font-mono text-pink-600">gpt-image-2-2k</span> (中文最強, fallback
         gemini-2.5-flash-image USER 6-15 distributor verified) · 每張用 <code className="font-mono">buildDayPrompt</code>

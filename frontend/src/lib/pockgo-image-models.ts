@@ -61,7 +61,7 @@ export const POCKGO_IMAGE_MODELS: PockgoImageModel[] = [
   // ── gpt-image (OpenAI) — 4 個 ──
   { name: "gpt-image-1.5",                         series: "gpt-image", vendor: "OpenAI", price: 0.14, defaultEnabled: false },
   { name: "gpt-image-2",                           series: "gpt-image", vendor: "OpenAI", price: 0.05, defaultEnabled: false },
-  { name: "gpt-image-2-2k",                        series: "gpt-image", vendor: "OpenAI", price: 0.08, resolution: "2K", defaultEnabled: false },
+  { name: "gpt-image-2-2k",                        series: "gpt-image", vendor: "OpenAI", price: 0.08, resolution: "2K", defaultEnabled: true, notes: "6-30 localhost test 啟用, distributor 待 verify" },
   { name: "gpt-image-2-4k",                        series: "gpt-image", vendor: "OpenAI", price: 0.10, resolution: "4K", defaultEnabled: false, notes: "4K 撞 Netlify 30s cap" },
 
   // ── seedream (字節跳動) — 4 個 ──

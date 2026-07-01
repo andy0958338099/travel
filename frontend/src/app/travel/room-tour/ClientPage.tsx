@@ -7,6 +7,7 @@ import {
   removePhoto,
   type Photo,
 } from '@/utils/roomTourService';
+import ShareButtons from '@/components/ShareButtons';
 
 const CATEGORIES = [
   { id: 'all',      label: '全部',     emoji: '📷' },
@@ -19,12 +20,19 @@ const CATEGORIES = [
 
 // 2026-06-24 聖上指示: 每個 hotel 上方加 Q版 chibi 場景圖 (跟 foodie-stops / sim-guide 同風格)
 // 5 張 Q版圖用 nano-banana 跑出, 存在 /public/room-tour/q/{hotelKey}.jpg
+// 2026-06-30 聖上拍板: 重生成 5 張用 gpt-image-2-2k, 存到 /public/room-tour/q-gpt/{hotelKey}.jpg
+// 有 qGptIcon 時優先用, 圖檔在就用, 不在就 fallback 原 qIcon
 const HOTEL_META = {
-  shanghai:       { name: '上海嘉廷酒店',      nameEn: 'Kingtown Riverside Hotel Plaza Shanghai', address: '上海靜安區新閘路126號（近昌平路）',        color: 'from-blue-800 to-blue-600',   source: undefined, qIcon: '/room-tour/q/shanghai.jpg',       qCaption: '上海都市河岸夜景' },
-  hangzhou:        { name: '杭州大酒店',        nameEn: 'Hangzhou Hotel ★★★★',                   address: '杭州延安西路と体育場路の交差点（武林広場エリア）', color: 'from-amber-700 to-amber-500',    source: 'shanghainavi.com', qIcon: '/room-tour/q/hangzhou.jpg',        qCaption: '杭州西湖夕陽' },
-  wuzhenYoushe:   { name: '烏鎮悠舍悠得藝術酒店',nameEn: 'Wuzhen Youshe Art Hotel (Xizha)',       address: '烏鎮鎮環河路59號（西柵北門步行2分鐘）',        color: 'from-teal-700 to-teal-500',     source: 'cncn.com', qIcon: '/room-tour/q/wuzhenYoushe.jpg',  qCaption: '烏鎮西柵水巷夜' },
-  yuzhouChangwan: { name: '西塘尋春·古韻雅居客棧',nameEn: 'Xitang Yuzhou Changwan Inn',          address: '嘉善縣西塘鎮景區內南棚下77號',                color: 'from-amber-700 to-orange-600',  source: 'wingontravel.com', qIcon: '/room-tour/q/yuzhouChangwan.jpg', qCaption: '西塘廊棚老街' },
-  wuzhenHomestay: { name: '烏鎮西柵民宿',        nameEn: 'Wuzhen Xizha Homestay',                 address: '桐鄉市烏鎮鎮西柵景區內',                       color: 'from-emerald-700 to-teal-600',  source: 'ctrip.com', qIcon: '/room-tour/q/wuzhenHomestay.jpg', qCaption: '烏鎮西柵民宿清晨' },
+  shanghai:       { name: '上海嘉廷酒店',      nameEn: 'Kingtown Riverside Hotel Plaza Shanghai', address: '上海靜安區新閘路126號（近昌平路）',        color: 'from-blue-800 to-blue-600',   source: undefined, qIcon: '/room-tour/q/shanghai.jpg',       qCaption: '上海都市河岸夜景',
+                    qGptIcon: '/room-tour/q-gpt/shanghai.jpg' },
+  hangzhou:        { name: '杭州大酒店',        nameEn: 'Hangzhou Hotel ★★★★',                   address: '杭州延安西路と体育場路の交差点（武林広場エリア）', color: 'from-amber-700 to-amber-500',    source: 'shanghainavi.com', qIcon: '/room-tour/q/hangzhou.jpg',        qCaption: '杭州西湖夕陽',
+                    qGptIcon: '/room-tour/q-gpt/hangzhou.jpg' },
+  wuzhenYoushe:   { name: '烏鎮悠舍悠得藝術酒店',nameEn: 'Wuzhen Youshe Art Hotel (Xizha)',       address: '烏鎮鎮環河路59號（西柵北門步行2分鐘）',        color: 'from-teal-700 to-teal-500',     source: 'cncn.com', qIcon: '/room-tour/q/wuzhenYoushe.jpg',  qCaption: '烏鎮西柵水巷夜',
+                    qGptIcon: '/room-tour/q-gpt/wuzhenYoushe.jpg' },
+  yuzhouChangwan: { name: '西塘尋春·古韻雅居客棧',nameEn: 'Xitang Yuzhou Changwan Inn',          address: '嘉善縣西塘鎮景區內南棚下77號',                color: 'from-amber-700 to-orange-600',  source: 'wingontravel.com', qIcon: '/room-tour/q/yuzhouChangwan.jpg', qCaption: '西塘廊棚老街',
+                    qGptIcon: '/room-tour/q-gpt/yuzhouChangwan.jpg' },
+  wuzhenHomestay: { name: '烏鎮西柵民宿',        nameEn: 'Wuzhen Xizha Homestay',                 address: '桐鄉市烏鎮鎮西柵景區內',                       color: 'from-emerald-700 to-teal-600',  source: 'ctrip.com', qIcon: '/room-tour/q/wuzhenHomestay.jpg', qCaption: '烏鎮西柵民宿清晨',
+                    qGptIcon: '/room-tour/q-gpt/wuzhenHomestay.jpg' },
 };
 
 type HotelKey = keyof typeof HOTEL_META;
@@ -147,13 +155,22 @@ export default function RoomTourPage() {
             </button>
           </div>
 
-          {/* 2026-06-24 聖上指示: 酒店名稱之上加 Q版 chibi 場景圖 (切換 hotel 時自動換圖) */}
+          {/* 2026-06-24 聖上指示: 酒店名稱之上加 Q版 chibi 場景圖 (切換 hotel 時自動換圖)
+              2026-06-30 聖上拍板: 有 qGptIcon 時優先用 (gpt-image-2-2k 重生) */}
           <div className="mt-4 mb-3 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/20 relative aspect-video bg-black/20">
             <img
               key={activeHotel}
-              src={HOTEL_META[activeHotel].qIcon}
+              src={HOTEL_META[activeHotel].qGptIcon || HOTEL_META[activeHotel].qIcon}
               alt={HOTEL_META[activeHotel].qCaption}
               className="w-full h-full object-cover transition-opacity duration-500"
+              onError={(e) => {
+                // GPT 圖若不存在 → fallback 原 qIcon
+                const img = e.currentTarget;
+                if (img.dataset.fallback !== '1' && HOTEL_META[activeHotel].qGptIcon) {
+                  img.dataset.fallback = '1';
+                  img.src = HOTEL_META[activeHotel].qIcon;
+                }
+              }}
             />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-4 py-2 pointer-events-none">
               <span className="text-white text-sm font-medium" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
@@ -162,7 +179,17 @@ export default function RoomTourPage() {
             </div>
           </div>
 
-          <h1 className="text-4xl font-bold mb-2">🏨 Room Tour</h1>
+          <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+            <h1 className="text-4xl font-bold">🏨 Room Tour</h1>
+            {/* 2026-07-02 聖上拍板: room-tour 加 ShareButtons (跟 postcard 同風格, icon variant) */}
+            <div className="bg-white/15 backdrop-blur-sm rounded-full p-1">
+              <ShareButtons
+                variant="icon"
+                title="飯店 Room Tour - 江南水鄉八日"
+                text={`🏨 ${HOTEL_META[activeHotel].name} 房間開箱 · 江南水鄉 8 日`}
+              />
+            </div>
+          </div>
           <p className="text-white/80 text-lg">
             {HOTEL_META[activeHotel].name} · {HOTEL_META[activeHotel].nameEn}
           </p>

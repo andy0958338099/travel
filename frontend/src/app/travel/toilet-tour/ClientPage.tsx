@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import ShareButtons from '@/components/ShareButtons';
 
 type Toilet = {
   id: string;
@@ -417,6 +418,14 @@ export default function ToiletTourPage() {
           <div className="flex items-center gap-2">
             <span className="text-2xl">🚻</span>
             <h1 className="text-xl font-bold text-gray-800">洗手間導覽</h1>
+          </div>
+          {/* 2026-07-02 聖上拍板: toilet-tour 加 ShareButtons (緊湊型 compact 配合 sticky 高度) */}
+          <div className="ml-auto">
+            <ShareButtons
+              variant="compact"
+              title="洗手間導覽 - 江南水鄉八日"
+              text="🚻 江南水鄉 8 日洗手間導覽 · 上海 10 處 + 杭州 7 處"
+            />
           </div>
         </div>
       </div>
