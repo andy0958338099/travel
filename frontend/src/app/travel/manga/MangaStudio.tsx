@@ -22,6 +22,12 @@ import { ATTRACTION_CATEGORIES } from "@/utils/mangaTaxonomy";
 import MangaViewer, { type MangaData } from "./MangaViewer";
 import PromptEditor from "./PromptEditor";
 import { createClient } from "@/utils/supabase/client";
+import {
+  getHiddenMangas,
+  hideManga,
+  unhideManga,
+} from "@/utils/mangaHideService";
+import { toast } from "@/components/GlobalToastHost";
 
 export interface AttractionLite {
   name: string;
@@ -54,14 +60,21 @@ export default function MangaStudio({ attractions }: Props) {
   const [loading, setLoading] = useState(true);
   // 分類篩選
   const [activeCategory, setActiveCategory] = useState<Category | "all">("all");
+  // 🆕 2026-07-02 聖上拍板: 雲端+本地 隱藏清單（雲端優先）
+  const [hiddenSet, setHiddenSet] = useState<Set<string>>(new Set());
+  // 「管理已隱藏」面板展開與否
+  const [showHiddenManager, setShowHiddenManager] = useState(false);
 
-  // ── 啟動時：載入雲端 feed ──
+  // ── 啟動時：載入雲端 feed + 雲端隱藏清單 ──
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/manga/feed?limit=200");
-        const json = await res.json();
+        const [feedRes, hidden] = await Promise.all([
+          fetch("/api/manga/feed?limit=200"),
+          getHiddenMangas(),
+        ]);
+        const json = await feedRes.json();
         if (cancelled) return;
         const map: Record<string, MangaData> = {};
         for (const m of json.mangas || []) {
@@ -71,8 +84,9 @@ export default function MangaStudio({ attractions }: Props) {
           }
         }
         setGeneratedMap(map);
+        setHiddenSet(hidden);
       } catch (e) {
-        console.error("[manga] feed load failed:", e);
+        console.error("[manga] feed/hidden load failed:", e);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -233,31 +247,101 @@ export default function MangaStudio({ attractions }: Props) {
     return g;
   }, [attractions]);
 
+  // 🆕 2026-07-02 聖上拍板: 隱藏 handler (雲端 + 本地都更新)
+  const handleHide = useCallback(async (sourceId: string) => {
+    const confirmed = window.confirm(
+      `確定隱藏「${sourceId}」這張 Q版漫畫？\n（雲端同步, Brian & Mana 都會看不到；可以稍後在「管理已隱藏」還原）`
+    );
+    if (!confirmed) return;
+    await hideManga(sourceId);
+    setHiddenSet((prev) => {
+      const next = new Set(prev);
+      next.add(sourceId);
+      return next;
+    });
+    toast.success(`已隱藏 ${sourceId}`);
+  }, []);
+
+  const handleUnhide = useCallback(async (sourceId: string) => {
+    await unhideManga(sourceId);
+    setHiddenSet((prev) => {
+      const next = new Set(prev);
+      next.delete(sourceId);
+      return next;
+    });
+    toast.success(`已還原 ${sourceId}`);
+  }, []);
+
   const stats = useMemo(() => {
     const total = attractions.length;
-    // 只算有對應 attraction 卡的（過濾掉之前測試的 leifeng* ghost 資料）
+    // 只算有對應 attraction 卡的（過濾掉之前測試的 leifeng* ghost 資料 + 雲端隱藏的）
     const validNames = new Set(attractions.map((a) => a.name));
-    const generated = Object.keys(generatedMap).filter((k) => validNames.has(k)).length;
-    return { total, generated };
-  }, [attractions, generatedMap]);
+    const generated = Object.keys(generatedMap).filter(
+      (k) => validNames.has(k) && !hiddenSet.has(k)
+    ).length;
+    const hidden = [...hiddenSet].filter((k) => validNames.has(k)).length;
+    return { total, generated, hidden };
+  }, [attractions, generatedMap, hiddenSet]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10">
-      {/* Hero */}
-      <header className="mb-8 text-center">
-        <div className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold mb-3">
+      {/* Hero — 🅒 2026-07-02 聖上拍板: indigo→江楠 (朱紅徽章+朱→金標題+紙紋) */}
+      <header className="mb-8 text-center relative">
+        {/* 雲紋橫條 (頂) */}
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-32 h-1 cloud-pattern rounded-full opacity-60" />
+        <div className="inline-block px-3 py-1 rice-paper text-red-700 rounded-full text-xs font-bold mb-3 chinese-frame">
           🎨 Q版漫畫圖鑑 · 江南水鄉八日之旅
         </div>
-        <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl sm:text-4xl jn-title-gradient mb-1">
           江南景點 · 4 格 Q版漫畫
         </h1>
-        <p className="text-gray-600 mt-2 text-sm sm:text-base">
+        <p className="text-stone-600 mt-3 text-sm sm:text-base">
           點 🎨 把每個景點變成 4 格 Q版漫畫，配上導遊風格的短/中/長介紹
         </p>
-        <div className="mt-3 text-xs text-gray-500">
-          已生成 <span className="font-bold text-indigo-600">{stats.generated}</span> / {stats.total} 個景點
+        <div className="mt-3 text-xs text-stone-500">
+          已生成 <span className="font-bold text-red-700">{stats.generated}</span> / {stats.total} 個景點
+          {/* 🆕 2026-07-02 聖上拍板: hidden 計數 + 管理按鈕（雲端同步給所有裝置） */}
+          {stats.hidden > 0 && (
+            <span className="ml-3">
+              · 已隱藏 <span className="font-bold text-stone-600">{stats.hidden}</span> 個
+              <button
+                onClick={() => setShowHiddenManager((v) => !v)}
+                className="ml-2 text-xs px-2 py-0.5 rounded bg-stone-100 hover:bg-amber-50 text-stone-600 hover:text-red-700 transition-colors"
+              >
+                {showHiddenManager ? "收起" : "管理"}
+              </button>
+            </span>
+          )}
         </div>
       </header>
+
+      {/* 🆕 2026-07-02 聖上拍板: 已隱藏管理面板（給 USER 反悔） */}
+      {showHiddenManager && stats.hidden > 0 && (
+        <div className="mb-6 rice-paper border border-amber-300/40 chinese-frame rounded-xl p-4">
+          <p className="text-xs text-stone-600 mb-3 flex items-center gap-2">
+            <span>🔒</span>
+            <span>已隱藏的 Q版漫畫（點「還原」會重新出現在卡片牆）</span>
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {attractions
+              .filter((a) => hiddenSet.has(a.name))
+              .map((a) => (
+                <li
+                  key={a.name}
+                  className="inline-flex items-center gap-1.5 bg-white border border-amber-200/60 rounded-full px-3 py-1 text-xs"
+                >
+                  <span className="text-stone-500 line-through">{a.name}</span>
+                  <button
+                    onClick={() => handleUnhide(a.name)}
+                    className="text-red-700 hover:text-red-800 font-medium"
+                  >
+                    還原
+                  </button>
+                </li>
+              ))}
+          </ul>
+        </div>
+      )}
 
       {/* Category tabs */}
       <div className="flex gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -283,13 +367,14 @@ export default function MangaStudio({ attractions }: Props) {
 
       {/* Grid by category */}
       {loading ? (
+        // 🅒 2026-07-02: gray-100 → stone-100 (跟其他頁 skeleton 一致)
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="h-40 bg-gray-100 animate-pulse" />
+            <div key={i} className="bg-white rounded-xl shadow-sm border border-amber-200/30 overflow-hidden">
+              <div className="h-40 bg-stone-100 animate-pulse" />
               <div className="p-4 space-y-2">
-                <div className="h-4 bg-gray-100 rounded animate-pulse w-3/4" />
-                <div className="h-3 bg-gray-100 rounded animate-pulse w-1/2" />
+                <div className="h-4 bg-stone-100 rounded animate-pulse w-3/4" />
+                <div className="h-3 bg-stone-100 rounded animate-pulse w-1/2" />
               </div>
             </div>
           ))}
@@ -305,8 +390,8 @@ export default function MangaStudio({ attractions }: Props) {
               <section key={cat} className="mb-10">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-2xl">{meta.emoji}</span>
-                  <h2 className="text-xl font-bold text-gray-800">{meta.label}</h2>
-                  <span className="text-sm text-gray-500">· {meta.description}</span>
+                  <h2 className="text-xl font-bold text-stone-800">{meta.label}</h2>
+                  <span className="text-sm text-stone-500">· {meta.description}</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {list.map((a) => (
@@ -315,8 +400,11 @@ export default function MangaStudio({ attractions }: Props) {
                       attraction={a}
                       generated={generatedMap[a.name]}
                       generating={generating[a.name]}
+                      isHidden={hiddenSet.has(a.name)}
                       onClick={() => handleGenerate(a)}
                       onEditPrompt={() => setEditingAttraction(a)}
+                      onHide={() => handleHide(a.name)}
+                      onUnhide={() => handleUnhide(a.name)}
                     />
                   ))}
                 </div>
@@ -362,10 +450,11 @@ function CategoryTab({
   return (
     <button
       onClick={onClick}
+      // 🅒 2026-07-02: indigo-600/white/indigo-300 → 朱紅 active + 金邊 inactive
       className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
         active
-          ? "bg-indigo-600 text-white shadow-sm"
-          : "bg-white text-gray-600 border border-gray-200 hover:border-indigo-300"
+          ? "jn-tab-active"
+          : "jn-tab-inactive"
       }`}
     >
       {emoji} {label}
@@ -377,14 +466,20 @@ function AttractionMangaCard({
   attraction,
   generated,
   generating,
+  isHidden,
   onClick,
   onEditPrompt,
+  onHide,
+  onUnhide,
 }: {
   attraction: AttractionLite;
   generated?: MangaData;
   generating?: { current: number; total: number };
+  isHidden: boolean;
   onClick: () => void;
   onEditPrompt: () => void;
+  onHide: () => void;
+  onUnhide: () => void;
 }) {
   const isReady = !!generated;
   const isGenerating = !!generating;
@@ -393,15 +488,15 @@ function AttractionMangaCard({
     : 0;
 
   return (
+    // 🅒 2026-07-02: indigo-200/indigo-100 ring → 江楠金邊 + 已生成用朱紅邊
+    // 🆕 2026-07-02: 已隱藏時額外加 opacity-50 grayscale（視覺降權）
     <div
-      className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all ${
-        isReady
-          ? "border-indigo-200 ring-1 ring-indigo-100"
-          : "border-gray-100 hover:shadow-md hover:border-indigo-200"
-      }`}
+      className={`jn-card relative ${
+        isReady ? "jn-card-ready" : ""
+      } ${isHidden ? "opacity-60 grayscale" : ""}`}
     >
       {/* Cover */}
-      <div className="relative h-40 bg-gray-100 overflow-hidden">
+      <div className="relative h-40 bg-stone-100 overflow-hidden">
         {attraction.cover ? (
           <img
             src={attraction.cover}
@@ -417,20 +512,27 @@ function AttractionMangaCard({
             {ATTRACTION_CATEGORIES[attraction.category].emoji}
           </div>
         )}
-        {/* Status badge */}
-        {isReady && (
-          <div className="absolute top-2 left-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+        {/* Status badge — 朱紅色已生成徽章 */}
+        {isReady && !isHidden && (
+          <div className="jn-badge absolute top-2 left-2 shadow-md">
             ✓ 已生成
           </div>
         )}
+        {/* 🆕 2026-07-02 已隱藏徽章 — stone 色，跟「已生成」區分 */}
+        {isHidden && (
+          <div className="absolute top-2 left-2 bg-stone-700/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
+            <span>🔒</span>
+            <span>已隱藏</span>
+          </div>
+        )}
         {isGenerating && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-br from-stone-900/70 to-red-900/70 flex items-center justify-center">
             <div className="text-center text-white">
               <div className="text-3xl mb-1">🎨</div>
               <div className="text-xs font-semibold">生成中…</div>
-              <div className="mt-1 w-32 h-1.5 bg-white/30 rounded-full overflow-hidden">
+              <div className="mt-1 w-32 h-1.5 jn-progress-track">
                 <div
-                  className="h-full bg-gradient-to-r from-indigo-400 to-purple-400 transition-all"
+                  className="jn-progress-fill"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
@@ -440,35 +542,56 @@ function AttractionMangaCard({
             </div>
           </div>
         )}
+
+        {/* 🆕 2026-07-02 聖上拍板: 隱藏按鈕 (已生成卡片右上角，與 attractions × 同 pattern) */}
+        {!isGenerating && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isHidden) onUnhide();
+              else onHide();
+            }}
+            className="absolute top-2 right-2 w-7 h-7 bg-black/50 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-sm transition-colors"
+            title={isHidden ? "還原此景點" : "隱藏此景點"}
+            aria-label={isHidden ? `還原 ${attraction.name}` : `隱藏 ${attraction.name}`}
+          >
+            {isHidden ? "↺" : "×"}
+          </button>
+        )}
       </div>
 
       {/* Content */}
       <div className="p-4">
-        <h3 className="font-bold text-gray-800 text-base mb-1 line-clamp-1">
+        <h3 className="font-bold text-stone-800 text-base mb-1 line-clamp-1">
           {attraction.name}
         </h3>
         {attraction.nameEn && (
-          <div className="text-xs text-gray-400 mb-2">{attraction.nameEn}</div>
+          <div className="text-xs text-stone-400 mb-2">{attraction.nameEn}</div>
         )}
-        <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+        <p className="text-xs text-stone-500 line-clamp-2 mb-3">
           {attraction.highlight}
         </p>
         <button
           onClick={onClick}
           disabled={isGenerating}
-          className={`w-full py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
+          // 🅒 2026-07-02: indigo-50/700/300 + indigo→purple gradient → 江楠朱→金 CTA
+          className={`w-full py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
             isReady
-              ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200"
+              ? "jn-cta-secondary"
               : isGenerating
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-              : "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 shadow-sm"
+              ? "bg-stone-100 text-stone-400 cursor-not-allowed"
+              : "jn-cta-primary"
           }`}
         >
-          {isGenerating ? "⏳ 生成中…" : isReady ? "📖 開啟漫畫" : "🎨 生成 Q版漫畫"}
+          {isGenerating
+            ? "⏳ 生成中…"
+            : isReady
+            ? "📖 開啟漫畫"
+            : "🎨 生成 Q版漫畫"}
         </button>
         <button
           onClick={onEditPrompt}
-          className="w-full mt-1.5 text-xs text-gray-400 hover:text-indigo-600 transition-colors"
+          className="w-full mt-1.5 text-xs text-stone-400 hover:text-red-700 transition-colors"
         >
           📝 編輯 prompt
         </button>

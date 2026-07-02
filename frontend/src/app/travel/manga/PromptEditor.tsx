@@ -177,16 +177,16 @@ export default function PromptEditor({ attractionName, region, onClose, onSaved 
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 p-2 border-b bg-gray-50">
+        {/* Tabs — 🅒 2026-07-02: indigo-500 → 江楠 jn-tab */}
+        <div className="flex gap-1 p-2 border-b bg-stone-50">
           {([1, 2, 3, 4] as PanelIdx[]).map((p) => (
             <button
               key={p}
               onClick={() => setActivePanel(p)}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activePanel === p
-                  ? "bg-indigo-500 text-white"
-                  : "bg-white text-gray-600 hover:bg-gray-100"
+                  ? "jn-tab-active"
+                  : "bg-white text-stone-600 hover:bg-amber-50"
               }`}
             >
               <div className="flex items-center justify-center gap-1.5">
@@ -217,36 +217,37 @@ export default function PromptEditor({ attractionName, region, onClose, onSaved 
               <textarea
                 value={prompts[activePanel]}
                 onChange={(e) => handlePanelChange(activePanel, e.target.value)}
-                className="w-full h-72 p-3 border border-gray-300 rounded-lg text-xs font-mono leading-relaxed resize-none focus:outline-none focus:border-indigo-500"
+                // 🅒 2026-07-02: gray-300/focus:indigo-500 → amber-300/focus:red-500 江楠
+                className="w-full h-72 p-3 border border-amber-300/40 rounded-lg text-xs font-mono leading-relaxed resize-none focus:outline-none focus:border-red-500"
                 placeholder="輸入 prompt..."
               />
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-stone-500 mt-2">
                 💡 修改任何字都會標記為「自訂」。按「還原預設」可一鍵還原成 default。
               </p>
             </>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between p-4 border-t bg-gray-50 gap-2">
+        {/* Footer — 🅒 2026-07-02: indigo-500/600 → 江楠朱紅 CTA */}
+        <div className="flex items-center justify-between p-4 border-t bg-stone-50 gap-2">
           <button
             onClick={handleReset}
             disabled={saving || loading}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+            className="px-4 py-2 text-sm text-stone-600 hover:text-red-700 disabled:opacity-50"
           >
             🔄 還原預設
           </button>
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm bg-gray-200 hover:bg-gray-300 rounded-lg"
+              className="px-4 py-2 text-sm bg-stone-200 hover:bg-stone-300 rounded-lg"
             >
               取消
             </button>
             <button
               onClick={handleSave}
               disabled={saving || loading}
-              className="px-4 py-2 text-sm bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-lg disabled:opacity-50"
+              className="jn-cta-primary px-4 py-2 text-sm disabled:opacity-50"
             >
               {saving ? "儲存中…" : "💾 儲存"}
             </button>

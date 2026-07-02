@@ -53,3 +53,8 @@ backend/node_modules/
 
 # Local Netlify folder
 .netlify
+
+# 🆕 2026-07-02 聖上拍板: preview HTML 跟 .bak 備份不入 git
+# preview HTML 是工作階段 artifact, 隨時可重生; .bak 是替換前的舊版, 不屬於 release
+frontend/public/*-preview.html
+frontend/public/**/*.bak.*

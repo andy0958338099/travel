@@ -70,3 +70,27 @@
 - [ ] stories 5 個新 story cover 用 Q版頂: 之後聖上查到真實照再替換
 - [ ] postcard gpt-image-2-2k distributor 死: 等 pockgo 修 distributor `Image-2新分组` channel 或換 model
 - [ ] /tmp/qgen-*.sh 3 個 script 重複 nano-banana + sips 邏輯, 應該重構成單一 /scripts/qgen.sh
+
+---
+
+## 2026-07-02 (上次: 2026-06-30 / 6 月累積)
+
+### manga (`/travel/manga`) — 🅒 聖上拍板 1+2 一起做
+
+1. **全站 family pack** (`#dc2626` 朱紅 / `#f59e0b` 金 / `#1e293b` 墨黑 / `#fafaf9` 宣紙 / `#0e7490` 青花)
+   - `globals.css` 加 11 個 CSS variable (`--jn-vermilion` / `--jn-gold` / `--jn-ink` / `--jn-paper` / `--jn-blue` / `--jn-gradient-1/2/3` / `--jn-shadow/-strong`) + 9 個 utility class (`jn-page-bg` / `jn-title-gradient(-bg)` / `jn-cta-primary/secondary` / `jn-badge` / `jn-tab-active/inactive` / `jn-card/-ready` / `jn-progress-track/fill`)
+   - `MangaStudio.tsx` 全頁 indigo/purple → 江楠朱→金 (Hero / CategoryTab / AttractionMangaCard / 骨架屏)
+   - `MangaViewer.tsx` modal header/panel/regen/3 desc → 江楠
+   - `PromptEditor.tsx` tabs/textarea/footer → 江楠
+
+2. **🆕 每張 Q版漫畫加 × 刪除鈕** (聖上原話: 「讓我能把不要的刪掉, 其他人也要看到被刪掉的結果」)
+   - 雲端共享 hide list 模式 (跟 attractions 同一個 pattern)
+   - 新 table `manga_hidden(source_id text PK, source_type text, hidden_at timestamptz)`
+   - 新 SQL: `/Volumes/Transcend/manga-studio/frontend/docs/manga-hidden-rls.sql` (聖上要去 Supabase SQL Editor 跑這條)
+   - 新 APIs: `/api/manga/hide` POST, `/api/manga/unhide` POST, `/api/manga/hidden-list` GET
+   - `/api/manga/feed` 改: 自動 not-in 過濾雲端隱藏 source_id
+   - 新 service: `/Volumes/Transcend/manga-studio/frontend/src/utils/mangaHideService.ts` (雲端+本地合併)
+   - UI: 卡片右上角 × 鈕 (已生成優先), 已隱藏卡片降權 opacity-60 + grayscale, 同時顯示 🔒 徽章 + ↺ 還原鈕
+   - Hero 加「已隱藏 N 個」計數 + 「管理」按鈕 → 展開「已隱藏管理面板」(中式窗格 + 還原列表)
+   - localStorage key `manga-studio-hidden-v1` (雙保險)
+   - **不 hard delete travel_mangas row / 不刪 storage 圖**, 給聖上反悔機會

@@ -323,8 +323,8 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
           className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[95vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 sm:p-5 rounded-t-2xl flex items-center justify-between gap-3 z-10">
+          {/* Header — 🅒 2026-07-02: indigo/purple gradient → 朱→金江楠漸層 */}
+          <div className="sticky top-0 jn-title-gradient-bg text-white p-4 sm:p-5 rounded-t-2xl flex items-center justify-between gap-3 z-10">
             <div className="min-w-0 flex-1">
               <div className="text-xs opacity-80">
                 🎨 Q版漫畫 · {current.character_name}
@@ -414,9 +414,9 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                 const meta = PANEL_META[p];
 
                 return (
-                  <div key={p} className="flex flex-col bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    {/* Panel 圖（純圖，無 overlay） */}
-                    <div className="relative aspect-[3/4] bg-gradient-to-br from-indigo-50 to-purple-50">
+                  <div key={p} className="flex flex-col bg-white border border-amber-200/40 rounded-lg overflow-hidden shadow-sm">
+                    {/* Panel 圖（純圖，無 overlay） — 🅒 indigo/purple → rice-paper 江楠宣紙 */}
+                    <div className="relative aspect-[3/4] rice-paper">
                       {url ? (
                         <img
                           src={url}
@@ -425,12 +425,12 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                           loading="lazy"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                        <div className="w-full h-full flex items-center justify-center text-stone-400 text-sm">
                           {isRegen ? "⏳ 生成中…" : "❌ 缺圖"}
                         </div>
                       )}
                       {isRegen && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                        <div className="absolute inset-0 bg-stone-900/40 flex items-center justify-center z-10">
                           <div className="text-white text-xs font-semibold animate-pulse">
                             🎨 {p}/4
                           </div>
@@ -439,32 +439,32 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
                     </div>
 
                     {/* 文字區（圖下方，白底 + 邊框） */}
-                    <div className="p-2.5 sm:p-3 space-y-1 border-t border-gray-100 flex-1">
-                      {/* 序號 + title + icon */}
+                    <div className="p-2.5 sm:p-3 space-y-1 border-t border-amber-200/30 flex-1">
+                      {/* 序號 + title + icon — 🅒 indigo-100/700 → amber-100/red-700 江楠金邊 */}
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-black bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-black bg-amber-100 text-red-700 px-1.5 py-0.5 rounded">
                           {p}/4
                         </span>
-                        <span className="text-sm sm:text-base font-black text-gray-800">
+                        <span className="text-sm sm:text-base font-black text-stone-800">
                           {meta.title}
                         </span>
                         <span className="text-sm sm:text-base">{meta.icon}</span>
                       </div>
                       {/* 副標題 = 景點名 */}
-                      <div className="text-[11px] font-bold text-gray-600 truncate">
+                      <div className="text-[11px] font-bold text-stone-600 truncate">
                         📍 {current.source_name}
                       </div>
                       {/* 描述 = chat 生成的 caption */}
-                      <div className="text-[11px] sm:text-xs leading-snug text-gray-700 line-clamp-3">
+                      <div className="text-[11px] sm:text-xs leading-snug text-stone-700 line-clamp-3">
                         {current[captionKey] || "—"}
                       </div>
                     </div>
 
-                    {/* Regenerate 按鈕（卡片下方） */}
+                    {/* Regenerate 按鈕 — 🅒 indigo-50 → amber-50 江楠暖色 */}
                     <button
                       onClick={() => handleRegenerate(p)}
                       disabled={isRegen}
-                      className="text-xs py-1.5 px-2 bg-gray-50 hover:bg-indigo-50 border-t border-gray-100 text-gray-600 hover:text-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="text-xs py-1.5 px-2 bg-amber-50/60 hover:bg-amber-100 border-t border-amber-200/30 text-stone-600 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       {isRegen ? "⏳ 重生中…" : "🔄 重新生成此格"}
                     </button>
@@ -474,51 +474,52 @@ export default function MangaViewer({ manga, onClose, onUpdate }: Props) {
             </div>
           </div>
 
-          {/* Descriptions (短/中/長 — 程式文字) */}
+          {/* Descriptions (短/中/長 — 程式文字) — 🅒 統一江楠暖色 (amber/red) */}
           <div className="px-4 sm:p-5 pb-5 space-y-3">
             {current.short_desc && (
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3">
+              <div className="rice-paper border border-amber-200/50 rounded-lg p-3">
                 <div className="text-xs font-bold text-amber-700 mb-1">
                   ⚡ 一句話
                 </div>
-                <div className="text-sm text-gray-800">{current.short_desc}</div>
+                <div className="text-sm text-stone-800">{current.short_desc}</div>
               </div>
             )}
             {current.medium_desc && (
-              <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-3">
-                <div className="text-xs font-bold text-blue-700 mb-1">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-3">
+                <div className="text-xs font-bold text-amber-700 mb-1">
                   📖 300 字介紹
                 </div>
-                <div className="text-sm text-gray-800 whitespace-pre-wrap">
+                <div className="text-sm text-stone-800 whitespace-pre-wrap">
                   {current.medium_desc}
                 </div>
               </div>
             )}
             {current.long_desc && (
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-3">
-                <div className="text-xs font-bold text-purple-700 mb-1 flex items-center justify-between">
+              <div className="rice-paper border border-amber-200/50 rounded-lg p-3">
+                {/* 🅒 2026-07-02: purple-700/600/800 → red-700/600/800 江楠硃砂 */}
+                <div className="text-xs font-bold text-red-700 mb-1 flex items-center justify-between">
                   <span>📚 完整攻略 {showLong ? "" : "（點擊展開）"}</span>
                   <button
                     onClick={() => setShowLong((s) => !s)}
-                    className="text-purple-600 hover:text-purple-800"
+                    className="text-red-600 hover:text-red-800"
                   >
                     {showLong ? "收合 ▲" : "展開 ▼"}
                   </button>
                 </div>
                 {showLong ? (
-                  <div className="text-sm text-gray-800 whitespace-pre-wrap mt-2">
+                  <div className="text-sm text-stone-800 whitespace-pre-wrap mt-2">
                     {current.long_desc}
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-600 line-clamp-3 mt-1">
+                  <div className="text-sm text-stone-600 line-clamp-3 mt-1">
                     {current.long_desc}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Meta */}
-            <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-gray-100">
+            {/* Meta — 🅒 gray-400/100 → stone-400/amber-200 江楠 */}
+            <div className="flex items-center justify-between text-xs text-stone-400 pt-2 border-t border-amber-200/30">
               <span>ID: {current.id.slice(0, 8)}</span>
               <span>更新：{new Date(current.updated_at).toLocaleString("zh-TW")}</span>
             </div>
