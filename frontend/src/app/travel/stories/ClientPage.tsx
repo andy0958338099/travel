@@ -1,6 +1,8 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import ShareButtons from '@/components/ShareButtons';
+import PerImageShare from '@/components/PerImageShare';
 
 // 2026-06-24 聖上加碼: 沿路地點 story 7+ 拆 1 = 9 個地點 (西湖/烏鎮東/西柵/西塘/外灘/南京東路/豫園/宋城/河坊街)
 // 砍 3 個偏離的 (京杭大運河/龍井/杭州總體) 因為不在 8 天行程實際路徑
@@ -327,12 +329,18 @@ export default function StoriesPage() {
             <span className="text-xs font-bold text-amber-800">Q版 chibi 場景解說圖 (AI 生成)</span>
             <span className="ml-auto text-[10px] text-amber-600">{story.qCaption}</span>
           </div>
-          <img
-            key={active}
+          <PerImageShare
             src={story.qIcon}
             alt={story.qCaption}
-            className="w-full aspect-video object-cover transition-opacity duration-500"
-          />
+            className="block"
+          >
+            <img
+              key={active}
+              src={story.qIcon}
+              alt={story.qCaption}
+              className="w-full aspect-video object-cover transition-opacity duration-500"
+            />
+          </PerImageShare>
         </div>
       </div>
 

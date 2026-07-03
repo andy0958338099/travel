@@ -8,6 +8,7 @@ import {
   type Photo,
 } from '@/utils/roomTourService';
 import ShareButtons from '@/components/ShareButtons';
+import PerImageShare from '@/components/PerImageShare';
 
 const CATEGORIES = [
   { id: 'all',      label: '全部',     emoji: '📷' },
@@ -158,20 +159,27 @@ export default function RoomTourPage() {
           {/* 2026-06-24 聖上指示: 酒店名稱之上加 Q版 chibi 場景圖 (切換 hotel 時自動換圖)
               2026-06-30 聖上拍板: 有 qGptIcon 時優先用 (gpt-image-2-2k 重生) */}
           <div className="mt-4 mb-3 rounded-2xl overflow-hidden shadow-2xl border-4 border-white/20 relative aspect-video bg-black/20">
-            <img
-              key={activeHotel}
+            {/* 🆕 2026-07-03 聖上拍板 🅒: 包 PerImageShare (hover 浮層下載/分享) */}
+            <PerImageShare
               src={HOTEL_META[activeHotel].qGptIcon || HOTEL_META[activeHotel].qIcon}
               alt={HOTEL_META[activeHotel].qCaption}
-              className="w-full h-full object-cover transition-opacity duration-500"
-              onError={(e) => {
-                // GPT 圖若不存在 → fallback 原 qIcon
-                const img = e.currentTarget;
-                if (img.dataset.fallback !== '1' && HOTEL_META[activeHotel].qGptIcon) {
-                  img.dataset.fallback = '1';
-                  img.src = HOTEL_META[activeHotel].qIcon;
-                }
-              }}
-            />
+              className="absolute inset-0"
+            >
+              <img
+                key={activeHotel}
+                src={HOTEL_META[activeHotel].qGptIcon || HOTEL_META[activeHotel].qIcon}
+                alt={HOTEL_META[activeHotel].qCaption}
+                className="w-full h-full object-cover transition-opacity duration-500"
+                onError={(e) => {
+                  // GPT 圖若不存在 → fallback 原 qIcon
+                  const img = e.currentTarget;
+                  if (img.dataset.fallback !== '1' && HOTEL_META[activeHotel].qGptIcon) {
+                    img.dataset.fallback = '1';
+                    img.src = HOTEL_META[activeHotel].qIcon;
+                  }
+                }}
+              />
+            </PerImageShare>
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent px-4 py-2 pointer-events-none">
               <span className="text-white text-sm font-medium" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}>
                 🎨 {HOTEL_META[activeHotel].qCaption} · Q版 chibi 場景圖

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import ShareButtons from '@/components/ShareButtons';
+import PerImageShare from '@/components/PerImageShare';
 
 type Toilet = {
   id: string;
@@ -269,15 +270,22 @@ function ToiletCard({ toilet }: { toilet: Toilet }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
       {/* Image - 2x height on desktop, compact on mobile */}
+      {/* 🆕 2026-07-03 聖上拍板 🅒: 包 PerImageShare (hover 浮層下載/分享) */}
       <div className="relative w-full h-56 sm:h-72 md:h-96 overflow-hidden bg-gray-100">
-        <img
+        <PerImageShare
           src={useGpt ? toilet.gptImagePath! : toilet.imagePath}
           alt={toilet.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full"
+        >
+          <img
+            src={useGpt ? toilet.gptImagePath! : toilet.imagePath}
+            alt={toilet.name}
+            className="w-full h-full object-cover"
           onError={(e) => {
             (e.target as HTMLImageElement).style.display = 'none';
           }}
-        />
+          />
+        </PerImageShare>
         {/* 2026-06-30 聖上拍板: 圖文改造 — 有 gptImagePath 時加中文 overlay (postcard 🅐 機制移植) */}
         {useGpt && (
           <>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/components/GlobalToastHost';
+import ShareButtons from '@/components/ShareButtons';
 import {
   loadMembers,
   type Member,
@@ -541,6 +542,12 @@ export default function VideosPage() {
               <h1 className="text-3xl font-bold mb-1">🎬 影片分享牆</h1>
               <p className="text-white/70 text-sm">{loaded ? `已同步 ${videos.length} 部影片 · 按讚最高的在最上方` : '載入中...'}</p>
             </div>
+            {/* 🆕 2026-07-03 聖上拍板 🅒: 加 ShareButtons (icon variant, 半透明配深底) */}
+            <ShareButtons
+              title="影片分享牆"
+              text="2026 江南水鄉八日 🎬 影片分享牆"
+              variant="icon"
+            />
             <button onClick={() => setShowAddForm(!showAddForm)}
               className={`px-5 py-2.5 rounded-full font-semibold text-sm transition-all ${showAddForm ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-white text-indigo-600 hover:bg-indigo-50 shadow-lg'}`}>
               {showAddForm ? '× 取消' : '➕ 新增影片'}

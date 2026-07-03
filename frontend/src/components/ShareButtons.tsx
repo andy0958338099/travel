@@ -6,7 +6,7 @@
  *   title: 分享標題（給 aria-label 用、也備用）
  *   url: 分享 URL（不傳就用 window.location.href）
  *   text: 分享內文（給 LINE 用、FB 不顯示）
- *   variant: 'icon' (只有 emoji) | 'full' (icon + label) | 'compact' (icon + 較小)
+ *   variant: 'icon' (只有 emoji) | 'full' (icon + label) | 'compact' (icon + 較小) | 'banner' (醒目整條, 2026-07-03 🅒 聖上加)
  *   className: 包在外的 className
  */
 import { useEffect, useState } from "react";
@@ -15,7 +15,7 @@ export interface ShareButtonsProps {
   title: string;
   url?: string;
   text?: string;
-  variant?: "icon" | "compact" | "full";
+  variant?: "icon" | "compact" | "full" | "banner";
   className?: string;
 }
 
@@ -82,6 +82,33 @@ export default function ShareButtons({
         : "px-3 py-2 text-sm";
 
   const iconOnly = variant === "icon";
+
+  // 🆕 2026-07-03 聖上拍板 🅒: banner variant 是頁面頂部醒目分享區
+  if (variant === "banner") {
+    return (
+      <div className={`flex flex-wrap items-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-50 via-orange-50 to-rose-50 border border-amber-200/60 rounded-2xl shadow-sm ${className}`} role="region" aria-label={`分享 ${title}`}>
+        <div className="flex items-center gap-2 mr-auto">
+          <span className="text-xl">🔗</span>
+          <div>
+            <div className="text-sm font-bold text-stone-800">分享「{title}」</div>
+            <div className="text-xs text-stone-500 hidden sm:block">把這個頁面傳給親朋好友</div>
+          </div>
+        </div>
+        <a href={lineUrl} target="_blank" rel="noopener noreferrer" title="分享到 LINE" aria-label="分享到 LINE" className="px-4 py-2 inline-flex items-center justify-center gap-2 bg-[#00C300] hover:bg-[#00A300] text-white rounded-full transition-colors font-medium text-sm">
+          <span className="text-base leading-none">💬</span>
+          <span>LINE</span>
+        </a>
+        <a href={fbUrl} target="_blank" rel="noopener noreferrer" title="分享到 Facebook" aria-label="分享到 Facebook" className="px-4 py-2 inline-flex items-center justify-center gap-2 bg-[#1877F2] hover:bg-[#0E5FC2] text-white rounded-full transition-colors font-medium text-sm">
+          <span className="text-base leading-none">📘</span>
+          <span>Facebook</span>
+        </a>
+        <button type="button" onClick={handleCopy} title="複製連結" aria-label="複製連結" className="px-4 py-2 inline-flex items-center justify-center gap-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-full transition-colors font-medium text-sm">
+          <span className="text-base leading-none">{copied ? "✓" : "🔗"}</span>
+          <span>{copied ? "已複製連結" : "複製連結"}</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex items-center gap-1.5 ${className}`} role="group" aria-label={`分享 ${title}`}>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import ShareButtons from '@/components/ShareButtons';
 
 // ─── 資料：6 個常見大陸 APP ─────────────────────────────────────────────────
 // 2026-06-24 聖上拍板: 保留原 iTunes 真實 icon (用戶辨識用), Q版圖另做輔助解說
@@ -143,6 +144,14 @@ export default function SimGuidePage() {
             再決定怎麼買最便宜、APP 怎麼用才不踩雷。
           </p>
           <div className="mt-4 text-xs opacity-75">最後更新：2026-06-06 ｜ 價格以官方公告為準</div>
+          {/* 🆕 2026-07-03 聖上拍板 🅒: 頁面頂部加 ShareButtons banner variant */}
+          <div className="mt-6">
+            <ShareButtons
+              title="陸旅通訊攻略"
+              text="2026 江南水鄉八日 📶 陸旅通訊完整攻略 — 門號 vs eSIM + APP 對比"
+              variant="banner"
+            />
+          </div>
         </div>
       </header>
 
