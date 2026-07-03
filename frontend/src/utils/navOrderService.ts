@@ -29,8 +29,7 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'sim-guide',   label: '📶 陸旅通訊',     href: '/travel/sim-guide'   },
   { key: 'journal',     label: '📖 旅程日誌',     href: '/travel/journal'     },
   { key: 'stories',     label: '📚 地理歷史',     href: '/travel/stories'     },
-  { key: 'manga',          label: '🎨 Q版漫畫編輯器',  href: '/travel/manga'          },
-  { key: 'guidebook',      label: '📖 Q版漫畫圖鑑',     href: '/travel/guidebook'      },
+  // 🆕 2026-07-03 聖上拍板: Q版漫畫編輯器 + 圖鑑全刪掉 (太 Q 版)
   { key: 'postcard',       label: '💌 旅遊明信片',   href: '/travel/postcard'     },
   { key: 'gufeng-zhenren', label: '🎎 古風寫真',    href: '/travel/gufeng-zhenren' },
   { key: 'room-tour',      label: '🏨 Room Tour',    href: '/travel/room-tour'      },

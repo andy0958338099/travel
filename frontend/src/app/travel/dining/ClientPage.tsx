@@ -143,18 +143,7 @@ export default function DiningPage() {
               text="2026 江南水鄉八日 🍜 美食日誌 · 跟著美食博主吃七天"
               variant="icon"
             />
-            <Link
-              href="/travel/guidebook?tab=food"
-              className="text-xs bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-full font-bold border border-rose-200"
-            >
-              🖼️ 漫畫圖鑑
-            </Link>
-            <Link
-              href="/travel/guidebook/upload"
-              className="text-xs bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full font-bold border border-amber-200"
-            >
-              📤 上傳生漫畫
-            </Link>
+            {/* 🆕 2026-07-03 聖上拍板: Q版漫畫編輯器 + 圖鑑全刪掉 (太 Q 版), 砍掉「🖼️ 漫畫圖鑑」跟「📤 上傳生漫畫」兩個 Link */}
           </div>
         </div>
         {/* Day filter */}

@@ -177,14 +177,7 @@ export default function AttractionsPage() {
                     🗓️ 行程規劃器
                   </Link>
                 </li>
-                <li>
-                  <Link
-                    href="/travel/manga"
-                    className="text-orange-600 hover:text-orange-700 hover:underline"
-                  >
-                    🎨 Q版漫畫編輯器
-                  </Link>
-                </li>
+                {/* 🆕 2026-07-03 聖上拍板: Q版漫畫編輯器 + 圖鑑全刪掉 (太 Q 版) */}
                 <li>
                   <Link
                     href="/travel/stories"
