@@ -290,8 +290,8 @@ const STORIES = [
     tag: '沉浸式宋韻漢服體驗餐廳',
     title: '杭州宮宴：穿越宋代的宮廷盛宴',
     dynasty: '2018 開業 · 西湖文化廣場',
-    cover: '/attractions/wl18-best1.jpg',
-    qIcon: '/attractions/wl18-best1.jpg',
+    cover: '/stories/q/gongyan.jpg',  // 🆕 2026-07-03 聖上拍板: 統一改 gpt-image-2-2k + buildDayPrompt Q版, 跟其他 9 張一致
+    qIcon: '/stories/q/gongyan.jpg',  // 同上
     qCaption: '宮宴 · 沉浸式宋韻漢服用餐',
     content: [
       {
