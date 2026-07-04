@@ -320,7 +320,7 @@ export default function PlannerPage() {
       <div className="max-w-7xl mx-auto mb-4">
         {/* Header */}
         <div className="flex items-center gap-4 mb-2">
-          <Link href="/travel" className="text-indigo-600 hover:text-indigo-800 text-sm">
+          <Link href="/travel" className="text-red-600 hover:text-red-800 text-sm">
             ← 杭州之旅
           </Link>
         </div>
@@ -358,7 +358,7 @@ export default function PlannerPage() {
             </Link>
             <button
               onClick={() => setShowMemberManager(true)}
-              className="px-3 py-1 rounded text-sm bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+              className="px-3 py-1 rounded text-sm jn-cta-secondary"
               title="管理成員名單"
             >
               👥 成員

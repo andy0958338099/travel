@@ -552,7 +552,7 @@ export default function TravelJournalPage() {
 
                   doc.save(`journey-journal-${new Date().toISOString().slice(0,10)}.pdf`);
                 }}
-                className="bg-white hover:bg-gray-100 text-purple-700 font-bold px-6 py-2 rounded-full shadow-lg transition-all text-sm flex items-center gap-2"
+                className="bg-white hover:bg-gray-100 text-red-700 font-bold px-6 py-2 rounded-full shadow-lg transition-all text-sm flex items-center gap-2"
               >
                 📄 匯出旅程日誌 PDF
               </button>
@@ -920,7 +920,7 @@ export default function TravelJournalPage() {
       </div>
 
       {/* Story Summary */}
-      <div className="bg-gradient-to-r from-violet-600 to-purple-600 py-16 mt-16">
+      <div className="jn-title-gradient-bg py-16 mt-16">
         <div className="max-w-4xl mx-auto px-4">
           <h2 className="text-3xl font-bold text-white text-center mb-10">旅程回顧</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

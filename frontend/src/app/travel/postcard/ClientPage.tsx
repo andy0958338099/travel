@@ -883,7 +883,7 @@ export default function PostcardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50 p-4">
+    <div className="min-h-screen jn-page-bg p-4">
       <div className="max-w-6xl mx-auto">
 
         {/* Header */}
@@ -1016,12 +1016,12 @@ export default function PostcardPage() {
                 })}
                 <button
                   onClick={addEvent}
-                  className="w-full py-3 border-2 border-dashed border-indigo-300 text-indigo-500 rounded-xl font-bold hover:border-indigo-500 hover:text-indigo-700 transition-colors"
+                  className="w-full py-3 border-2 border-dashed border-amber-300 text-amber-600 rounded-xl font-bold hover:border-amber-500 hover:text-amber-700 transition-colors bg-white/50"
                 >+ 新增活動</button>
               </div>
               <div className="flex gap-3 p-5 border-t bg-gray-50 rounded-b-2xl">
                 <button onClick={cancelEdit} className="flex-1 py-2.5 rounded-xl border text-gray-600 font-bold hover:bg-gray-100">取消</button>
-                <button onClick={saveEdit} className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold hover:from-indigo-700 hover:to-purple-700">儲存</button>
+                <button onClick={saveEdit} className="flex-1 py-2.5 rounded-xl jn-cta-primary">儲存</button>
               </div>
             </div>
           </div>

@@ -326,16 +326,16 @@ function LuckinMCPBlock({ stop }: { stop: FoodieStop }) {
   };
 
   return (
-    <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-300 rounded-xl p-4 space-y-3">
+    <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-xl p-4 space-y-3">
       <div className="flex items-center gap-2">
         <span className="text-2xl">☕</span>
-        <h3 className="font-bold text-indigo-900 text-lg">瑞幸下單 · MCP 整合</h3>
-        <span className="ml-auto text-xs bg-indigo-200 text-indigo-800 px-2 py-0.5 rounded-full font-bold">
+        <h3 className="font-bold text-red-900 text-lg">瑞幸下單 · MCP 整合</h3>
+        <span className="ml-auto text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
           {mcp.enabled ? '已啟用' : '尚未接入'}
         </span>
       </div>
 
-      <p className="text-xs text-indigo-700">{mcp.note}</p>
+      <p className="text-xs text-red-700">{mcp.note}</p>
 
       <div className="space-y-2">
         <input
@@ -344,7 +344,7 @@ function LuckinMCPBlock({ stop }: { stop: FoodieStop }) {
           onChange={(e) => setServerUrl(e.target.value)}
           onBlur={saveConfig}
           placeholder="https://your-mcp-server.com/rpc"
-          className="w-full text-sm px-3 py-2 rounded-lg border border-indigo-200 focus:border-indigo-500 focus:outline-none bg-white"
+          className="w-full text-sm px-3 py-2 rounded-lg border border-amber-200 focus:border-amber-500 focus:outline-none bg-white"
         />
         <input
           type="password"
@@ -352,7 +352,7 @@ function LuckinMCPBlock({ stop }: { stop: FoodieStop }) {
           onChange={(e) => setAuthToken(e.target.value)}
           onBlur={saveConfig}
           placeholder="Bearer Token (選填)"
-          className="w-full text-sm px-3 py-2 rounded-lg border border-indigo-200 focus:border-indigo-500 focus:outline-none bg-white"
+          className="w-full text-sm px-3 py-2 rounded-lg border border-amber-200 focus:border-amber-500 focus:outline-none bg-white"
         />
       </div>
 
@@ -360,14 +360,14 @@ function LuckinMCPBlock({ stop }: { stop: FoodieStop }) {
         <button
           onClick={() => callMcp('tools/call', { name: 'get_menu', arguments: { store: stop.name } })}
           disabled={loading || !serverUrl}
-          className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-stone-300 text-white font-bold py-2 rounded-lg text-sm"
+          className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-stone-300 text-white font-bold py-2 rounded-lg text-sm"
         >
           {loading ? '查詢中…' : '🔍 查菜單'}
         </button>
         <button
           onClick={() => callMcp('tools/call', { name: 'get_nearby_stores', arguments: { lat: 30.2464, lng: 120.1489, limit: 5 } })}
           disabled={loading || !serverUrl}
-          className="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-stone-300 text-white font-bold py-2 rounded-lg text-sm"
+          className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-300 text-white font-bold py-2 rounded-lg text-sm"
         >
           {loading ? '查詢中…' : '📍 附近門市'}
         </button>
@@ -380,7 +380,7 @@ function LuckinMCPBlock({ stop }: { stop: FoodieStop }) {
       )}
 
       {menu !== null && (
-        <div className="bg-white border border-indigo-200 rounded-lg p-3">
+        <div className="bg-white border border-amber-200 rounded-lg p-3">
           <div className="text-xs font-bold text-stone-700 mb-2">MCP 回傳結果:</div>
           <pre className="text-xs text-stone-800 overflow-x-auto whitespace-pre-wrap break-all">
             {JSON.stringify(menu, null, 2)}
@@ -388,7 +388,7 @@ function LuckinMCPBlock({ stop }: { stop: FoodieStop }) {
         </div>
       )}
 
-      <div className="text-xs text-indigo-600 bg-white/50 rounded p-2">
+      <div className="text-xs text-red-600 bg-white/50 rounded p-2">
         <strong>預期 MCP 介面</strong>:
         <code className="block mt-1 text-[10px]">
           {`POST {serverUrl}

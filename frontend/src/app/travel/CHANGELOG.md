@@ -94,3 +94,112 @@
    - Hero 加「已隱藏 N 個」計數 + 「管理」按鈕 → 展開「已隱藏管理面板」(中式窗格 + 還原列表)
    - localStorage key `manga-studio-hidden-v1` (雙保險)
    - **不 hard delete travel_mangas row / 不刪 storage 圖**, 給聖上反悔機會
+
+---
+
+## 2026-07-03
+
+### manga (`/travel/manga`) — 🅓 聖上拍板全刪 (Q版風格不滿)
+
+1. **`/travel/manga` 全刪** (聖上原話: 「Q版漫畫太差了, 編輯器及圖鑑全刪掉」)
+   - 刪除 `frontend/src/app/travel/manga/` (MangaStudio / MangaViewer / PromptEditor / data.ts / 雲端隱藏 service 等全部元件)
+   - 刪除 `frontend/src/app/api/manga/` (regenerate-panel / hide / unhide / hidden-list / feed 等全部 route)
+   - 刪除 `frontend/src/utils/mangaHideService.ts` + `mangaSourceId.ts`
+   - 刪除 Supabase Cloudflare Worker `manga/panel` / `manga/generate` endpoint 引用
+   - 刪除 `frontend/public/<image>/*manga*` 圖檔
+   - 修改 `navOrderService.ts` 砍 manga 行
+   - 修改 `attractions` 等 cross-link: 砍 `/travel/manga` 引用
+   - **保留**: Supabase tables `travel_mangas` / `manga_hidden` (資料不刪, 前端無法訪問) / Supabase storage bucket
+   - **保留**: `frontend/public/manga/*.log` (prompt 歷史) / `*.bak.*` (切 ≠ 刪哲學)
+
+### 全站 — 🅒 聖上拍板全站圖文分享升級 (ShareButtons banner + PerImageShare)
+
+1. **ShareButtons 元件升級** (banner variant)
+   - 加 banner variant: `amber→orange→rose` 漸層背景整條醒目, 頁面頂部分享 hero 區
+   - 既有 3 variant (icon/compact/full) 保留
+
+2. **🆕 PerImageShare 元件** (`frontend/src/components/PerImageShare.tsx`, 209 行)
+   - 4 個 hover 浮層按鈕:
+     - ⬇️ 下載 (跨網域用 fetch+blob, 同網域用 `<a download>`)
+     - 🔗 複製圖片網址 (Clipboard API)
+     - 💬 分享到 LINE
+     - 📘 分享到 Facebook
+   - 包現有 img 標準 patch 模式 (stories 9 張 qIcon / toilet-tour 8 個 toilet 主圖 / room-tour 5 個 hotel qGptIcon)
+
+3. **全站 ShareButtons 補齊** — 7-03 補:
+   - `/travel/sim-guide` (banner)
+   - `/travel/videos` (icon)
+   - 7-02 已補: `/travel/toys-tour` 已刪
+   - 既有: attractions / foodie-stops / postcard / room-tour / toilet-tour / stories
+
+### stories (`/travel/stories`)
+
+1. **加杭州宮宴 8 段完整內容** (7-03 聖上拍板)
+   - `data.ts` 加 `gongyan` entry (10 個 story 第 10 個, 對應 Day 6 宋城千古情)
+   - 8 段字幕逐字稿 + 中堂業界常識值標記
+   - 排序按 Day 時間先後 (7-03 第二輪 patch):
+     - Day 1 上海外灘 → Day 1 南京東路 → Day 2 豫園+城隍廟 → Day 2-3 西塘 → Day 3 烏鎮東柵 → Day 4 烏鎮西柵 → Day 5 西湖 → Day 6 宋城千古情 (含宮宴) → Day 7 河坊街
+   - cover/qIcon 改指 `/stories/q/gongyan.jpg` (7-03 補 — 上版 patch 漏)
+
+### 中堂緊急 revert 經驗 (USER 怒斥後 SOP, 寫進 SKILL)
+
+1. USER 「我覺得不是模型 gpt-image-2-2k, 你為何亂做?」 → 中堂立刻 revert 上一輪 chibi prompt 覆蓋, 回到原本 MangaStudio prompt
+2. USER 「混蛋 / 亂做 / 為何亂做」→ 立刻 revert, 不解釋不問 + revert 也撞 rate limit 要分批 retry
+3. USER 連續訊息解讀: 上一句「X」獨立生效, 下一句「Y」是新增/修改面向, 不要合併成「X+Y」合成任務
+
+---
+
+## 2026-07-05 (上次: 2026-07-03)
+
+### 🅒 全站 visual partial migration (江楠 5 色 token 擴散) — 聖上拍板 7-05
+
+**策略**: 7-02 把 manga 一頁換成江楠 family (朱紅/金/墨黑/宣紙/青花), 7-05 聖上拍板全站 partial migration。 §29 規範: 「色譜對齊 ≠ class name 對齊」, 只改真正格格不入的視覺主色, 保留設計師刻意選擇的深色 modal / 功能分類色 / 物件 key。
+
+**改動總覽** (5 個 ClientPage / 13 處視覺替換):
+
+| 檔案 | Line | 改前 | 改後 | 為何改 |
+|---|---|---|---|---|
+| `postcard/ClientPage.tsx` | L886 | `from-indigo-50 to-purple-50` | `jn-page-bg` | 主視覺頁面背景 — 唯一主背景用 indigo/purple |
+| `postcard/ClientPage.tsx` | L1019 | `border-indigo-300 text-indigo-500/600/700` | `border-amber-300 text-amber-600/700 + bg-white/50` | 「+ 新增活動」按鈕 |
+| `postcard/ClientPage.tsx` | L1024 | `from-indigo-600 to-purple-600 漸層` | `jn-cta-primary` | 「儲存」按鈕 (modal 內) |
+| `foodie-stops/ClientPage.tsx` | L329-391 | indigo/purple 9 處 (MCP 整合 panel) | amber/red/orange 9 處 | 瑞幸 MCP 整合小工具, 跟主頁 amber 暖色對齊 |
+| `videos/ClientPage.tsx` | L535 | `from-indigo-600 to-purple-600` | `jn-title-gradient-bg` | Videos 主 Hero 背景 |
+| `videos/ClientPage.tsx` | L552 | `text-indigo-600 hover:bg-indigo-50` | `text-red-600 hover:bg-red-50` | 「新增影片」active 按鈕文字 |
+| `videos/ClientPage.tsx` | L559 | `text-indigo-600` | `text-red-600` | 分類 active 文字 |
+| `journal/ClientPage.tsx` | L555 | `text-purple-700` | `text-red-700` | 匯出 PDF 按鈕文字 |
+| `journal/ClientPage.tsx` | L923 | `from-violet-600 to-purple-600` | `jn-title-gradient-bg` | 「旅程回顧」section 底色 |
+| `planner/ClientPage.tsx` | L323 | `text-indigo-600 hover:text-indigo-800` | `text-red-600 hover:text-red-800` | 杭州之旅 link |
+| `planner/ClientPage.tsx` | L361 | `bg-purple-600 hover:bg-purple-700` | `jn-cta-secondary` | 「成員」管理按鈕 |
+
+**保留 (有意識的不改)**:
+- `postcard` L99 `CATEGORY_CONFIG.food.bg = "bg-purple-100"` — 功能分類色 (food/🍜 紫、hotel/🏨 橘、transport/🚄 青), 改了破壞分類視覺識別
+- `postcard` L691/L927 歌詞 CTA `from-violet-400 to-purple-500` — 設計師刻意紫表「神秘歌詞感」
+- `postcard` L1038/L1166 LyricsEditor `from-slate-900 to-indigo-950` — 深色 modal 主題
+- `toilet-tour` L309/L341 `toilet.type === 'mall' ? 'bg-purple-600' : ...` — mall 紫色是 mall type 類別色, 改了破壞 type-to-color mapping
+- `videos` L81 `'住宿推薦': 'bg-purple-500'` — CATEGORIES map 的「住宿推薦」類別圖標色
+- `sim-guide` L489 `indigo: { bg, border, text }` — sim-card provider 物件 key (= 業者 ID), 不是 CSS class
+- `sim-guide` L378 `bg-purple-100 text-purple-700` 電話 badge — 是跟其他 sim-card provider badge 配色 (bg-gray-100/blue-100 etc)
+- `SmartDropZone.tsx` L149/L155 `itinerary: border-purple-300/500/100` — accent styles, 跟其他 3 個 accent (teal/blue/amber) 對比
+- `planner` L103 顏色陣列 — `bg-blue-500 pink-500 green-500 yellow-500 purple-500 red-500 teal-500 orange-500 indigo-500` — Day cell 隨機配色, 不是頁面視覺
+- `journal` L923 violet→purple 之前覆蓋過, 7-05 一次換 `jn-title-gradient-bg`
+
+**dev server 驗證**:
+```
+/travel/postcard → HTTP:200 t=0.33s (主背景 indigo→jn-page-bg, Recompile 通過)
+/travel/videos → HTTP:200 t=0.40s (Hero/active 全 jn 朱→金, Recompile 通過)
+/travel/journal → HTTP:200 t=3.67s (匯出PDF 朱紅, 旅程回顧 jn-title-gradient-bg, Recompile 通過)
+/travel/planner → HTTP:200 t=0.53s (杭州之旅 朱紅, 成員 jn-cta-secondary, Recompile 通過)
+/travel/foodie-stops → HTTP:200 t=0.03s (MCP 整合 panel 9 處紫→amber, hot-reload 通過)
+```
+
+**改動檔案清單**:
+```
+frontend/src/app/travel/CHANGELOG.md               | +53  (本檔)
+frontend/src/app/travel/postcard/ClientPage.tsx    |  +3/-3
+frontend/src/app/travel/videos/ClientPage.tsx      |  +3/-3
+frontend/src/app/travel/journal/ClientPage.tsx     |  +2/-2
+frontend/src/app/travel/planner/ClientPage.tsx     |  +2/-2
+frontend/src/app/travel/foodie-stops/ClientPage.tsx | +10/-10
+```
+
+**確認未 commit 開始流程**: USER 7-05 明確指示「繼續改完再上傳」, 不像 6-17/6-18 「等我說好再上傳github」需要 USER 額外確認, 直接走 commit → push → poll Netlify verify 全流程。

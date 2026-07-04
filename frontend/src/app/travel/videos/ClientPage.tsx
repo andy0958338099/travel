@@ -532,7 +532,7 @@ export default function VideosPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+      <div className="jn-title-gradient-bg text-white">
         <div className="max-w-4xl mx-auto px-6 py-8">
           <div className="flex items-center gap-4 mb-4 flex-wrap">
             <a href="/travel" className="text-white/80 hover:text-white text-sm">← 返回首頁</a>
@@ -549,14 +549,14 @@ export default function VideosPage() {
               variant="icon"
             />
             <button onClick={() => setShowAddForm(!showAddForm)}
-              className={`px-5 py-2.5 rounded-full font-semibold text-sm transition-all ${showAddForm ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-white text-indigo-600 hover:bg-indigo-50 shadow-lg'}`}>
+              className={`px-5 py-2.5 rounded-full font-semibold text-sm transition-all ${showAddForm ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-white text-red-600 hover:bg-red-50 shadow-lg'}`}>
               {showAddForm ? '× 取消' : '➕ 新增影片'}
             </button>
           </div>
           <div className="flex gap-2 mt-5 flex-wrap">
             {CATEGORIES.map((cat) => (
               <button key={cat} onClick={() => setActiveCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat ? 'bg-white text-indigo-600 shadow' : 'bg-white/20 text-white hover:bg-white/30'}`}>
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${activeCategory === cat ? 'bg-white text-red-600 shadow' : 'bg-white/20 text-white hover:bg-white/30'}`}>
                 {cat}
               </button>
             ))}
