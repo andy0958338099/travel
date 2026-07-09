@@ -1,14 +1,18 @@
 /**
  * Planner Supabase Service
- * 
+ *
  * Strategy:
  *  - Try to load from Supabase first (once tables exist)
  *  - Fall back to PRESET_* constants if Supabase is unavailable
- * 
+ *  - If Supabase returns data BUT localStorage has a newer / larger set,
+ *    merge by id preferring localStorage (防止 sync race 丟失編輯)
+ *
  * All operations go through the anon key + RLS (no service role needed in browser).
  */
 
 import { createClient } from '@/utils/supabase/client';
+
+export const STORAGE_KEY = 'hangzhou-trip-planner';
 
 export interface Activity {
   id: string;
@@ -101,9 +105,20 @@ async function _isSupabaseAvailable(): Promise<boolean> {
   }
 }
 
+export const MEMBER_STORAGE_KEY = 'hangzhou-trip-members';
+
 // ── Activities ─────────────────────────────────────────────────────────────────
 
 export async function loadActivities(): Promise<Activity[]> {
+  // 從 localStorage 讀取（如果存在）— 防止 sync race 丟失本機編輯
+  const lsRaw = (typeof window !== 'undefined') ? localStorage.getItem(STORAGE_KEY) : null;
+  const lsActivities: Activity[] = lsRaw ? (() => {
+    try {
+      const parsed = JSON.parse(lsRaw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  })() : [];
+
   try {
     const supabase = getSupabase();
     const { data, error } = await supabase
@@ -112,11 +127,16 @@ export async function loadActivities(): Promise<Activity[]> {
       .order('sort_order', { ascending: true });
 
     if (error || !data || data.length === 0) {
-      console.info('[PlannerService] Supabase unavailable or empty, using preset data');
+      // 雲端空或失敗 → 退回 localStorage（如果也空 → preset）
+      if (lsActivities.length > 0) {
+        console.info('[PlannerService] Supabase empty, using localStorage backup');
+        return lsActivities;
+      }
+      console.info('[PlannerService] Supabase unavailable, using preset data');
       return PRESET_ACTIVITIES;
     }
 
-    return data.map(row => ({
+    const sbActivities: Activity[] = data.map(row => ({
       id: row.id,
       title: row.title,
       day: row.day,
@@ -136,12 +156,32 @@ export async function loadActivities(): Promise<Activity[]> {
         return v as TicketType[];
       })(),
     }));
+
+    // Merge: localStorage 的 id 若不在雲端 → 保留（防止 sync 競態丟失）；
+    //        雲端有的 id 用雲端版（雲端是 source of truth）
+    if (lsActivities.length === 0) return sbActivities;
+
+    const sbIds = new Set(sbActivities.map(a => a.id));
+    const localOnly = lsActivities.filter(a => !sbIds.has(a.id));
+    if (localOnly.length > 0) {
+      console.info(
+        `[PlannerService] Merge: ${sbActivities.length} from cloud + ${localOnly.length} from localStorage backup`
+      );
+      return [...sbActivities, ...localOnly];
+    }
+
+    return sbActivities;
   } catch {
+    // 完全失敗 → localStorage 或 preset
+    if (lsActivities.length > 0) {
+      console.info('[PlannerService] Supabase failed, using localStorage backup');
+      return lsActivities;
+    }
     return PRESET_ACTIVITIES;
   }
 }
 
-export async function syncActivities(activities: Activity[]): Promise<void> {
+export async function syncActivities(activities: Activity[]): Promise<{ ok: boolean; error?: string }> {
   try {
     const supabase = getSupabase();
     // Upsert all activities
@@ -159,23 +199,98 @@ export async function syncActivities(activities: Activity[]): Promise<void> {
       sort_order: idx + 1,
     }));
 
+    // Diff：找出雲端有但本地已刪除的 IDs，刪掉它們
+    // — 解決「刪除活動後按儲存，reload 又跑回來」的 bug
+    let deletedIds: string[] = [];
+    if (rows.length > 0) {
+      const { data: cloudRows } = await supabase
+        .from('planner_activities')
+        .select('id');
+      const localIds = new Set(rows.map(r => r.id));
+      const cloudIds = (cloudRows || []).map(r => r.id);
+      deletedIds = cloudIds.filter(id => !localIds.has(id));
+      if (deletedIds.length > 0) {
+        await supabase
+          .from('planner_activities')
+          .delete()
+          .in('id', deletedIds);
+      }
+    } else {
+      // 本地完全清空 → 雲端也清空
+      await supabase.from('planner_activities').delete().gte('day', 0);
+    }
+
     const { error } = await supabase
       .from('planner_activities')
       .upsert(rows, { onConflict: 'id' });
 
     if (error) {
       console.warn('[PlannerService] Sync failed:', error.message);
-    } else {
-      console.info('[PlannerService] Activities synced to Supabase');
+      return { ok: false, error: error.message };
     }
+    console.info(
+      `[PlannerService] Synced ${rows.length} activities` +
+      (deletedIds.length > 0 ? `, deleted ${deletedIds.length} stale: [${deletedIds.join(', ')}]` : '')
+    );
+    return { ok: true };
   } catch (e) {
-    console.warn('[PlannerService] Sync failed:', e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn('[PlannerService] Sync failed:', msg);
+    return { ok: false, error: msg };
+  }
+}
+
+// 將 activities 鏡像到 Supabase user_state['hangzhou-trip-itinerary']，
+// 給 /travel、/travel/journal 讀取 — 跟 ClientPage 的 debounce sync 是同一個動作，
+// 抽出來讓「立即儲存」按鈕 / 編輯器 handleSave / 新增 handleAddActivity 共用。
+export async function mirrorItineraryToUserState(activities: Activity[]): Promise<{ ok: boolean; error?: string }> {
+  if (activities.length === 0) return { ok: true };
+  try {
+    const supabase = getSupabase();
+    const grouped = new Map<number, Activity[]>();
+    for (const a of activities) {
+      if (!grouped.has(a.day)) grouped.set(a.day, []);
+      grouped.get(a.day)!.push(a);
+    }
+    const plannedDays = Array.from(grouped.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([day, acts]) => ({
+        day: `D${day}`,
+        title: `Day ${day}`,
+        description: '',
+        attractions: acts.map(a => a.title),
+      }));
+    const { error } = await supabase
+      .from('user_state')
+      .upsert({
+        key: 'hangzhou-trip-itinerary',
+        value: plannedDays as unknown as object,
+        updated_at: new Date().toISOString(),
+      });
+    if (error) {
+      console.warn('[PlannerService] Mirror to user_state failed:', error.message);
+      return { ok: false, error: error.message };
+    }
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn('[PlannerService] Mirror to user_state failed:', msg);
+    return { ok: false, error: msg };
   }
 }
 
 // ── Members ────────────────────────────────────────────────────────────────────
 
 export async function loadMembers(): Promise<Member[]> {
+  // localStorage 備援（同 loadActivities 的 merge 策略）
+  const lsRaw = (typeof window !== 'undefined') ? localStorage.getItem(MEMBER_STORAGE_KEY) : null;
+  const lsMembers: Member[] = lsRaw ? (() => {
+    try {
+      const parsed = JSON.parse(lsRaw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  })() : [];
+
   try {
     const supabase = getSupabase();
     const { data, error } = await supabase
@@ -183,15 +298,26 @@ export async function loadMembers(): Promise<Member[]> {
       .select('*');
 
     if (error || !data || data.length === 0) {
+      if (lsMembers.length > 0) {
+        console.info('[PlannerService] Supabase members empty, using localStorage');
+        return lsMembers;
+      }
       return PRESET_MEMBERS;
     }
 
-    return data.map(row => ({
+    const sbMembers: Member[] = data.map(row => ({
       id: row.id,
       name: row.name,
       color: row.color,
     }));
+
+    // Merge: 雲端有的用雲端，localStorage 獨有的補上（防止 sync race）
+    if (lsMembers.length === 0) return sbMembers;
+    const sbIds = new Set(sbMembers.map(m => m.id));
+    const localOnly = lsMembers.filter(m => !sbIds.has(m.id));
+    return localOnly.length > 0 ? [...sbMembers, ...localOnly] : sbMembers;
   } catch {
+    if (lsMembers.length > 0) return lsMembers;
     return PRESET_MEMBERS;
   }
 }

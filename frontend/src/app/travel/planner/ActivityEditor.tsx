@@ -8,6 +8,8 @@ interface ActivityEditorProps {
   onUpdate: (id: string, updates: Partial<Activity>) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
+  // 儲存後立即 sync 到雲端（bypass debounce）
+  onSave: (id: string, updates: Partial<Activity>) => Promise<void>;
 }
 
 export default function ActivityEditor({
@@ -16,6 +18,7 @@ export default function ActivityEditor({
   onUpdate,
   onDelete,
   onClose,
+  onSave,
 }: ActivityEditorProps) {
   const [title, setTitle] = useState(activity.title);
   const [notes, setNotes] = useState(activity.notes || '');
@@ -32,10 +35,18 @@ export default function ActivityEditor({
       ? JSON.parse(activity.tickets as unknown as string)
       : []
   );
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    onUpdate(activity.id, { title, notes, duration, color, cost, costType, tickets });
-    onClose();
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // onUpdate 只更新 React state（讓 UI 即時反饋），onSave 才是真的寫雲端
+      onUpdate(activity.id, { title, notes, duration, color, cost, costType, tickets });
+      await onSave(activity.id, { title, notes, duration, color, cost, costType, tickets });
+    } finally {
+      setSaving(false);
+      onClose();
+    }
   };
 
   const addTicket = () => {
@@ -276,11 +287,14 @@ export default function ActivityEditor({
               取消
             </button>
             <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              儲存
-            </button>
+                        onClick={handleSave}
+                        disabled={saving}
+                        className={`px-4 py-2 text-white rounded-lg transition-colors ${
+                          saving ? 'bg-blue-400 cursor-wait' : 'bg-blue-500 hover:bg-blue-600'
+                        }`}
+                      >
+                        {saving ? '⏳ 儲存中…' : '儲存'}
+                      </button>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { createClient } from '@/utils/supabase/client';
 import {
   loadActivities,
   syncActivities,
+  mirrorItineraryToUserState,
   loadMembers,
   syncMembers,
   syncCostTarget,
@@ -31,6 +32,7 @@ import DayHeader from './DayHeader';
 import ActivityBlock from './ActivityBlock';
 import ActivityEditor from './ActivityEditor';
 import MemberManager from './MemberManager';
+import SyncStatusIndicator from './SyncStatusIndicator';
 
 const HISTORY_LIMIT = 19;
 
@@ -56,10 +58,19 @@ export default function PlannerPage() {
   } | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const cellSize = 60;
+  // 同步最新 activities — 讓 handleAddActivity/deleteActivity 在 setActivities 後能拿到新 array 並立即 sync
+  const activitiesRef = useRef<Activity[]>([]);
+  useEffect(() => { activitiesRef.current = activities; }, [activities]);
   const [members, setMembers] = useState<Member[]>([]);
   const [ticketAssignments, setTicketAssignments] = useState<Record<string, string[]>>({});
   // 成員管理 Modal
   const [showMemberManager, setShowMemberManager] = useState(false);
+  // 同步狀態：'idle' | 'saving' | 'saved' | 'error' — 用於手動儲存按鈕 + 反饋
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingRef = useRef(false); // 防止手動 saveToCloud 期間被 debounce 自動 sync 蓋掉狀態
 
   // Load members from Supabase (falls back to preset if unavailable)
   useEffect(() => {
@@ -125,6 +136,47 @@ export default function PlannerPage() {
     setHistory(prev => [...prev.slice(-(HISTORY_LIMIT)), [...current]]);
   }, []);
 
+  // 手動立即儲存到雲端 — 不等 debounce
+  // 任何 await 期間把狀態設為 'saving'，結束後設 'saved' / 'error'
+  // 並自動還原為 'idle'（3 秒後）以避免 UI 一直亮著
+  const saveToCloud = useCallback(async (source: string = 'manual') => {
+    // 從 ref 拿最新（handleAddActivity 同步呼叫時 React state 還沒更新，
+    // 但 activitiesRef.current 已被我們手動同步）
+    const acts = activitiesRef.current;
+    if (acts.length === 0) return;
+    savingRef.current = true;
+    setSyncStatus('saving');
+    setSyncError(null);
+    // 取消 debounce 中的自動 sync（避免兩個 sync 同時跑）
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    try {
+      // localStorage 先寫一份（就算雲端失敗也不丟失）
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(acts));
+      const [sbResult, mirrorResult] = await Promise.all([
+        syncActivities(acts),
+        mirrorItineraryToUserState(acts),
+      ]);
+      if (sbResult.ok && mirrorResult.ok) {
+        setSyncStatus('saved');
+        setLastSavedAt(new Date());
+      } else {
+        const errMsg = sbResult.error || mirrorResult.error || '未知錯誤';
+        setSyncStatus('error');
+        setSyncError(errMsg);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setSyncStatus('error');
+      setSyncError(msg);
+    } finally {
+      savingRef.current = false;
+    }
+    // 3 秒後還原為 idle — 讓 UI 有時間顯示「✓ 已儲存」但不持續閃爍
+    setTimeout(() => {
+      setSyncStatus(prev => (prev === 'saving' ? prev : 'idle'));
+    }, 3000);
+  }, []);
+
   const undo = useCallback(() => {
     setHistory(prev => {
       if (prev.length === 0) return prev;
@@ -155,36 +207,32 @@ export default function PlannerPage() {
 
   // Sync activities to Supabase (its own table) + localStorage (backup) +
   // mirror to user_state → hangzhou-trip-itinerary so /travel and /travel/journal see updates.
+  // Debounce 500ms: drag/連續編輯期間不重複 upsert，最後一次靜止後才寫入
+  // — 解決 drag mousemove 期間瘋狂 race upsert 問題
   useEffect(() => {
-    if (activities.length > 0) {
-      syncActivities(activities);
+    if (activities.length === 0) return;
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(async () => {
+      // 手動儲存中 → 跳過自動 sync（避免狀態競爭）
+      if (savingRef.current) return;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(activities));
-
-      // Single-pass O(N) group by day (was O(N×D) before)
-      const grouped = new Map<number, Activity[]>();
-      for (const a of activities) {
-        if (!grouped.has(a.day)) grouped.set(a.day, []);
-        grouped.get(a.day)!.push(a);
+      const [sbResult, mirrorResult] = await Promise.all([
+        syncActivities(activities),
+        mirrorItineraryToUserState(activities),
+      ]);
+      if (sbResult.ok && mirrorResult.ok) {
+        setSyncStatus('saved');
+        setLastSavedAt(new Date());
+        // 3 秒後還原 idle
+        setTimeout(() => setSyncStatus(prev => (prev === 'saving' ? prev : 'idle')), 3000);
+      } else {
+        setSyncStatus('error');
+        setSyncError(sbResult.error || mirrorResult.error || '未知錯誤');
       }
-      const plannedDays = Array.from(grouped.entries())
-        .sort(([a], [b]) => a - b)
-        .map(([day, acts]) => ({
-          day: `D${day}`,
-          title: DAY_TITLES[day] || `Day ${day}`,
-          description: '',
-          attractions: acts.map(a => a.title),
-        }));
-
-      if (plannedDays.length > 0) {
-        void createClient()
-          .from('user_state')
-          .upsert({
-            key: 'hangzhou-trip-itinerary',
-            value: plannedDays as unknown as object,
-            updated_at: new Date().toISOString(),
-          });
-      }
-    }
+    }, 500);
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
   }, [activities]);
 
   // Clamp the cloud-synced font size into the supported range.
@@ -212,24 +260,37 @@ export default function PlannerPage() {
       color: COLORS[Math.floor(Math.random() * COLORS.length)].bg,
       cost: 0,
     };
-    setActivities(prev => [...prev, newActivity]);
+    const next = [...activitiesRef.current, newActivity];
+    setActivities(next);
+    activitiesRef.current = next;
     setEditingActivity(newActivity);
     setSelectedCell({ day, hour });
+    // 立即 sync（不等 debounce）— 新增完就進雲端
+    void saveToCloud('add');
   };
 
   const updateActivity = useCallback((id: string, updates: Partial<Activity>) => {
     pushHistory(activities);
     setActivities(prev => prev.map(a => (a.id === id ? { ...a, ...updates } : a)));
+    // 注意：updateActivity 在編輯器 onChange 過程中會被多次呼叫（drag、ticket toggle 等）
+    // 這裡只更新 React state，sync 由 saveToCloud 觸發或 debounce 自動接管，
+    // 避免每次 keystroke 都打 Supabase。handleSave 會主動觸發 saveToCloud。
   }, [activities, pushHistory]);
 
   const deleteActivity = (id: string) => {
     pushHistory(activities);
-    setActivities(prev => prev.filter(a => a.id !== id));
+    const next = activitiesRef.current.filter(a => a.id !== id);
+    setActivities(next);
+    activitiesRef.current = next;
     setEditingActivity(null);
     setSelectedCell(null);
+    // 立即 sync（不等 debounce）
+    void saveToCloud('delete');
   };
 
   const handleDragStart = (e: React.MouseEvent, activity: Activity, mode: 'move' | 'resize') => {
+    // 只記錄意圖；真正的 drag 由下面的 useEffect 用距離門檻 (≥4px) 觸發
+    // — 解決「想點一下打開編輯器，卻被當成 drag」誤判
     e.preventDefault();
     e.stopPropagation();
     setDragState({
@@ -247,9 +308,22 @@ export default function PlannerPage() {
     if (!dragState) return;
 
     const dayCount = DAYS.length; // was hardcoded 8; now data-driven
+    const DRAG_THRESHOLD = 4; // px — 距離小於此值視為 click，不視為 drag
+    let dragActivated = false;
 
     const onMouseMove = (e: MouseEvent) => {
       const dx = e.clientX - dragState.startX;
+      const dy = e.clientY - dragState.startY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      // 距離門檻內不觸發任何 update — 保留原狀，讓 click 事件能 fire onEdit
+      if (!dragActivated && dist < DRAG_THRESHOLD) return;
+
+      // 第一次超過門檻才標記啟動（避免重複觸發）
+      if (!dragActivated) {
+        dragActivated = true;
+      }
+
       const colW = gridRef.current?.querySelector('[class*="flex-1 min-w-32"]')?.clientWidth ?? 120;
       const hourW = colW / HOURS.length;
       const hourDelta = Math.round(dx / hourW);
@@ -333,6 +407,25 @@ export default function PlannerPage() {
             text="2026 江南水鄉八日 💰 行程價格規劃器 · 一鍵分帳 + 預算追蹤"
             variant="icon"
           />
+            {/* 同步狀態指示 — 取代純文字「最後儲存」時間 */}
+            <SyncStatusIndicator
+              status={syncStatus}
+              lastSavedAt={lastSavedAt}
+              error={syncError}
+            />
+            {/* 手動「立即儲存到雲端」按鈕 — bypass debounce */}
+            <button
+              onClick={() => saveToCloud('manual')}
+              disabled={syncStatus === 'saving' || activities.length === 0}
+              title="立即將目前所有變更寫入 Supabase 雲端"
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                syncStatus === 'saving'
+                  ? 'bg-blue-400 text-white cursor-wait'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              }`}
+            >
+              {syncStatus === 'saving' ? '⏳ 儲存中…' : '💾 儲存到雲端'}
+            </button>
             <button
               onClick={undo}
               disabled={history.length === 0}
@@ -549,6 +642,12 @@ export default function PlannerPage() {
           onUpdate={updateActivity}
           onDelete={deleteActivity}
           onClose={() => setEditingActivity(null)}
+          onSave={async (_id, _updates) => {
+            // 編輯器關閉前已 onUpdate → React state 更新；
+            // 用 useEffect 監聽 activities 變化自動 debounce sync，
+            // 但這裡要立即 sync（bypass debounce）— 編輯完就寫雲端
+            await saveToCloud('edit');
+          }}
         />
       )}
 

@@ -49,8 +49,18 @@ export default function ActivityBlock({
         hover:shadow-md hover:z-10 transition-shadow
       `}
       style={{ top: 0, height: scaledHeight, minHeight: cellSize }}
-      onClick={(e) => { e.stopPropagation(); onEdit(); }}
-      onMouseDown={(e) => { e.stopPropagation(); onDragStart(e); }}
+      onClick={(e) => {
+        // 只有「未發生 drag」時的 click 才是真正的編輯意圖
+        // — 距離門檻由 ClientPage 的 onDragStart 判斷，這裡單純 fire onEdit
+        e.stopPropagation();
+        onEdit();
+      }}
+      onMouseDown={(e) => {
+        // 只 stopPropagation（避免觸發 cell 新增），不要立即啟動 drag
+        // — ClientPage 用 mousemove 距離門檻判斷是否真的進入 drag
+        e.stopPropagation();
+        onDragStart(e);
+      }}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
     >
