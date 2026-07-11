@@ -307,11 +307,9 @@ function BlockRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-// 鏡頭腳本 + AI 生圖清單（混合渲染）
-// shots 文字格式：每行 "時間碼  描述"，若以 "🖼" 開頭則為 AI 生圖 prompt
-// 範例：
-//   00:00-00:05  T1 出境大廳全景，鏡頭從後方搖到前方
-//   00:05-00:10  🖼 gpt-image-2-2k 16:9 — "Taiwan airport crowd scene, golden sunlight..."
+// 鏡頭腳本（純文字版）
+// 注意：AI 生圖清單已搬到對白下方（DialogueWithScenes 配對渲染）
+// 這裡只保留鏡頭腳本文字，圖不再列兩次
 function ShotsWithAiImages({
   shotsText,
   accentText,
@@ -329,20 +327,12 @@ function ShotsWithAiImages({
 
   const lines = shotsText.split("\n").filter((l) => l.trim());
   const cameraShots: { time: string; desc: string }[] = [];
-  const aiImages: { time: string; model: string; aspect: string; prompt: string }[] = [];
+  const aiImageCount = { value: 0 };
 
   for (const line of lines) {
-    // 嘗試 parse "時間碼  描述" 或 "時間碼  🖼 model aspect — prompt"
-    // 或 "時間碼  🖼 model aspect src=path — prompt"
-    const aiMatch = line.match(/^(\S+)\s+🖼\s+(\S+)\s+(\S+)(?:\s+src=([^\s—]+))?\s+—\s+"?(.+?)"?$/);
-    if (aiMatch) {
-      aiImages.push({
-        time: aiMatch[1],
-        model: aiMatch[2],
-        aspect: aiMatch[3],
-        src: aiMatch[4] || null,
-        prompt: aiMatch[5],
-      });
+    // 跳過 AI 生圖行（這些圖已在對白下方配對渲染）
+    if (/🖼/.test(line)) {
+      aiImageCount.value++;
       continue;
     }
     // 一般鏡頭行
@@ -363,84 +353,25 @@ function ShotsWithAiImages({
           fontFamily: "var(--font-noto-serif-tc), serif",
         }}
       >
-        🎥 鏡頭腳本 + 🖼 AI 生圖清單
+        🎥 鏡頭腳本（{cameraShots.length} 個 shot · {aiImageCount.value} 張 AI 生圖已搬到對白下方）
       </h3>
 
-      {/* AI 生圖清單 — 卡片樣式 */}
-      {aiImages.length > 0 && (
-        <div className="mb-4 space-y-2">
-          <div className="text-xs font-semibold text-[var(--jn-blue)] flex items-center gap-1.5">
-            🖼 AI 生圖（{aiImages.length} 張 · 全部 16:9）
+      <div className="space-y-1">
+        {cameraShots.map((s, i) => (
+          <div
+            key={i}
+            className="text-xs text-[var(--jn-ink)]/85 flex gap-2 leading-relaxed"
+            style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
+          >
+            {s.time && (
+              <span className="font-mono text-[var(--jn-vermilion)]/80 flex-shrink-0 font-bold">
+                {s.time}
+              </span>
+            )}
+            <span>{s.desc}</span>
           </div>
-          {aiImages.map((img, i) => (
-            <div
-              key={i}
-              className="rounded-lg border-2 p-3 bg-[var(--jn-blue)]/5"
-              style={{
-                borderColor: "var(--jn-blue)",
-                fontFamily: "var(--font-noto-serif-tc), serif",
-              }}
-            >
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-xs font-mono text-[var(--jn-blue)] font-bold">
-                  {img.time}
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--jn-blue)] text-[var(--jn-paper)]">
-                  {img.model}
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[var(--jn-gold)]/20 text-[var(--jn-vermilion-deep)] border border-[var(--jn-gold)]/40">
-                  {img.aspect}
-                </span>
-              </div>
-
-              {/* 真實生成的圖片（如果有 src）*/}
-              {img.src && (
-                <div className="mb-2">
-                  <img
-                    src={img.src}
-                    alt={img.prompt}
-                    className="w-full h-auto rounded shadow-sm border border-[var(--jn-ink)]/10"
-                    loading="lazy"
-                  />
-                </div>
-              )}
-
-              {/* prompt 文字（點擊展開）*/}
-              <details className="text-xs">
-                <summary className="cursor-pointer text-[var(--jn-blue)] font-semibold mb-1 select-none hover:underline">
-                  📝 AI prompt
-                </summary>
-                <p className="italic text-[var(--jn-ink)]/80 leading-relaxed font-mono mt-1">
-                  {img.prompt}
-                </p>
-              </details>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* 一般鏡頭腳本 */}
-      {cameraShots.length > 0 && (
-        <div className="space-y-1">
-          <div className="text-xs font-semibold text-[var(--jn-ink)]/70 flex items-center gap-1.5">
-            🎥 鏡頭腳本（{cameraShots.length} 個 shot）
-          </div>
-          {cameraShots.map((s, i) => (
-            <div
-              key={i}
-              className="text-xs text-[var(--jn-ink)]/85 flex gap-2 leading-relaxed"
-              style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
-            >
-              {s.time && (
-                <span className="font-mono text-[var(--jn-vermilion)]/80 flex-shrink-0 font-bold">
-                  {s.time}
-                </span>
-              )}
-              <span>{s.desc}</span>
-            </div>
-          ))}
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
 }
@@ -486,56 +417,32 @@ function DialogueWithScenes({ dialogue, shotsText }: { dialogue: string; shotsTe
     }
   }
 
-  // 3. 配對 AI 圖到場景
-  // 簡化：場景 N 配對「順序第 N 個開始的 AI 圖群」
-  // 實際按場景出現的「先後順序」+ AI 圖「先後順序」配對
-  // 場景 N 對應 AI 圖索引範圍: [N_start, N_end)
-  // 第一個場景對應到第一個 AI 圖群，後面依此類推
-  // 用簡單 greedy: 每個場景的「結束時間」是下一個場景的「開始時間」
-  // 因為沒時間，直接用「場景 N 配對 AI 圖 N_group」按場景順序+圖順序
-  // 把 aiImages 按「場景群」分配
-  // 場景群定義: 連續出現的場景會把圖分組
-  // 簡化策略: 場景 1 取第 1 個圖群 (從頭到下一個場景的圖為止)
-  // 場景 i 取 [start_i, start_{i+1}) 的圖
-  // start_i 怎麼決定？看每個 AI 圖的 time 跟場景主題的對應
+  // 3. 配對 AI 圖到場景 — 「順序分組」
+  //
+  // 為什麼不用時間碼配對（原本 sceneTimeMap）：
+  //   - 原本 hard-code D1 的 8 個場景關鍵字，D2~D8 場景都不命中
+  //   - 維護成本高：每加一天就要補關鍵字
+  //
+  // 改用「順序分組」：
+  //   - dialogue 場景按時間軸順序寫（D1~D8 全劇本統一時間軸）
+  //   - shots 內嵌 AI 生圖按時間軸順序排（D1~D8 統一規則）
+  //   - 場景 i 配對第 [i * M/N .. (i+1) * M/N) 張圖（M=總圖數, N=場景數）
+  //   - 即使不完全 1:1，順序本身已對齊時間軸，視覺連貫
+  //
+  // 例：D2 有 5 場戲，8 張圖 → 第 1 場拿前 2 張、第 2 場拿接下來 2 張 ... 等
 
-  // 4. 簡化配對：根據場景主題關鍵字 + time 範圍
-  // 場景標題 → 涵蓋 time 範圍
-  const sceneTimeMap: { keyword: RegExp; timeStart: number; timeEnd: number }[] = [
-    { keyword: /T1|桃園|出境/, timeStart: 0, timeEnd: 30 },
-    { keyword: /飛機|春秋|飲料|鳳梨酥/, timeStart: 30, timeEnd: 40 },
-    { keyword: /窗邊|雲/, timeStart: 40, timeEnd: 50 },
-    { keyword: /影子|大宇|小宇/, timeStart: 50, timeEnd: 60 },
-    { keyword: /浦東|出關|機場/, timeStart: 60, timeEnd: 70 },
-    { keyword: /磁浮/, timeStart: 70, timeEnd: 85 },
-    { keyword: /外灘|夜景|明珠/, timeStart: 85, timeEnd: 145 },
-    { keyword: /南京|晚餐|小籠包|南翔/, timeStart: 145, timeEnd: 200 },
-  ];
+  const nonEmptyScenes = rawBlocks.filter((s) => s.body.length > 0);
+  const sceneCount = nonEmptyScenes.length;
+  const imageCount = aiImages.length;
 
-  const sceneBlocks = rawBlocks
-    .filter((s) => s.body.length > 0)
-    .map((scene) => {
-      // 找這個場景的 timeStart/timeEnd
-      let timeStart = 0;
-      let timeEnd = 200;
-      for (const m of sceneTimeMap) {
-        if (m.keyword.test(scene.title)) {
-          timeStart = m.timeStart;
-          timeEnd = m.timeEnd;
-          break;
-        }
-      }
+  const sceneBlocks = nonEmptyScenes.map((scene, i) => {
+    // 第 i 場配對區間 [start, end)
+    const start = Math.floor((i * imageCount) / sceneCount);
+    const end = Math.floor(((i + 1) * imageCount) / sceneCount);
+    const matched = aiImages.slice(start, end);
 
-      // 配對 AI 圖：time 在 [timeStart, timeEnd) 內
-      const matched = aiImages.filter((img) => {
-        const parts = img.time.split(":");
-        if (parts.length < 2) return false;
-        const startMin = parseInt(parts[0], 10);
-        return startMin >= timeStart && startMin < timeEnd;
-      });
-
-      return { ...scene, images: matched };
-    });
+    return { ...scene, images: matched };
+  });
 
   return (
     <div className="sm:col-span-2">
