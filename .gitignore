@@ -71,3 +71,4 @@ data.ts.bak_*
 regen_*.py
 scripts/batch_*.py
 scripts/batch_repair_*.py
+.git.backup-pre-filter/

@@ -197,7 +197,7 @@ function buildSceneBlock(
           </div>
           ${
             img.src
-              ? `<img src="__IMG_BASE64__:${img.src.replace(/^\/vlog\//, "")}__" style="width: 100%; max-width: 240px; max-height: 240px; object-fit: contain; border-radius: 4px; display: inline-block; box-shadow: 0 1px 4px rgba(0,0,0,0.08); background: #f5f5f4;" />`
+              ? `<img src="${img.src}" style="width: 100%; max-width: 240px; max-height: 240px; object-fit: contain; border-radius: 4px; display: inline-block; box-shadow: 0 1px 4px rgba(0,0,0,0.08); background: #f5f5f4;" crossorigin="anonymous" />`
               : ""
           }
         </div>`
@@ -243,7 +243,7 @@ function buildScenePairBlock(
           </div>
           ${
             img.src
-              ? `<img src="__IMG_BASE64__:${img.src.replace(/^\/vlog\//, "")}__" style="width: 100%; max-width: 200px; max-height: 200px; object-fit: contain; border-radius: 3px; display: inline-block; background: #f5f5f4;" />`
+              ? `<img src="${img.src}" style="width: 100%; max-width: 200px; max-height: 200px; object-fit: contain; border-radius: 3px; display: inline-block; background: #f5f5f4;" crossorigin="anonymous" />`
               : ""
           }
         </div>`
@@ -454,7 +454,7 @@ export default function DayPdfExport({
     if (generating) return;
     setGenerating(true);
     try {
-      // 1) 建構所有 block
+      // 1) 建構所有 block (img.src 已是 Supabase CDN URL, 直接 fetch 載入即可)
       const rawBlocks = buildDayBlocks(
         dayBlock,
         scriptId,
@@ -464,20 +464,7 @@ export default function DayPdfExport({
         accentColor
       );
 
-      // 2) 一次合併預載所有 base64, 避免重複 fetch 同張圖
-      // 用 SEP 隔開每個 block, 預載完 split 後 strip 掉 __BLOCK_N__ 前綴
-      const SEP = "__BLOCK_SEPARATOR__";
-      const PREFIX_RE = /^__BLOCK_\d+__/;
-      const markedHtml = rawBlocks
-        .map((b, i) => `__BLOCK_${i}__${b.html}`)
-        .join(SEP);
-      const markedWithImages = await preloadImages(markedHtml);
-      // strip 掉每個 block 開頭的 __BLOCK_N__ 前綴 (避免出現在 PDF 內)
-      const blockHtmls = markedWithImages
-        .split(SEP)
-        .map((html) => html.replace(PREFIX_RE, ""));
-
-      // 3) 對每個 block 渲染 canvas
+      // 2) 對每個 block 渲染 canvas (renderBlockToCanvas 內部已 await img 載入)
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const PW = pdf.internal.pageSize.getWidth();
       const PH = pdf.internal.pageSize.getHeight();
@@ -487,15 +474,10 @@ export default function DayPdfExport({
       let currentY = 0; // mm, 當前頁已用高度
       let isFirstBlock = true;
 
-      for (let i = 0; i < blockHtmls.length; i++) {
-        const blockHtml = blockHtmls[i];
-        const blockLabel = rawBlocks[i].label;
-        const canvas = await renderBlockToCanvas(blockHtml);
+      for (let i = 0; i < rawBlocks.length; i++) {
+        const { html, label } = rawBlocks[i];
+        const canvas = await renderBlockToCanvas(html);
         const blockHeightMm = canvas.height * scale;
-
-        console.log(
-          `[DayPdfExport] ${blockLabel}: ${canvas.width}x${canvas.height}px (${blockHeightMm.toFixed(1)}mm)`
-        );
 
         // 換頁邏輯:
         //   1) 單一區塊本身就 > 頁高 → 強制 addPage 放新頁
