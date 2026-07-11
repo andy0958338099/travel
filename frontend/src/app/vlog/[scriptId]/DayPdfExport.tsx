@@ -33,6 +33,21 @@ export interface DayPdfExportProps {
 
 const PDF_WIDTH_PX = 794; // A4 width @ 96dpi
 
+// 手機 / 平板偵測: 螢幕窄 + 觸控優先 → 降低 PDF 解析度節省解碼時間
+// 手機 html2canvas scale:2 解碼 8 張 2K 圖會卡 30-60s, 降到 1 可降至 5-10s
+function detectMobile(): boolean {
+  if (typeof navigator === "undefined") return false;
+  // userAgent 標準偵測 (涵蓋 iOS / Android)
+  if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) return true;
+  // 觸控優先 + 螢幕 < 768 視為手機
+  if (typeof window !== "undefined" && window.matchMedia) {
+    const isCoarse = window.matchMedia("(pointer: coarse)").matches;
+    const isNarrow = window.matchMedia("(max-width: 768px)").matches;
+    if (isCoarse && isNarrow) return true;
+  }
+  return false;
+}
+
 // ─────────────────────────────────────────────
 // 解析輔助
 // ─────────────────────────────────────────────
@@ -396,7 +411,7 @@ function buildDayBlocks(
 // 區塊若超過當前頁剩餘高度 → addPage() 然後整塊放新頁
 // ─────────────────────────────────────────────
 
-async function renderBlockToCanvas(html: string): Promise<HTMLCanvasElement> {
+async function renderBlockToCanvas(html: string): Promise<{ canvas: HTMLCanvasElement; scale: number }> {
   const container = document.createElement("div");
   container.style.cssText = `position:fixed;left:-3000px;top:0;width:${PDF_WIDTH_PX}px;background:#fff;`;
   container.innerHTML = html;
@@ -422,8 +437,10 @@ async function renderBlockToCanvas(html: string): Promise<HTMLCanvasElement> {
   // 等字體
   await new Promise((r) => setTimeout(r, 200));
 
+  // 手機降低 scale 節省 html2canvas 解碼時間 (2K 圖 x8 解碼太慢)
+  const scale = detectMobile() ? 1 : 2;
   const canvas = await html2canvas(container, {
-    scale: 2,
+    scale,
     useCORS: true,
     allowTaint: true,
     backgroundColor: "#ffffff",
@@ -432,7 +449,7 @@ async function renderBlockToCanvas(html: string): Promise<HTMLCanvasElement> {
   });
 
   document.body.removeChild(container);
-  return canvas;
+  return { canvas, scale };
 }
 
 // ─────────────────────────────────────────────
@@ -469,15 +486,19 @@ export default function DayPdfExport({
       const PW = pdf.internal.pageSize.getWidth();
       const PH = pdf.internal.pageSize.getHeight();
       const BOTTOM_MARGIN = 6; // mm
-      const scale = PW / (PDF_WIDTH_PX * 2); // canvas scale=2
+      // 手機 jpeg 0.85, 電腦 jpeg 0.92 (品質稍降但 PDF 檔小很多)
+      const isMobile = detectMobile();
+      const jpegQuality = isMobile ? 0.85 : 0.92;
+      // canvas scale (1 或 2) 跟 mm 換算動態處理 (renderBlockToCanvas 回傳)
+      const mmPerCanvasPx = PW / (PDF_WIDTH_PX * (isMobile ? 1 : 2));
 
       let currentY = 0; // mm, 當前頁已用高度
       let isFirstBlock = true;
 
       for (let i = 0; i < rawBlocks.length; i++) {
         const { html, label } = rawBlocks[i];
-        const canvas = await renderBlockToCanvas(html);
-        const blockHeightMm = canvas.height * scale;
+        const { canvas } = await renderBlockToCanvas(html);
+        const blockHeightMm = canvas.height * mmPerCanvasPx;
 
         // 換頁邏輯:
         //   1) 單一區塊本身就 > 頁高 → 強制 addPage 放新頁
@@ -492,7 +513,7 @@ export default function DayPdfExport({
           currentY = 0;
         }
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.92);
+        const imgData = canvas.toDataURL("image/jpeg", jpegQuality);
         pdf.addImage(imgData, "JPEG", 0, currentY, PW, blockHeightMm);
         currentY += blockHeightMm;
         isFirstBlock = false;
