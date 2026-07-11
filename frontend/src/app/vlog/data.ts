@@ -1,4 +1,4 @@
-// /vlog 劇本資料 — 3 個備選劇本
+// /vlog 劇本資料 — 4 個備選劇本
 //
 // 設計：聖上會在後續編輯 dayBlocks/storyArc 細節
 // 本檔目前由臣根據聖上 2026-07-11 拍板內容填入
@@ -2937,7 +2937,7 @@ export const SCRIPTS: Record<string, ScriptMeta> = {
     id: "D",
     name: "愛美食的同事",
     tagline: "阿伸 + 阿茹夫妻 + 女生朋友阿橋 · 美食博主小組 8 日 4 城吃吃喝喝 · 35-45 分鐘",
-    color: "blue",
+    color: "ink",
     storyArc:
       "阿伸 + 阿茹夫妻帶女生朋友阿橋一起加入喜家 13 人江南之旅。三人化身美食博主小組，8 日 4 城吃吃喝喝：Day 1 上海生煎、Day 2 小楊生煎 + 南翔、Day 3 西塘粉蒸肉 + 芡實糕、Day 4 烏鎮醬鴨 + 水宴、Day 5 樓外樓東坡肉、Day 6 宋城叫化雞 + 馬鴻興、Day 7 杭州宮宴御膳、Day 8 綠茶餐廳。Day 8 阿橋總結美食榜 + 三人分享「吃什麼不重要一起吃才重要」。",
     dayBlocks: D_DAYS,
