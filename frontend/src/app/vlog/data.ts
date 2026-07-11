@@ -47,7 +47,7 @@ export interface Character {
 export const CHARACTERS_13: Character[] = [
   { name: "阿喜",   role: "爸爸 / 主角",         family: "喜家" },   // m1
   { name: "黃阿分", role: "阿喜老婆",           family: "喜家" },   // m2
-  { name: "阿美",   role: "奶奶 / 阿喜的媽",     family: "喜家" },   // m3
+  { name: "阿美",   role: "奶奶 / 阿喜的媽 · 70 歲烏黑秀髮 · 腳力體健",     family: "喜家" },   // m3
   { name: "阿評",   role: "大伯 / 阿喜的哥哥",   family: "喜家" },   // m4
   { name: "宸瑋",   role: "阿喜大兒子",         family: "喜家" },   // m9
   { name: "恩齊",   role: "阿喜小兒子",         family: "喜家" },   // m10
@@ -114,8 +114,8 @@ const D1: DayBlock = {
 阿評（看到）：『你們兩個很可愛喔。』
 （落地上海浦東機場 — 13 人一起出關）
 阿喜（拿 3 個皮箱）：『走！跟著我！』
-阿美（喘）：『阿喜！走慢一點！』
-阿評（扶著阿美）：『媽，我扶你。』
+阿美：『阿喜！等等我！這個東西我想看。』
+阿評（牽著阿美）：『媽，一起走。』
 阿茹（拿行李）：『阿美媽，你還好嗎？』
 阿美：『我沒事。』
 （看到磁浮列車）
@@ -156,7 +156,7 @@ const D1: DayBlock = {
 01:45-02:00  全 13 人擠在外灘剪影的合影全景，背景東方明珠
 
 00:00-00:10  🖼 gpt-image-2-2k 1:1 src=/vlog/day1/img-01-t1-airport.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, Taiwan Taoyuan International Airport Terminal 1 departure hall morning sunlight through tall glass windows, a joyful Taiwanese Chinese family of 13 chibi characters with luggage and backpacks, kids running around, real airport architecture with high ceilings and shops in background, cinematic wide-angle shot, soft golden hour lighting"
-00:10-00:20  🖼 gpt-image-2-2k 1:1 src=/vlog/day1/img-02-grandma-kid.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, elderly Asian grandmother in her 70s holding hands with 8-year-old grandson at airport, warm tender moment, chibi grandma with silver hair and chibi grandson looking up at her with curious big eyes, soft golden backlight through terminal windows, real airport polished floor and other travelers in background, cinematic portrait shot"
+00:10-00:20  🖼 gpt-image-2-2k 1:1 src=/vlog/day1/img-02-grandma-kid.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, elderly Asian grandmother in her 70s holding hands with 8-year-old grandson at airport, warm tender moment, chibi healthy 70-year-old Asian grandma with jet-black silky hair and chibi grandson looking up at her with curious big eyes, soft golden backlight through terminal windows, real airport polished floor and other travelers in background, cinematic portrait shot"
 00:20-00:30  🖼 gpt-image-2-2k 1:1 src=/vlog/day1/img-03-pineapple-cake.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, Asian grandmother handing traditional Taiwanese pineapple cake to a middle-aged businessman friend at airport, both smiling warmly, chibi grandma in floral blouse and chibi businessman in casual jacket, real airport gate area with chairs and information boards in background, candid documentary style photograph"
 00:30-00:40  🖼 gpt-image-2-2k 1:1 src=/vlog/day1/img-04-clouds-window.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, inside airplane window view with fluffy white cumulus clouds like cotton candy at golden hour, chibi 5-year-old boy face pressed against window looking out with wonder, his breath fogging the glass, photorealistic sky and cloudscape, dreamy soft golden light filling cabin, cinematic composition"
 00:50-01:00  🖼 gpt-image-2-2k 1:1 src=/vlog/day1/img-06-brothers-plane.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, two young Asian brothers inside airplane pointing at airplane wing shadow on clouds, chibi older brother proudly explaining with raised finger, chibi younger brother looking amazed with wide eyes, photorealistic airplane window framing and cloud background, candid photo style"
@@ -231,7 +231,7 @@ const D2: DayBlock = {
 阿美（靠窗）：『我沒事。我看看風景。』
 （黃阿分從鏡頭外遞來一瓶水給阿美）
 阿美：『謝謝阿分。』
-黃阿分（握阿美的手）：『媽，妳累了跟我說。』
+黃阿分（握阿美的手）：『媽，妳慢慢來，我們再逛一下。』
 （17:00 — 抵達西塘古鎮，古韻雅居客棧門口）
 賽門（已經先到 1 小時，滿頭汗）：『我先去逛了！西門見！』
 阿喜：『你不要走丟！』
@@ -283,11 +283,11 @@ const D2: DayBlock = {
 05:00-05:15  阿喜說「跟阿分結婚那年也拍過水鄉」，zoom in 合照構圖
 05:15-05:30  「回去給你爸看」一句，鏡頭拍阿美眼眶 + 河水倒影重疊
 05:30-05:45  客棧房間 — 阿評給阿美捶腿的全景，鏡頭從窗外偷拍
-05:45-06:00  「走的時候說一聲」一句，鏡頭捕捉阿美困倦又不服輸表情
+05:45-06:00  「走的時候說一聲」一句，鏡頭從窗內拍阿美看夜景
 
 00:00-00:10  🖼 gpt-image-2-2k 1:1 src=/vlog/day2/img-01-suzhou-river-dawn.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic low-angle shot of Shanghai Suzhou Creek at pre-dawn, a single chibi middle-aged Chinese man wearing swim trunks and goggles standing at the concrete riverbank beside iron railings, the city skyline still dark with just blue-hour tones, photorealistic early morning atmosphere with mist rising from the calm water, cinematic composition with deep blue sky and pale orange horizon"
 00:10-00:20  🖼 gpt-image-2-2k 1:1 src=/vlog/day2/img-02-hotel-corridor-dawn.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dim hotel corridor at 5:30 AM with one warm ceiling light casting long shadows, a chibi man in athletic backpack walking quietly past numbered doors 1401 to 1412, soft yellow incandescent glow, photorealistic hotel carpet and wooden doors, cinematic shallow depth of field with bokeh, melancholic quiet morning mood"
-00:20-00:30  🖼 gpt-image-2-2k 1:1 src=/vlog/day2/img-03-grandma-still-sleeping.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, close-up of an elderly Asian grandmother chibi sleeping peacefully in hotel bed with white duvet, soft warm bedside lamp light illuminating her silver hair, peaceful breathing expression, photorealistic hotel room details with curtains drawn, cinematic shallow focus on the gentle face, tender intimate moment"
+00:20-00:30  🖼 gpt-image-2-2k 1:1 src=/vlog/day2/img-03-grandma-still-sleeping.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, close-up of an elderly Asian grandmother chibi sleeping peacefully in hotel bed with white duvet, soft warm bedside lamp light illuminating her jet-black silky hair, peaceful breathing expression, photorealistic hotel room details with curtains drawn, cinematic shallow focus on the gentle face, tender intimate moment"
 00:30-00:40  🖼 gpt-image-2-2k 1:1 src=/vlog/day2/img-04-enqi-blocking-dad.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, sweet morning scene of chibi Asian father sitting on edge of hotel bed with chibi little boy standing beside him in early blue-grey dawn light, child rubbing sleepy eyes, father gently patting his head, photorealistic hotel room interior with soft lamp light and rumpled white sheets in background, tender intimate family portrait, cinematic medium shot composition, naturalistic documentary style"
 00:40-00:55  🖼 gpt-image-2-2k 1:1 src=/vlog/day2/img-05-soup-dumpling-juice.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, ultra slow-motion close-up of chibi boy's face biting into xiaolongbao at Xiao Yang Sheng Jian restaurant, hot broth squirting out dramatically, steam rising in golden backlight, photorealistic Chinese soup dumpling skin texture and pork filling visible, dramatic shallow depth of field, cinematic food photography moment, golden hour restaurant lighting"
 00:55-01:05  🖼 gpt-image-2-2k 1:1 src=/vlog/day2/img-06-yu-garden-rooftop.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic upward angle of Ming Dynasty traditional Chinese curved rooftop of Yu Garden with intricate dragon decorations against bright blue sky, an elderly chibi grandmother in floral blouse standing below looking up in wonder, photorealistic traditional Chinese architecture with red pillars and grey brick walls, cinematic golden hour sunlight casting shadows"
@@ -338,7 +338,7 @@ const D3: DayBlock = {
 阿喜（後面追）：『等一下！你們有錢嗎？』
 吳董（也跑來）：『我先付！』
 阿美（慢慢走）：『你們年輕人跑那麼快幹嘛。』
-阿評（扶著阿美）：『媽，妳慢慢走。』
+阿評（牽著阿美）：『媽，等等小朋友。』
 （中午 12:00 — 西塘小吃街午餐）
 阿喜（指著一家店）：『這家有粉蒸肉！』
 黃阿分：『阿喜你點菜囉！』
@@ -402,7 +402,7 @@ const D3: DayBlock = {
 02:00-02:15  阿美回憶新竹溪水，鏡頭捕捉阿評聽到後沉默 3 秒
 02:15-02:30  「已經被水泥化了」一句，鏡頭 zoom in 阿美遙遠表情
 02:30-02:50  4 個小朋友擠糖葫蘆攤，鏡頭跟拍奔跑混亂
-02:50-03:05  阿美慢慢走碎念，鏡頭從阿美視角仰拍阿評扶著
+02:50-03:05  阿美慢慢走碎念，鏡頭從阿美視角仰拍阿評鼓勵
 03:05-03:20  西塘小吃街粉蒸肉特寫，鏡頭從蒸籠往上拍
 03:20-03:35  「比小時候吃的不一樣，但也好吃」一句，景深虛化背景
 03:35-03:50  分線場景，鏡頭跟著阿喜 vs 阿評兩條路線剪接對比
@@ -431,7 +431,7 @@ const D4: DayBlock = {
   label: "Day 4 · 7/20 (一)",
   theme: "烏鎮西柵 · 水鄉精髓",
   scenes: "09:00 check in 烏鎮西柵 → 09:30～18:00 西柵內慢悠悠（染坊 / 水閣 / 老街）→ 18:00 後景區外大街或足浴",
-  mainCharacters: "全 13 人 / 阿美奶奶走不動的伏筆加深 / 阿評大哥當導遊扛相機",
+  mainCharacters: "全 13 人 / 阿美奶奶從容逛景，大伯阿評扛相機拍全家",
   dialogue: `（09:00 — 烏鎮西柵大門口，13 人合照）
 阿喜（舉手）：『來！13 個人！看鏡頭！』
 吳董：『你拍得到嗎？自拍棒帶了嗎？』
@@ -453,8 +453,8 @@ const D4: DayBlock = {
 阿評：『再 30 秒。』
 阿美：『我腳痠。』
 阿評（趕緊拍 3 張）：『好了好了！』
-（阿美坐下石階，阿評遞水）
-阿美（看著河邊）：『這個地方，跟我小時候看到的江南一樣。』
+（阿美站在河邊看風景，阿評遞水）
+阿美（微笑）：『這個地方，跟我小時候看到的江南一樣。』
 （11:30 — 烏鎮水閣，老街吃午餐）
 阿喜：『吳董你看，這個船跟我們西塘的不同。』
 吳董：『對！這個比較大！』
@@ -466,10 +466,10 @@ const D4: DayBlock = {
 （中午 12:30 — 老街小吃）
 阿喜（拿一根糖葫蘆）：『這個 10 塊錢。』
 恩齊：『比西塘便宜！』
-阿美（從後面追上來喘）：『你們走太快了！』
-阿評（扶阿美）：『媽，妳坐一下這個石凳。』
+阿美（從後面追上來）：『你們走太快了！我要拍那個。』
+阿評（牽阿美）：『媽，我們在這看風景。』
 阿美：『不用，我走得動。』
-（但阿美還是坐下）
+（阿美停下腳步看水）
 阿評（拿一瓶水遞給阿美）：『媽，水。』
 （15:00 — 西柵水上集市）
 吳董（指船）：『看！那個船上有賣東西！』
@@ -488,12 +488,12 @@ const D4: DayBlock = {
 吳董：『去吃足浴啦！我昨天按得很爽！』
 阿喜：『不要啦！今天吃晚餐就好，明天還要趕路。』
 吳董：『可是我昨天沒按夠！』
-阿美（突然插話）：『你們兩個去按！我跟阿評回飯店休息。』
-阿喜（驚）：『媽妳累了？』
-阿美（碎念）：『老了！走不動了！』
-吳董（馬上）：『阿姨妳累了？那我們都回飯店！不要去足浴了！』
+阿美（突然插話）：『你們兩個去按！我跟阿評回飯店泡茶。』
+阿喜：『媽妳今晚想吃什麼？』
+阿美（碎念）：『你們年輕人腳太快了！』
+吳董（馬上）：『阿姨想喝茶？那我們都回飯店！不要去足浴了！』
 阿喜（看著吳董）：『你剛剛不是說要去？』
-吳董（抓頭）：『啊就……阿姨累了嘛。』
+吳董（抓頭）：『啊就……阿姨想喝茶嘛。』
 （全場笑場）
 （22:00 — 客棧房間）
 阿美（洗完澡）：『阿評，妳今天帶我看的東西，比電視上好看。』
@@ -506,13 +506,13 @@ const D4: DayBlock = {
 00:25-00:40  10:30 烏鎮染坊藍布飄的全景，鏡頭從下往上仰拍藍布飄動
 00:40-00:55  阿美站在藍布下，鏡頭從阿評取景角度偷拍（構圖示範）
 00:55-01:10  阿美站 3 分鐘碎念腳痠，鏡頭捕捉阿評暴走拍攝節奏
-01:10-01:25  阿美坐石階喝水，鏡頭從側面拍，背景河水模糊
-01:25-01:40  「跟小時候看到的江南一樣」一句，鏡頭 zoom in 阿美表情 + 河水
+01:10-01:25  阿美站在河邊看水，鏡頭從側面拍，背景河水模糊
+01:25-01:40  「跟小時候看到的江南一樣」一句，鏡頭 zoom in 阿美微笑
 01:40-02:00  西柵水閣全景，鏡頭從拱橋拍船行水面，景深虛化後景遊客
 02:00-02:15  宸瑋搶紅色衣服船夫，鏡頭從阿喜蹲下特寫兒子眼神
 02:15-02:30  12:30 老街小吃糖葫蘆特寫，鏡頭從糖葫蘆往上拍
-02:30-02:45  阿美追上隊伍喘吁吁，鏡頭從阿美視角手持晃
-02:45-03:00  阿美坐石凳喘氣 + 阿評遞水，鏡頭特寫阿評遞水動作
+02:30-02:45  阿美追上隊伍，鏡頭從阿美視角拍她看到隊伍
+02:45-03:00  阿美站在石凳旁看風景 + 阿評遞水，鏡頭特寫阿評遞水動作
 03:00-03:20  15:00 西柵水上集市，鏡頭從對岸拍船駛過，倒影
 03:20-03:35  阿美看著船「跟電視上一樣」一句，鏡頭捕捉側臉
 03:35-03:55  17:00 烏鎮夜景全景，鏡頭從橋上拍河面燈籠倒影
@@ -520,10 +520,10 @@ const D4: DayBlock = {
 04:10-04:25  「年輕時候你爸帶我來」一句，鏡頭 zoom in 阿美側臉淺景深
 04:25-04:40  19:00 景區外選餐廳，吳董 vs 阿喜意見分歧剪接
 04:40-04:55  阿美突然插話「你們去按我回飯店」，鏡頭捕捉全員愣住
-04:55-05:10  吳董馬上改口「阿姨累了嘛」，鏡頭捕抓頭笑場
+04:55-05:10  吳董馬上改口「阿姨想喝茶嘛」，鏡頭捕抓頭笑場
 05:10-05:25  阿喜看吳董吐槽的搞笑對視，鏡頭兩人剪影
 05:25-05:45  22:00 客棧房間 — 阿評跟阿美對話，鏡頭從窗外偷拍
-05:45-06:05  「我這輩子能再來一次就好了」一句，鏡頭定格阿美側臉
+05:45-06:05  「我這輩子能再多來幾次就更好了」一句，鏡頭定格阿美側臉
 06:05-06:15  客棧窗外烏鎮夜景，鏡頭定格 5 秒，背景音淡入古箏
 
 00:00-00:10  🖼 gpt-image-2-2k 1:1 src=/vlog/day4/img-01-wuzhen-main-gate.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic wide shot of traditional Chinese water-town stone gate tower of Wuzhen Xizha with horizontal wooden plaque, 13 chibi Asian tourists gathered below for a group photo with selfie sticks and cameras, photorealistic ancient weathered white walls and red wooden beams, bright morning sun, cinematic symmetrical composition"
@@ -541,14 +541,14 @@ const D5: DayBlock = {
   label: "Day 5 · 7/21 (二)",
   theme: "杭州西湖 · 從烏鎮到杭州特種兵",
   scenes: "07:00 烏鎮早茶客 → 10:00 包車出發杭州（2 小時）→ 杭州大酒店 check in → 蘇堤春曉 / 曲院風荷 → 武林夜市 / 銀泰 in 77",
-  mainCharacters: "全 13 人 / 奶奶阿美累到極限 / 大伯阿評陪媽慢慢走 / 兩家人首次各自行動半天",
+  mainCharacters: "全 13 人 / 奶奶阿美跟黃阿分慢慢逛蘇堤，大伯阿評拍照，兩家人首次分頭行動",
   dialogue: `（07:00 — 烏鎮夏朵客棧餐廳，最後一頓早餐）
-阿美（看著恩齊）：『恩齊，你要好好吃飯。』
+阿美（看著恩齊）：『恩齊，要好好吃飯才長得高。』
 恩齊：『奶奶，妳為什麼講這個？』
 阿美：『沒事。奶奶只是想到一些事。』
 黃阿分（在旁邊聽到，看著阿喜）
-阿喜（鏡頭轉過來）：『媽，妳累了跟我們說。』
-阿美：『我沒事。我走得動。』
+阿喜（鏡頭轉過來）：『媽，妳想逛哪裡跟我們說。』
+阿美：『我沒事。我走得動，慢慢看。』
 （阿美夾了一塊紅燒肉，慢慢嚼）
 阿評（拿相機過來）：『媽，最後一張烏鎮合照。』
 阿美（配合）：『好。』
@@ -572,11 +572,11 @@ const D5: DayBlock = {
 黃倩：『阿喜你來過喔？』
 阿喜：『20 年前出差來過。那時候西湖邊還沒有這麼多遊客。』
 （14:00 — 西湖蘇堤春曉）
-阿美（坐石椅）：『你們先去。我坐這等你們。』
-阿喜（蹲下）：『媽，妳不要勉強。』
-阿美（推阿喜）：『去啦！我想一個人坐一下。』
+阿美（坐在石椅上慢慢看湖）：『你們先去，我慢慢看這湖。』
+阿喜（蹲下）：『媽，妳要不要再拍幾張？』
+阿美（推阿喜）：『去啦！我想在這多看一會兒。』
 黃阿分（走過來）：『媽，我陪妳。』
-阿美：『不用。我只想一個人。』
+阿美：『不用。我要在這多坐一會兒。』
 （阿喜跟黃阿分對視，鏡頭捕捉）
 阿喜（對鏡頭小聲）：『我們快去快回。不要讓她等太久。』
 （蘇堤春曉 — 兩家人快速逛完）
@@ -586,10 +586,10 @@ const D5: DayBlock = {
 （回程 — 阿美一個人坐著看湖）
 黃阿分（拿一杯水）：『媽，水。』
 阿美（接過）：『謝謝。』
-阿美（看著黃阿分）：『阿分，我拖累你們了吧？』
-黃阿分（蹲下）：『媽妳講什麼話！妳能來我們很高興！』
-阿美（眼眶紅）：『我老了。走不動了。』
-黃阿分（握住阿美的手）：『媽，下次我推輪椅帶妳。』
+阿美（看著黃阿分）：『阿分，我跟你們的腳程差好多吧？』
+黃阿分（蹲下）：『媽妳講什麼話！能跟妳一起逛我們很高興！』
+阿美（微笑）：『我跟你們的腳程差好多。』
+黃阿分（握住阿美的手）：『媽，下次我們再去別的地方。』
 （17:00 — 曲院風荷拍荷花）
 阿喜（蹲下拿相機）：『吳董你看！荷花！』
 吳董：『這個季節剛好！』
@@ -603,7 +603,7 @@ const D5: DayBlock = {
 （22:00 — 杭州大酒店房間）
 阿美（洗完澡）：『阿分，謝謝妳今天。』
 黃阿分（握阿美的手）：『媽，妳客氣什麼。』
-阿美：『我拖累你們了。』
+阿美：『我跟你們的腳程差好多。』
 黃阿分：『媽，妳能來我們已經很開心了。』`,
   shots: `00:00-00:10  07:00 烏鎮夏朵餐廳全景，鏡頭拍桌上的小籠包 + 阿美
 00:10-00:20  阿美看恩齊說「你要好好吃飯」，鏡頭 zoom in 表情
@@ -622,7 +622,7 @@ const D5: DayBlock = {
 03:15-03:30  蘇堤快逛，鏡頭晃動營造緊張感，阿喜 + 吳董跑
 03:30-03:45  回程阿美一個人坐看湖，長鏡頭 5 秒靜默
 03:45-04:00  黃阿分拿水回來，鏡頭從側面拍蹲下握手
-04:00-04:15  「下次我推輪椅帶妳」一句，景深模糊背景湖水
+04:00-04:15  「下次我們再帶妳來」一句，景深模糊背景湖水
 04:15-04:30  17:00 曲院風荷拍荷花，鏡頭從荷花往上拍西湖全景
 04:30-04:45  武林夜市招牌霓虹閃爍，鏡頭從遠景拉到近景
 04:45-05:00  4 個小朋友擠糖葫蘆攤，鏡頭混亂中 capture 興奮表情
@@ -825,7 +825,7 @@ const D7: DayBlock = {
 吳董：『漂亮！』
 （鏡頭從遠景拉到阿美 + 黃倩 + 黃阿分 3 人在御街合照）
 （19:00 — 飯店休息）
-阿美（脫下古裝）：『啊！好累。』
+阿美（脫下古裝）：『啊！好熱。』
 阿評（幫阿美收古裝）：『媽，妳今天很漂亮。』
 阿美：『都是你們兩個出的主意。』
 （22:00 — 房間電視前）
@@ -904,7 +904,7 @@ const D8: DayBlock = {
 （鏡頭從阿美視角拍 4 個小朋友）
 阿美（轉頭對阿喜）：『阿喜，這 8 天很謝謝你。』
 阿喜：『媽，妳客氣什麼。』
-阿美：『我老了走不動，你還願意帶我。』
+阿美：『我跟你們的腳程差好多，你們還願意帶我。』
 阿喜（握阿美的手）：『媽，妳願意來我就很高興。』
 （鏡頭拍兩人握手特寫）
 （15:00 — 杭州大酒店大廳 check out）
@@ -935,7 +935,7 @@ const D8: DayBlock = {
 （鏡頭拍阿喜抱著恩齊睡著）
 （21:30 — 抵達桃園 T2，13 人在入境大廳）
 阿美（站在入境大廳）：『終於回來了。』
-阿評（扶著阿美）：『媽，妳累了嗎？』
+阿評（牽著阿美）：『媽，妳想逛哪裡？』
 阿美：『沒有。我只是覺得這 8 天很快。』
 （鏡頭拍 13 人入境大廳剪影）
 阿美（轉頭看）：『下次想再去哪裡？』
@@ -1232,7 +1232,7 @@ const B_DAYS: DayBlock[] = [
 （回程 — 阿美一個人坐著看湖）
 黃阿分（拿一杯水）：『媽，水。』
 阿美（接過）：『謝謝。』
-阿美（看著黃阿分）：『阿分，我拖累你們了吧？』
+阿美（看著黃阿分）：『阿分，我跟你們的腳程差好多吧？』
 黃阿分（蹲下）：『媽妳講什麼話！妳能來我們很高興！』
 阿美（眼眶紅）：『我老了。走不動了。』
 黃阿分（握住阿美的手）：『媽，下次我推輪椅帶妳。』
