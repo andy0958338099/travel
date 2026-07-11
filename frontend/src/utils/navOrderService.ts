@@ -39,6 +39,8 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'payment-guide', label: '💴 換匯/支付',  href: '/travel/payment-guide' },
   { key: 'toilet-tour', label: '🚻 Toilet Tour',  href: '/travel/toilet-tour' },
   { key: 'apple-watch-s11', label: '⌚ Apple Watch S11 攻略',  href: '/travel/apple-watch-s11' },
+  // 🆕 2026-07-11 Vlog 劇本 3 選 1 — /vlog 入口（不在 /travel 子樹，共用聖上的 nav）
+  { key: 'vlog',            label: '🎬 Vlog 劇本 3 選 1',  href: '/vlog' },
 ];
 
 export const NAV_ORDER_KEY = 'travel-nav-order';

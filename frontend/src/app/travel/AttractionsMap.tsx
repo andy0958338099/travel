@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { ALL_ATTRACTIONS, Attraction } from "./data";
@@ -62,19 +62,31 @@ export default function AttractionsMap({ selectedDay: _selectedDay, plannedAttra
   // ── React 18 Strict Mode 雙 mount race fix ──
   // react-leaflet 4.2.1 MapContainer cleanup 依賴 context state,
   // 第一次 unmount 時 context 還是 null → map.remove() 不執行 → DOM 上 _leaflet_id 殘留
-  // 第二次 mount 報 "Map container is already initialized"
-  // 修法: 在 wrapper cleanup 強制清掉內部 leaflet-container 的 _leaflet_id, dev-only
+  // 第二次 mount 報 "Map container is being reused by another instance"
+  // 修法 (v2): 用 useId() 給 MapContainer 綁定 key, 強制 React 把第二次 mount 視為新實例
+  // 同時在 mount 時主動呼叫 map.remove() 把舊實例清掉
+  const reactId = useId();
   const mapWrapperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     return () => {
       const el = mapWrapperRef.current?.querySelector(".leaflet-container") as
-        | (HTMLDivElement & { _leaflet_id?: number })
+        | (HTMLDivElement & { _leaflet_id?: number; _leaflet_map?: unknown })
         | null;
       if (el) {
+        // dev-only: 強制清掉 leaflet 內部 state, 避免 "Map container is being reused"
+        try {
+          const mapInstance = (el as any)._leaflet_map;
+          if (mapInstance && typeof mapInstance.remove === "function") {
+            mapInstance.remove();
+          }
+        } catch {
+          /* ignore */
+        }
         delete el._leaflet_id;
+        delete (el as any)._leaflet_map;
       }
     };
-  }, []);
+  }, [reactId]);
 
   const filteredAttractions = activeFilter === 'all'
     ? ALL_ATTRACTIONS  // show ALL markers — planned ones get additional red markers below
@@ -128,6 +140,7 @@ export default function AttractionsMap({ selectedDay: _selectedDay, plannedAttra
         className="relative rounded-xl overflow-hidden border border-gray-200 h-[400px] sm:h-[500px]"
       >
         <MapContainer
+          key={reactId}
           center={mapCenter}
           zoom={mapZoom}
           style={{ height: "100%", width: "100%" }}
