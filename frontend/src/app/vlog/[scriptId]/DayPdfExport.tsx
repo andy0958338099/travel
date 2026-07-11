@@ -3,6 +3,11 @@
 /**
  * DayPdfExport — 每天劇本下載 PDF 按鈕
  *
+ * 2026-07-12 聖上拍板 v3: 預生成 CDN 下載 + 即時生成 fallback
+ * - 預先 puppeteer 生成的 PDF 放 public/vlog-pdfs/{scriptId}/day{N}.pdf
+ * - 優先: <a href="/vlog-pdfs/{scriptId}/day{N}.pdf" download> 瀏覽器原生下載, 1 秒
+ * - fallback: 用原本 jsPDF + html2canvas 即時生成 (若 PDF 缺失, 舊邏輯接管)
+ *
  * 2026-07-11 聖上拍板 v2: 不允許區塊被切兩半 (場景對白/圖片/鏡頭表)
  * 把 day 拆成多個邏輯區塊陣列, 每個區塊獨立 render canvas,
  * 區塊 height > 當前頁剩餘高度時 → addPage() 然後整塊放新頁
@@ -32,6 +37,13 @@ export interface DayPdfExportProps {
 }
 
 const PDF_WIDTH_PX = 794; // A4 width @ 96dpi
+
+// ─────────────────────────────────────────────
+// 預生成 PDF URL — 由 scripts/prebuild-vlog-pdfs.mjs 在 build 時產出
+// ─────────────────────────────────────────────
+function getPrebuiltPdfUrl(scriptId: string, dayIdx: number): string {
+  return `/vlog-pdfs/${scriptId}/day${dayIdx}.pdf`;
+}
 
 // 手機 / 平板偵測: 螢幕窄 + 觸控優先 → 降低 PDF 解析度節省解碼時間
 // 手機 html2canvas scale:2 解碼 8 張 2K 圖會卡 30-60s, 降到 1 可降至 5-10s
@@ -99,6 +111,7 @@ async function preloadImages(html: string): Promise<string> {
       const placeholder = m[0];
       const relPath = m[1];
       try {
+        // 用 data.ts 內部 URL 拆解方式組 fetch URL
         const origin = typeof window !== "undefined" ? window.location.origin : "";
         const url = `${origin}/vlog/${relPath}`;
         const resp = await fetch(url);
@@ -109,7 +122,7 @@ async function preloadImages(html: string): Promise<string> {
         const blob = await resp.blob();
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
+          reader.onload = () => resolve(reader.result as string);
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
@@ -120,9 +133,12 @@ async function preloadImages(html: string): Promise<string> {
       }
     })
   );
+
   let result = html;
   for (const { placeholder, base64 } of replaces) {
-    if (base64) result = result.replace(placeholder, base64);
+    if (base64) {
+      result = result.replaceAll(placeholder, base64);
+    }
   }
   const remaining = (result.match(/__IMG_BASE64__:/g) || []).length;
   console.log(
@@ -132,20 +148,21 @@ async function preloadImages(html: string): Promise<string> {
 }
 
 // ─────────────────────────────────────────────
-// 區塊 HTML 構造 (每個區塊獨立一塊, 不可分割)
+// Block 構造 (聖上 7-11 v2 拍板的場景兩欄並排)
 // ─────────────────────────────────────────────
 
-const FONT_STACK = `-apple-system, 'PingFang TC', 'Microsoft JhengHei', sans-serif`;
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
-function wrapBlock(inner: string): string {
-  return `<div style="
-    font-family: ${FONT_STACK};
-    width: ${PDF_WIDTH_PX}px;
-    padding: 0 36px;
-    background: #ffffff;
-    color: #1e293b;
-    box-sizing: border-box;
-  ">${inner}</div>`;
+function wrapBlock(content: string): string {
+  // 每個 block 包一層 page-break-inside: avoid, 場景/鏡頭不被切兩半
+  return `<div style="page-break-inside: avoid; break-inside: avoid; padding: 0 16px;">${content}</div>`;
 }
 
 function buildHeaderBlock(
@@ -157,45 +174,34 @@ function buildHeaderBlock(
   accentColor: string
 ): string {
   return wrapBlock(`
-  <div style="padding-top: 24px; border-bottom: 3px solid ${accentColor}; padding-bottom: 10px; margin-bottom: 14px;">
-    <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px;">
-      <span style="font-size: 32px; font-weight: 900; color: ${accentColor}; opacity: 0.9; line-height: 1;">${scriptId}</span>
-      <span style="font-size: 12px; padding: 3px 12px; border-radius: 999px; background: ${accentColor}; color: #ffffff; font-weight: 700; letter-spacing: 0.1em;">劇本 ${scriptId}</span>
+  <div style="background: ${accentColor}; padding: 16px 18px; border-radius: 6px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px;">
+      <div>
+        <div style="font-size: 10px; color: rgba(255,255,255,0.85); letter-spacing: 0.15em; font-weight: 600; margin-bottom: 4px;">劇本 ${scriptId} · ${escapeHtml(scriptName)}</div>
+        <div style="font-size: 26px; color: #ffffff; font-weight: 900; line-height: 1.2;">Day ${dayIdx} · ${escapeHtml(dayBlock.label)}</div>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 11px; color: rgba(255,255,255,0.9); font-weight: 600;">📅 ${date}</div>
+      </div>
     </div>
-    <div style="font-size: 19px; font-weight: 800; color: #1e293b; margin-bottom: 4px; line-height: 1.3;">${scriptName}</div>
-    <div style="font-size: 12px; color: #666; font-weight: 500;">
-      Day ${dayIdx} · ${dayBlock.label} · ${date}
-    </div>
-  </div>
-
-  ${
-    dayBlock.theme && !dayBlock.theme.startsWith("（待填")
-      ? `<div style="font-size: 12px; color: #555; font-style: italic; margin-bottom: 12px; padding: 8px 12px; border-left: 3px solid ${accentColor}; background: #fafaf9; border-radius: 4px; line-height: 1.6;">
-        <span style="color: ${accentColor}; font-weight: 700; font-style: normal;">主軸 ·</span> ${dayBlock.theme}
-      </div>`
-      : ""
-  }
-
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
-    <div style="background: #f5f5f4; padding: 9px 12px; border-radius: 6px; border-left: 3px solid ${accentColor};">
-      <div style="font-size: 10px; font-weight: 700; color: ${accentColor}; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.1em;">主要場景</div>
-      <div style="font-size: 12px; line-height: 1.6; color: #333;">${dayBlock.scenes || "（無）"}</div>
-    </div>
-    <div style="background: #f5f5f4; padding: 9px 12px; border-radius: 6px; border-left: 3px solid ${accentColor};">
-      <div style="font-size: 10px; font-weight: 700; color: ${accentColor}; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.1em;">主要角色</div>
-      <div style="font-size: 12px; line-height: 1.6; color: #333;">${dayBlock.mainCharacters || "（無）"}</div>
-    </div>
-  </div>
-
-  <div style="font-size: 14px; font-weight: 800; color: ${accentColor}; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 2px solid ${accentColor};">
-    🎬 場景對白
-  </div>
-`);
+    ${dayBlock.theme && !dayBlock.theme.startsWith("（待填") ? `
+    <div style="background: rgba(255,255,255,0.18); border-left: 3px solid #ffffff; padding: 8px 12px; margin-top: 8px; border-radius: 3px;">
+      <div style="font-size: 9.5px; color: rgba(255,255,255,0.85); font-weight: 700; letter-spacing: 0.1em; margin-bottom: 3px;">主軸</div>
+      <div style="font-size: 12.5px; color: #ffffff; line-height: 1.55;">${escapeHtml(dayBlock.theme)}</div>
+    </div>` : ""}
+    ${dayBlock.scenes && !dayBlock.scenes.startsWith("（待填") ? `
+    <div style="margin-top: 6px; font-size: 10.5px; color: rgba(255,255,255,0.92);">
+      <span style="font-weight: 700; letter-spacing: 0.05em;">主要場景：</span>${escapeHtml(dayBlock.scenes)}
+    </div>` : ""}
+    ${dayBlock.mainCharacters && !dayBlock.mainCharacters.startsWith("（待填") ? `
+    <div style="margin-top: 3px; font-size: 10.5px; color: rgba(255,255,255,0.92);">
+      <span style="font-weight: 700; letter-spacing: 0.05em;">主要角色：</span>${escapeHtml(dayBlock.mainCharacters)}
+    </div>` : ""}
+  </div>`);
 }
 
 function buildSceneBlock(
   scene: { title: string; body: string },
-  _sceneIdx: number, // 不顯示, 編號無意義
   imgs: { time: string; src: string; prompt: string }[],
   accentColor: string,
   isFirst: boolean
@@ -212,7 +218,7 @@ function buildSceneBlock(
           </div>
           ${
             img.src
-              ? `<img src="${img.src}" style="width: 100%; max-width: 240px; max-height: 240px; object-fit: contain; border-radius: 4px; display: inline-block; box-shadow: 0 1px 4px rgba(0,0,0,0.08); background: #f5f5f4;" crossorigin="anonymous" />`
+              ? `<img src="__IMG_BASE64__:${img.src}__" style="width: 100%; max-width: 240px; max-height: 240px; object-fit: contain; border-radius: 4px; display: inline-block; box-shadow: 0 1px 4px rgba(0,0,0,0.08); background: #f5f5f4;" crossorigin="anonymous" />`
               : ""
           }
         </div>`
@@ -258,7 +264,7 @@ function buildScenePairBlock(
           </div>
           ${
             img.src
-              ? `<img src="${img.src}" style="width: 100%; max-width: 200px; max-height: 200px; object-fit: contain; border-radius: 3px; display: inline-block; background: #f5f5f4;" crossorigin="anonymous" />`
+              ? `<img src="__IMG_BASE64__:${img.src}__" style="width: 100%; max-width: 200px; max-height: 200px; object-fit: contain; border-radius: 3px; display: inline-block; background: #f5f5f4;" crossorigin="anonymous" />`
               : ""
           }
         </div>`
@@ -453,6 +459,27 @@ async function renderBlockToCanvas(html: string): Promise<{ canvas: HTMLCanvasEl
 }
 
 // ─────────────────────────────────────────────
+// 預生成 PDF HEAD 檢查
+// ─────────────────────────────────────────────
+
+/**
+ * 用 HEAD 確認預生成 PDF 是否存在 (cache 1 小時避免重複打)
+ */
+const pdfCache = new Map<string, boolean>();
+async function checkPrebuiltPdfExists(url: string): Promise<boolean> {
+  if (pdfCache.has(url)) return pdfCache.get(url)!;
+  try {
+    const resp = await fetch(url, { method: "HEAD" });
+    const exists = resp.ok;
+    pdfCache.set(url, exists);
+    return exists;
+  } catch {
+    pdfCache.set(url, false);
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
 
@@ -467,8 +494,28 @@ export default function DayPdfExport({
 }: DayPdfExportProps) {
   const [generating, setGenerating] = useState(false);
 
+  // 預生成 PDF 優先：使用者點按鈕 → 瀏覽器原生下載, <1s
   async function handleDownload() {
     if (generating) return;
+    const pdfUrl = getPrebuiltPdfUrl(scriptId, dayIdx);
+    const exists = await checkPrebuiltPdfExists(pdfUrl);
+
+    if (exists) {
+      // 路徑 A: 預生成存在 → 瀏覽器原生下載, 1 秒完成
+      const safeLabel = dayBlock.label.replace(/[\\/:*?"<>|]/g, "_");
+      const filename = `Vlog_${scriptId}_Day${dayIdx}_${safeLabel}_${date}.pdf`;
+      const a = document.createElement("a");
+      a.href = pdfUrl;
+      a.download = filename;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+
+    // 路徑 B: 預生成不存在 (尚未跑 prebuild) → fallback 舊 jsPDF 邏輯
+    console.warn(`[DayPdfExport] 預生成 PDF 缺失 ${pdfUrl}, fallback 到即時生成`);
     setGenerating(true);
     try {
       // 1) 建構所有 block (img.src 已是 Supabase CDN URL, 直接 fetch 載入即可)
@@ -481,7 +528,15 @@ export default function DayPdfExport({
         accentColor
       );
 
-      // 2) 對每個 block 渲染 canvas (renderBlockToCanvas 內部已 await img 載入)
+      // 2) 預載圖片 base64 (避免 jsPDF 黑圖)
+      const blocksWithImages = await Promise.all(
+        rawBlocks.map(async (b) => ({
+          ...b,
+          html: await preloadImages(b.html),
+        }))
+      );
+
+      // 3) 對每個 block 渲染 canvas (renderBlockToCanvas 內部已 await img 載入)
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const PW = pdf.internal.pageSize.getWidth();
       const PH = pdf.internal.pageSize.getHeight();
@@ -495,8 +550,8 @@ export default function DayPdfExport({
       let currentY = 0; // mm, 當前頁已用高度
       let isFirstBlock = true;
 
-      for (let i = 0; i < rawBlocks.length; i++) {
-        const { html, label } = rawBlocks[i];
+      for (let i = 0; i < blocksWithImages.length; i++) {
+        const { html, label } = blocksWithImages[i];
         const { canvas } = await renderBlockToCanvas(html);
         const blockHeightMm = canvas.height * mmPerCanvasPx;
 

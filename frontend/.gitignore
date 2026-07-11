@@ -49,3 +49,10 @@ next-env.d.ts
 # Q版圖 raw PNG (sips 已轉 jpg, raw png 不需 commit)
 /public/**/q-*.png
 /public/**/icons/q-*.png
+
+# 🆕 2026-07-12: vlog PDF 預生成 (puppeteer 產出, 約 27MB) commit 進 git
+# 理由: Netlify build 不跑 puppeteer (沒 GUI + Node 版本限制),
+#       本機 prebuild 後 commit, Netlify 只負責 serve 靜態檔案
+# 注意: 之後改 vlog data.ts 要本機重跑 `npm run vlog-pdfs` 然後 commit
+/public/vlog-pdfs/.gitkeep
+# /public/vlog-pdfs/*.pdf ← 不排除, commit 進去
