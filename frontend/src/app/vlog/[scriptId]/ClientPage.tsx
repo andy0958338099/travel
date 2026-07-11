@@ -7,13 +7,15 @@
  *   頂部：劇本名稱 + 標語 + 角色表（13 人 + 角色 + 家別 chip）
  *   中段：8 日行程時間線（7/17~7/24），每天一個區塊：
  *           主要場景 / 主要角色 / 主對白方向 / 鏡頭建議
- *   底部：← 回到 3 劇本比較
+ *   底部：← 回到 4 劇本比較
  *
  * 內容由聖上在 data.ts 維護；本檔只負責渲染殼子。
  */
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import PerImageShare from "@/components/PerImageShare";
+import DayPdfExport from "./DayPdfExport";
 import {
   SCRIPTS,
   CHARACTERS_13,
@@ -75,7 +77,7 @@ export default function VlogScriptClientPage({
             href="/vlog"
             className="inline-block text-sm text-[var(--jn-paper)]/85 hover:text-[var(--jn-paper)] mb-4"
           >
-            ← 回到 3 劇本比較
+            ← 回到 4 劇本比較
           </Link>
           <div className="flex items-baseline gap-3 mb-2">
             <span
@@ -206,8 +208,8 @@ export default function VlogScriptClientPage({
                 className={`rounded-xl bg-[var(--jn-paper)] border-2 ${accentBorder} p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow`}
                 style={{ borderColor: accentRaw + "55" }}
               >
-                {/* 日期 + 主題 */}
-                <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+                {/* 日期 + 主題 + 下載按鈕 */}
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <h3
                     className={`text-lg sm:text-xl font-bold ${accentText}`}
                     style={{
@@ -217,12 +219,24 @@ export default function VlogScriptClientPage({
                   >
                     {d.label}
                   </h3>
-                  <span
-                    className="text-xs text-[var(--jn-ink)]/55 font-mono"
-                    style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
-                  >
-                    {d.date}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span
+                      className="text-xs text-[var(--jn-ink)]/55 font-mono"
+                      style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
+                    >
+                      {d.date}
+                    </span>
+                    {/* 📄 每天下載 PDF 按鈕 (聖上 7-11 拍板) */}
+                    <DayPdfExport
+                      dayBlock={d}
+                      scriptId={scriptId}
+                      scriptName={script.name}
+                      dayIdx={idx + 1}
+                      date={d.date}
+                      accentColor={accentRaw}
+                      accentText={accentText}
+                    />
+                  </div>
                 </div>
                 {d.theme && !d.theme.startsWith("（待填") && (
                   <p
@@ -280,7 +294,7 @@ export default function VlogScriptClientPage({
               fontFamily: "var(--font-noto-serif-tc), serif",
             }}
           >
-            ← 回到 3 劇本比較
+            ← 回到 4 劇本比較
           </Link>
         </div>
       </footer>
@@ -495,13 +509,19 @@ function DialogueWithScenes({ dialogue, shotsText }: { dialogue: string; shotsTe
                         </span>
                       </div>
                       {img.src && (
-                        <img
+                        <PerImageShare
                           src={img.src}
                           alt={img.prompt}
-                          className="w-full max-w-md h-auto rounded shadow-sm border border-[var(--jn-ink)]/10"
-                          style={{ aspectRatio: "1/1", objectFit: "cover" }}
-                          loading="lazy"
-                        />
+                          filename={`vlog-${img.src.split("/").pop() || "image.jpg"}`}
+                        >
+                          <img
+                            src={img.src}
+                            alt={img.prompt}
+                            className="w-full max-w-md h-auto rounded shadow-sm border border-[var(--jn-ink)]/10"
+                            style={{ aspectRatio: "1/1", objectFit: "cover" }}
+                            loading="lazy"
+                          />
+                        </PerImageShare>
                       )}
                       <details className="text-[10px] mt-1">
                         <summary className="cursor-pointer text-[var(--jn-blue)] font-semibold select-none hover:underline">

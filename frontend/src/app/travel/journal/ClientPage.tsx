@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useId, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import "leaflet/dist/leaflet.css";
@@ -213,6 +213,35 @@ export default function TravelJournalPage() {
   const [editingDay, setEditingDay] = useState<string | null>(null);
   const [editedNarrative, setEditedNarrative] = useState<string>("");
   const dayRefs = useRef<Record<string, HTMLElement | null>>({});
+
+  // ── React 18 Strict Mode 雙 mount race fix for Leaflet (與 /travel/AttractionsMap.tsx 同 pattern) ──
+  // 聖上在 day 切換時, 同一個 <MapContainer> 被 unmount+remount, 但 Leaflet 內部 _leaflet_id 沒清 → 報
+  //   "Map container is being reused by another instance"
+  // 修法: useId() 給 MapContainer 綁定 key, 強制 React 把第二次 mount 視為新實例
+  // 同時在 unmount 時主動 map.remove() 把舊 leaflet DOM 狀態清掉
+  const leafletId = useId();
+  useEffect(() => {
+    return () => {
+      document
+        .querySelectorAll(
+          `.journal-leaflet-${leafletId.replace(/[^a-zA-Z0-9_-]/g, "_")} .leaflet-container`
+        )
+        .forEach((el) => {
+          const e = el as HTMLDivElement & {
+            _leaflet_id?: number;
+            _leaflet_map?: { remove?: () => void };
+          };
+          try {
+            const m = e._leaflet_map;
+            if (m && typeof m.remove === "function") m.remove();
+          } catch {
+            /* ignore */
+          }
+          delete e._leaflet_id;
+          delete e._leaflet_map;
+        });
+    };
+  }, [leafletId]);
   // Cloud-synced custom narratives (replaces localStorage useEffect pair).
   const [customNarratives, setCustomNarratives] = useCloudState<
     Record<string, string>
@@ -562,8 +591,12 @@ export default function TravelJournalPage() {
           {/* Mini Route Map */}
           <div className="bg-white rounded-2xl shadow-2xl p-4 overflow-hidden">
             <h3 className="text-lg font-bold text-gray-700 mb-3 text-center">📍 完整路線圖</h3>
-            <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: "750px" }}>
+            <div
+              className={`rounded-xl overflow-hidden border border-gray-200 journal-leaflet-${leafletId.replace(/[^a-zA-Z0-9_-]/g, "_")}`}
+              style={{ height: "750px" }}
+            >
               <MapContainer
+                key={leafletId}
                 center={[30.4, 120.2]}
                 zoom={9}
                 style={{ height: "100%", width: "100%" }}
@@ -869,8 +902,12 @@ export default function TravelJournalPage() {
                   <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4">
                     🗺️ 當日路線圖
                   </h3>
-                  <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: "280px" }}>
+                  <div
+                    className={`rounded-xl overflow-hidden border border-gray-200 journal-leaflet-${leafletId.replace(/[^a-zA-Z0-9_-]/g, "_")}`}
+                    style={{ height: "280px" }}
+                  >
                     <MapContainer
+                      key={leafletId}
                       center={mapCenter}
                       zoom={zoomLevel}
                       style={{ height: "100%", width: "100%" }}

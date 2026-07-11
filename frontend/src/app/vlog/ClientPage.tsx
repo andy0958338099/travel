@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * /vlog — Vlog 劇本 3 選 1 首頁
+ * /vlog — Vlog 劇本 4 選 1 首頁
  *
- * 列出 3 張江楠 5 色卡片（A / B / C），每張卡顯示劇本名稱 + 一句話核心賣點，
+ * 列出 4 張江楠 5 色卡片（A / B / C / D），每張卡顯示劇本名稱 + 一句話核心賣點，
  * 點進去到 /vlog/[scriptId] 看詳情。
  *
  * 卡片色塊來自 data.ts 的 ScriptColorKey，底層對應 globals.css 的 --jn-* CSS 變數。
