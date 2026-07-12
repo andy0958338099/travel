@@ -16,6 +16,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import PerImageShare from "@/components/PerImageShare";
 import DayPdfExport from "./DayPdfExport";
+import ScriptZipDownload from "./ScriptZipDownload";
 import {
   SCRIPTS,
   CHARACTERS_13,
@@ -60,7 +61,7 @@ export default function VlogScriptClientPage({
           "linear-gradient(180deg, var(--jn-paper) 0%, var(--jn-paper-warm) 100%)",
       }}
     >
-      {/* ───────── 頂部 Hero ───────── */}
+      {/* ───────── 頂部 Hero (劇本封面區塊 · 2026-07-12 聖上拍板加強) ───────── */}
       <header
         className="relative overflow-hidden"
         style={{
@@ -72,47 +73,77 @@ export default function VlogScriptClientPage({
                backgroundImage:
                  "radial-gradient(circle at 20% 30%, var(--jn-paper) 0%, transparent 50%), radial-gradient(circle at 80% 70%, var(--jn-paper) 0%, transparent 50%)",
              }} />
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 text-[var(--jn-paper)]">
+        {/* 印章 chip · 朱紅底白字, 浮在左上 */}
+        <div className="absolute top-6 right-6 sm:top-10 sm:right-10 z-10 hidden sm:block">
+          <div
+            className="px-3 py-2 rounded-md text-[10px] font-bold tracking-widest text-center leading-tight shadow-lg"
+            style={{
+              background: "var(--jn-vermilion)",
+              color: "var(--jn-paper)",
+              fontFamily: "var(--font-noto-serif-tc), serif",
+              border: "2px solid var(--jn-paper)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            }}
+          >
+            劇本
+            <br />
+            <span className="text-2xl">{script.id}</span>
+          </div>
+        </div>
+        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16 text-[var(--jn-paper)]">
           <Link
             href="/vlog"
-            className="inline-block text-sm text-[var(--jn-paper)]/85 hover:text-[var(--jn-paper)] mb-4"
+            className="inline-block text-sm text-[var(--jn-paper)]/85 hover:text-[var(--jn-paper)] mb-6"
           >
             ← 回到 4 劇本比較
           </Link>
-          <div className="flex items-baseline gap-3 mb-2">
+          <div className="flex items-center gap-2 mb-4">
             <span
-              className="text-5xl sm:text-6xl font-black opacity-80 leading-none"
-              style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
+              className="px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase sm:hidden"
+              style={{
+                background: "var(--jn-vermilion)",
+                color: "var(--jn-paper)",
+                fontFamily: "var(--font-noto-serif-tc), serif",
+              }}
             >
-              {script.id}
+              劇本 {script.id} · 4 選 1
             </span>
             <span
-              className="px-3 py-1 rounded-full text-xs font-medium bg-[var(--jn-paper)]/85 text-[var(--jn-vermilion-deep)]"
-              style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
+              className="hidden sm:inline-block px-3 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase"
+              style={{
+                background: "rgba(250,250,249,0.2)",
+                color: "var(--jn-paper)",
+                border: "1px solid rgba(250,250,249,0.5)",
+                fontFamily: "var(--font-noto-serif-tc), serif",
+              }}
             >
-              劇本 {script.id}
+              4 選 1 · 江南 8 日 vlog 劇本
             </span>
           </div>
           <h1
-            className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 leading-tight"
+            className="text-4xl sm:text-6xl md:text-7xl font-black mb-4 leading-[1.1] tracking-wide"
             style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
           >
             {script.name}
           </h1>
           <p
-            className="text-base sm:text-lg text-[var(--jn-paper)]/90 max-w-3xl"
+            className="text-lg sm:text-xl text-[var(--jn-paper)]/95 max-w-3xl leading-relaxed"
             style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
           >
             {script.tagline}
           </p>
           {script.storyArc && !script.storyArc.startsWith("（待填") && (
             <p
-              className="mt-4 text-sm sm:text-base text-[var(--jn-paper)]/80 italic border-l-4 border-[var(--jn-paper)]/40 pl-3"
+              className="mt-5 text-sm sm:text-base text-[var(--jn-paper)]/85 italic border-l-4 border-[var(--jn-paper)]/40 pl-3 max-w-3xl"
               style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
             >
               {script.storyArc}
             </p>
           )}
+          {/* 🆕 整劇本 ZIP 下載按鈕 — 聖上去杭州前一鍵備齊 8 PDF */}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <ScriptZipDownload scriptId={script.id} scriptName={script.name} />
+          </div>
         </div>
         <div className="h-1 bg-gradient-to-r from-amber-300 via-amber-200 to-amber-300" />
       </header>
