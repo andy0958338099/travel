@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * /vlog — Vlog 劇本 4 選 1 首頁
- *
- * 列出 4 張江楠 5 色卡片（A / B / C / D），每張卡顯示劇本名稱 + 一句話核心賣點，
- * 點進去到 /vlog/[scriptId] 看詳情。
+ * /vlog — Vlog 劇本 5 選 1 首頁
+  *
+  * 列出 5 張江楠 5+1 色卡片（A / B / C / D / E），每張卡顯示劇本名稱 + 一句話核心賣點,
+  * 點進去到 /vlog/[scriptId] 看詳情。
  *
  * 卡片色塊來自 data.ts 的 ScriptColorKey，底層對應 globals.css 的 --jn-* CSS 變數。
  * 標題用 Noto Serif TC（h1/h2/h3 預設已掛在 globals.css）。
@@ -72,22 +72,22 @@ export default function VlogIndexClientPage() {
               color: "transparent",
             }}
           >
-            Vlog 劇本 4 選 1
+            Vlog 劇本 5 選 1
           </span>
         </h1>
         <p
           className="text-base sm:text-lg text-[var(--jn-ink)]/80 max-w-2xl mx-auto"
           style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
         >
-          13 位角色、8 日行程、四種敘事視角。
+          13 位角色 + 4 位小朋友、8 日行程、五種敘事視角。
           <br className="hidden sm:block" />
           挑一個最對味的版本，點進去看完整分鏡。
         </p>
       </section>
 
-      {/* 4 張卡片 — 2×2 方塊 */}
+      {/* 4-5 張卡片 — 5 劇本後改 3 欄網格 (4 劇本時 2+2 / 5 劇本時 3+2) */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {SCRIPT_ORDER.map((id) => {
             const s = SCRIPTS[id];
             const accentBg = COLOR_BG_CLASS[s.color];

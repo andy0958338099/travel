@@ -22,6 +22,12 @@
   --jn-paper-warm: #fff7ed;     /* 暖宣紙 (卡片底) */
   --jn-blue: #0e7490;           /* 青花 (次要強調/連結) */
 
+  /* 🆕 2026-07-14 聖上拍板第 6 色: 薄荷綠 mint (劇本 E 「小朋友 GoPro」唯一色票)
+     5 個成人視角劇本色票唯一化 (A 朱紅 / B 金 / C 青花 / D 墨黑) 後,
+     劇本 E 開放兒童視角獨立色票 — 薄荷綠活潑明亮, 區隔又不搶主品牌 */
+  --jn-mint: #10b981;           /* 薄荷綠 (小朋友視角 / 劇本 E) */
+  --jn-mint-deep: #047857;      /* 深薄荷 (hover/邊框) */
+
   /* 江楠 gradient 組合 — 聖上拍板統一用 */
   --jn-gradient-1: linear-gradient(135deg, #dc2626 0%, #f59e0b 100%);  /* 朱→金 (主 CTA / 標題) */
   --jn-gradient-2: linear-gradient(180deg, #fafaf9 0%, #fff7ed 100%);  /* 紙→暖紙 (頁面背景) */

@@ -11,8 +11,9 @@
 //   blue      = 青花藍 (次要強調)
 //
 // globals.css 已註冊 --jn-vermilion / --jn-gold / --jn-ink / --jn-paper / --jn-blue
+// 2026-07-14 聖上拍板: 劇本 E (小朋友 GoPro) 開放第 6 色 --jn-mint #10b981
 
-export type ScriptColorKey = "vermilion" | "gold" | "ink" | "paper" | "blue";
+export type ScriptColorKey = "vermilion" | "gold" | "ink" | "paper" | "blue" | "mint";
 
 export interface DayBlock {
   date: string;
@@ -58,6 +59,64 @@ export const CHARACTERS_13: Character[] = [
   { name: "阿橋",   role: "阿喜同事",           family: "同事" },   // m11
   { name: "阿茹",   role: "阿喜同事",           family: "同事" },   // m12
   { name: "阿伸",   role: "阿喜同事",           family: "同事" },   // m13
+];
+
+// ──────────────────────────────────────────────────────────────────────────────
+// 4 位小朋友主角鎖（劇本 E · 聖上 2026-07-14 拍板）
+// 年齡/身高/體型/穿著/GoPro 型號寫死 — 4 個小朋友 GoPro 視角每段對白 + AI 生圖 chip 統一參考
+// ──────────────────────────────────────────────────────────────────────────────
+export interface Kid {
+  name: string;
+  role: string;
+  family: "喜家" | "吳家";
+  age: number;
+  heightCm: number;
+  appearance: string;        // AI 生圖 prompt 統一描述
+  gopro: string;             // 他拿的 GoPro 型號 + 戴法
+  vlogNickname: string;      // 他自稱的 vlog 暱稱
+}
+
+export const KIDS_4: Kid[] = [
+  {
+    name: "恩齊",
+    role: "阿喜小兒子 · 最皮的攝影師",
+    family: "喜家",
+    age: 5,
+    heightCm: 110,
+    appearance: "chibi 5-year-old Taiwanese boy, round face, big curious eyes, short black hair with two small spiky tufts on top, chubby cheeks, wearing bright yellow T-shirt with small dinosaur print and blue denim shorts, white sneakers with velcro",
+    gopro: "GoPro HERO12 Black 繫在胸前 chest mount harness (黃色)",
+    vlogNickname: "小恩齊",
+  },
+  {
+    name: "宸瑋",
+    role: "阿喜大兒子 · 最會解說的導演",
+    family: "喜家",
+    age: 8,
+    heightCm: 130,
+    appearance: "chibi 8-year-old Taiwanese boy, slim face, intelligent bright eyes, neat short black hair, slightly serious expression, wearing navy blue striped polo shirt and khaki cargo shorts, gray hiking sandals",
+    gopro: "GoPro HERO12 Black 手持 selfie stick 自拍棒 90cm (深藍)",
+    vlogNickname: "宸瑋導演",
+  },
+  {
+    name: "大宇",
+    role: "吳董大兒子 · 最愛冒險的探險家",
+    family: "吳家",
+    age: 9,
+    heightCm: 135,
+    appearance: "chibi 9-year-old Taiwanese boy, athletic build, wide grin, short messy black hair with one cowlick, wearing bright red sports T-shirt and black athletic shorts, neon green running shoes",
+    gopro: "GoPro HERO12 Black 戴在頭上 head strap mount (紅色)",
+    vlogNickname: "大宇探險家",
+  },
+  {
+    name: "小宇",
+    role: "吳董小兒子 · 最會搞笑的諧星",
+    family: "吳家",
+    age: 7,
+    heightCm: 120,
+    appearance: "chibi 7-year-old Taiwanese boy, round playful face, mischievous smile, bowl-cut black hair, wearing orange hoodie with cartoon fox face and gray sweatpants, blue light-up sneakers",
+    gopro: "GoPro HERO12 Black wrist strap 戴在左手腕 (橘色)",
+    vlogNickname: "小宇笑長",
+  },
 ];
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -2898,6 +2957,757 @@ const D_DAYS: DayBlock[] = [
   },
 ];
 
+// ══════════════════════════════════════════════════════════════════════════════
+// 劇本 E — 4 位小朋友 GoPro（聖上 2026-07-14 拍板）
+// 主角: 恩齊 (5y chest mount) / 宸瑋 (8y selfie stick) / 大宇 (9y head strap) / 小宇 (7y wrist)
+// 攝影器材: GoPro HERO12 Black × 4 台
+// 視角特點: 廣角變形 / 低角度 110-135cm / 晃動手持 / 魚眼 / 偷拍
+// 色票: --jn-mint #10b981（5 色唯一化後開放第 6 色）
+// 生圖張數: 32 張（4 張/天 × 8 天，GoPro 風格簡潔）
+// 鏡位標註: GoPro wrist POV / GoPro chest mount / GoPro selfie stick / GoPro head strap
+// ══════════════════════════════════════════════════════════════════════════════
+const E_DAYS: DayBlock[] = [
+  // Day 1 — 出發：4 台 GoPro 開箱 + 機場試拍 + 飛機窗戶雲朵 + 阿美奶奶鳳梨酥
+  {
+    date: "2026-07-17",
+    label: "Day 1 · 7/17 (五)",
+    theme: "GoPro 開箱日 · 機場試拍到上海灘",
+    scenes: "桃園 T1 集合 → 4 位小朋友互看 GoPro → 飛機上搶拍雲 → 浦東落地 → 磁浮拍時速表 → 外灘夜景自拍 → 南京東路小籠包",
+    mainCharacters: "恩齊 (5y chest mount) + 宸瑋 (8y selfie stick) + 大宇 (9y head strap) + 小宇 (7y wrist)",
+    dialogue: `（T1 出境大廳 — 4 位小朋友第一次看到 GoPro 本體）
+阿喜（蹲下拆箱）：『恩齊！這台是你的！』
+恩齊（眼睛亮起來）：『哇！比我的手機還小！』
+大宇（已經衝過來）：『我的在哪裡！我的在哪裡！』
+吳董（遞出紅色 GoPro）：『頭戴的，戴頭上。』
+大宇（直接套上去）：『像這樣嗎爸爸！』
+宸瑋（拿自拍棒）：『這個好酷！可以伸長！』
+小宇（舉起左手腕）：『媽你看！我手腕的會發光！』
+黃倩：『你給他戴那個會不會太危險？』
+吳董：『GoPro 手腕帶很安全的啦。』
+（4 位小朋友對著 GoPro 試拍）
+恩齊（胸前的 GoPro 對著自己）：『我有看到我自己了！』
+小宇（手腕 GoPro 對著爸爸）：『爸爸你的臉好大！』
+吳董：『哈哈！那是魚眼鏡頭啦！』
+大宇（戴頭上的 GoPro 對著大家）：『我現在拍到的你們都小小的！』
+宸瑋（拿自拍棒看螢幕）：『因為它很廣！』
+（出境大廳 13 人集合）
+阿喜（對著 4 個小朋友大喊）：『小朋友！把 GoPro 開錄影！從現在開始全程錄！』
+恩齊：『按哪裡！』
+阿喜：『上面那個紅鈕！』
+（4 位小朋友手忙腳亂按錄影）
+小宇（驚）：『嗶嗶嗶在叫了！』
+大宇：『我已經錄 30 秒了！』
+宸瑋（看手錶）：『我們是 14:30 的飛機，還有 30 分鐘。』
+恩齊：『那我從現在開始拍！』
+（飛機上 — 4 位小朋友搶拍窗戶）
+恩齊（胸前的 GoPro 對著窗戶）：『哇！好多雲！我的 GoPro 拍得超清楚！』
+空姐：『小朋友請坐好。』
+恩齊（轉向空姐）：『姊姊妳有入鏡！』
+空姐（笑）：『謝謝你。』
+（恩齊轉身拍哥哥宸瑋）
+恩齊：『哥哥你看！我的 GoPro 一直拍！』
+宸瑋（拿自拍棒伸出窗外）：『我也要拍雲！』
+小宇（手腕 GoPro 對著弟弟）：『大宇你看！宸瑋快要掉出去！』
+大宇：『爸爸！宸瑋要掉出去了！』
+阿喜（從座位抬頭）：『不會！自拍棒有繩子！』
+小宇（手腕拍空姐發飲料）：『姊姊給我們飲料了！』
+空姐：『小朋友要溫水還是果汁？』
+4 個小朋友（異口同聲）：『果汁！』
+（落地上海浦東 — 4 位小朋友搶拍第一次看到的上海）
+大宇（戴頭上的 GoPro 對著出關走廊）：『這裡好大！』
+小宇（看著自己的手腕螢幕）：『大宇你的頭在轉！』
+大宇：『因為我在轉頭啊！』
+（小宇的 GoPro 拍到阿美奶奶）
+阿美（牽著宸瑋走過）：『奶奶今天走路比昨天累吧？』
+小宇（手腕拍阿美背影）：『奶奶！妳的頭好小！』
+阿美（轉頭看）：『小宇！不要拍奶奶！』
+小宇（躲到爸爸吳董身後）：『可是奶奶很可愛！』
+（磁浮列車 — 4 位小朋友擠在車窗前）
+4 個小朋友（貼在車窗）：『431 公里！』
+恩齊（胸前的 GoPro 拍時速表）：『我拍到了！拍到 431 了！』
+大宇（戴頭上的 GoPro 拍窗外風景）：『外面咻咻咻！』
+宸瑋（拿自拍棒 4 個人入鏡）：『小朋友們！看這邊！我們 8 分鐘就到上海！』
+小宇（舉起手腕 GoPro）：『我們現在是 4 個 GoPro 拍 4 個 GoPro！』
+（外灘夜景 — 4 個小朋友開始自拍合輯）
+恩齊（指著東方明珠）：『那個電視塔！』
+4 位小朋友（蹲在外灘自拍）：『茄子！』
+（按下 4 台 GoPro 自拍倒數 5 秒）
+4 位小朋友：『5、4、3、2、1！』
+（全跳起來瞬間拍到）
+小宇：『我跳最高！』
+大宇：『才沒有！是我！』
+（南京東路吃小籠包）
+阿喜：『小朋友！南翔小籠包！120 年老店！』
+恩齊（湊到桌前）：『120 年！比阿嬤還老！』
+阿美（被逗笑）：『你這個小孩！』
+（4 個小朋友對著熱呼呼的蒸籠錄影）
+小宇（手腕 GoPro 對著蒸籠拍特寫）：『冒煙了！冒煙了！』
+恩齊（用手抓）：『啊！燙！』
+阿喜（拍他）：『我說過用筷子！』
+恩齊（舔手指）：『可是我看小宇直接抓！』
+小宇：『因為我不怕燙！』
+（其實燙到甩手）`,
+    shots: `00:00-00:10  GoPro chest mount POV 恩齊第一次開箱看到 GoPro 自己的興奮臉超近特寫，廣角魚眼變形大頭
+00:10-00:20  GoPro head strap 大宇的視角拍到 4 位小朋友 + 大人們圍觀 GoPro 的混亂腳本畫面
+00:20-00:30  GoPro selfie stick 宸瑋伸出 90cm 自拍棒，4 位小朋友同時入鏡的廣角合拍
+00:30-00:40  GoPro wrist POV 小宇拍到吳董魚眼變形的搞笑大臉 + 吳董笑場
+00:40-00:50  4 台 GoPro 同步錄影的混剪畫面 — 大人對著 4 個小朋友的混亂手勢
+00:50-01:00  GoPro chest mount 恩齊拍到機場出境大廳天花板高的廣角大景
+01:00-01:15  飛機上 4 位小朋友搶拍窗戶的廣角雲海，GoPro 廣角變形把窗框拉成圓形
+01:15-01:30  GoPro wrist POV 小宇拍空姐發飲料的笑臉特寫
+01:30-01:50  GoPro selfie stick 宸瑋 4 位小朋友自拍倒數 5、4、3、2、1 跳躍瞬間
+01:50-02:10  GoPro head strap 大宇拍磁浮車窗外風景咻咻咻的高速移動模糊
+02:10-02:30  GoPro chest mount 恩齊拍到外灘東方明珠的廣角夜景
+02:30-02:50  4 位小朋友外灘蹲下自拍跳躍的魚眼變形合輯
+02:50-03:05  GoPro wrist POV 小宇拍到南翔小籠包蒸籠冒煙的熱氣特寫
+
+00:00-00:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day1/e-img-01-gopro-unbox.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, chibi 5-year-old Taiwanese boy enqi with big curious eyes holding a small black GoPro HERO12 camera in his hands looking amazed, chibi healthy 70-year-old Asian grandma with jet-black silky hair smiling behind him, photorealistic Taiwan Taoyuan Airport Terminal 1 bright hall with luggage around them, fish-eye wide-angle distortion making his head extra big, cinematic close-up POV from his chest mount"
+00:10-00:20  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day1/e-img-02-gopro-4-cameras.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, four chibi Taiwanese boys aged 5-9 each holding or wearing a GoPro HERO12 Black in different ways: yellow chest mount, blue selfie stick, red head strap, orange wrist strap, all looking excited at airport, photorealistic Taiwan Taoyuan Airport terminal with glass walls and morning light, GoPro boxes on table, dynamic action group shot"
+00:20-00:30  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day1/e-img-03-selfie-stick-4boys.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic fish-eye selfie stick shot of four chibi Taiwanese boys aged 5 to 9 waving at camera from below, selfie stick at arms length, photorealistic Taoyuan airport departure hall ceiling and signage behind, GoPro logo visible on stick, joyful chaotic childrens moment, cinematic ultra-wide-angle distortion"
+00:50-01:00  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day1/e-img-04-clouds-fisheye.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, ultra wide-angle fish-eye POV from airplane window looking out at fluffy white cumulus clouds at golden hour, four chibi Taiwanese boys aged 5-9 faces pressed against the oval window frame looking out with wonder, photorealistic airplane interior window edge and cloudscape, dreamy cinematic warm light"
+`,
+  },
+
+  // Day 2 — 特種兵：4 位小朋友偷看賽門出門 + 早餐吃小楊生煎燙嘴 + 豫園羅漢鬧
+  {
+    date: "2026-07-18",
+    label: "Day 2 · 7/18 (六)",
+    theme: "特種兵鬧鐘 · 偷拍賽門 + 小楊生煎 + 西塘煙雨長廊",
+    scenes: "05:30 4 位小朋友被賽門背包聲吵醒偷拍 → 08:30 小楊生煎爆汁 → 09:30 豫園老街 → 15:30 包車出發西塘 → 17:00 西塘煙雨長廊",
+    mainCharacters: "恩齊 + 宸瑋 + 大宇 + 小宇 4 位小朋友全程主導（爸爸們變跟班）",
+    dialogue: `（05:30 — 上海嘉廷飯店走廊）
+（4 位小朋友偷偷被賽門背包聲吵醒）
+（賽門的房間門打開，背包走出）
+小宇（手腕 GoPro 已經開錄）：『大宇！賽門叔叔出來了！』
+大宇（戴頭上的 GoPro 對著門縫）：『我拍到了！』
+（恩齊胸口 GoPro 對著賽門走遠的背影）
+賽門（轉頭）：『小朋友你們怎麼在這？』
+4 位小朋友（躲在牆角）：『我們在拍你！』
+賽門（揮手）：『拍吧拍吧！我要去蘇州河了！』
+（小宇追出去想跟）
+吳董（拉住小宇）：『不行！你太小！』
+小宇：『可是我想拍賽門叔叔游泳！』
+吳董：『不行！回去睡覺！』
+小宇（被拖回房間）：『嗚——！』
+（大宇和恩齊對著手腕 GoPro 抱怨）
+大宇：『爸爸偏心！為什麼小宇不能去！』
+吳董：『小宇才 7 歲！』
+（早餐 — 小楊生煎店 8:30）
+恩齊（指著小楊生煎）：『哇！好多鍋！』
+阿喜：『小心！會爆汁！』
+恩齊（胸前的 GoPro 對著蒸籠）：『我有錄！』
+（4 位小朋友一咬爆汁）
+恩齊（嘴張超開）：『啊——燙！』
+（湯汁噴到 GoPro 鏡頭上）
+阿喜（緊張）：『GoPro 沒事吧！』
+恩齊（擦鏡頭）：『還好！它是防水的！』
+（小宇手腕 GoPro 對著自己嘴裡的湯汁）
+小宇（舌頭伸出來）：『太燙了啦！』
+宸瑋（拿自拍棒對著 4 個小朋友）：『大家現在都是燙嘴表情！』
+大宇：『我也燙！但我忍住了！』
+（其實眼眶泛淚）
+（豫園老街 09:30）
+（4 位小朋友拿 GoPro 對著豫園的飛簷屋頂）
+恩齊（抬頭）：『屋頂怎麼翹翹的！』
+宸瑋：『那是中國古代的飛簷！』
+小宇（手腕 GoPro 對著屋頂）：『可是屋頂下面有龍！』
+（4 位小朋友擠在豫園的九曲橋上）
+大宇（戴頭上的 GoPro 對著橋下的錦鯉）：『有魚！好大隻！』
+（小宇伸手想抓魚）
+吳董：『不行！抓不到！』
+小宇：『可是魚好漂亮！』
+（15:30 — 包車出發西塘）
+4 位小朋友擠在車上
+恩齊（胸前 GoPro 拍窗外）：『我們要去水的地方！』
+宸瑋（拿自拍棒拍 4 個人）：『小朋友們！西塘 600 年了！』
+小宇：『那比阿嬤還老！』
+阿美（被逗樂）：『小宇你今天第二次這樣說！』
+（17:00 — 西塘煙雨長廊）
+（4 位小朋友第一次看到西塘水鄉）
+4 位小朋友：『哇——！』
+（4 台 GoPro 同時開錄）
+恩齊（指著河）：『水！有水！還有船！』
+小宇（手腕 GoPro 對著河水）：『水會動！』
+大宇（戴頭上的 GoPro 拍石橋）：『那個橋是彎的！』
+宸瑋（拿自拍棒對著西塘全景）：『這就是西塘！』
+（4 個小朋友開始沿著煙雨長廊跑）
+阿喜（追）：『不要跑！不要跑！』
+黃阿分（追）：『你們小心！』
+（4 個小朋友擠在石階上自拍）
+小宇（舉手腕 GoPro）：『123 笑！』
+（按下 4 台 GoPro）
+4 個小朋友：『西塘！茄子！』
+（全跳起來）
+宸瑋（看 GoPro 螢幕）：『我們 4 個都拍到了！好酷！』
+恩齊：『我也要看！』
+（4 個小朋友擠在一起看 4 個 GoPro 螢幕）`,
+    shots: `00:00-00:10  GoPro head strap 大宇拍到賽門背包出門的走廊身影，魚眼廣角把走廊拉成隧道
+00:10-00:25  GoPro wrist POV 小宇追賽門被吳董拉回房間的搞笑拉扯
+00:25-00:40  GoPro chest mount 恩齊拍小楊生煎蒸氣爆汁特寫 + 湯汁噴鏡頭的慢動作
+00:40-00:55  GoPro selfie stick 宸瑋拍 4 位小朋友燙嘴表情大合輯
+00:55-01:10  GoPro head strap 大宇抬頭拍豫園飛簷屋頂的仰角廣角
+01:10-01:25  GoPro wrist POV 小宇伸手想抓九曲橋錦鯉的特寫
+01:25-01:45  GoPro selfie stick 宸瑋拍包車內 4 位小朋友擠在車窗邊
+01:45-02:00  4 台 GoPro 同時拍西塘煙雨長廊的混剪 — 廣角低角度的水鄉全景
+02:00-02:15  GoPro chest mount 恩齊拍到石橋下船隻劃過的倒影
+02:15-02:30  4 個小朋友擠在石階上自拍的魚眼廣角跳躍瞬間
+
+00:00-00:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day2/e-img-01-corridor-stalking.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle fish-eye POV from inside dark hotel corridor at 5:30 AM, chibi middle-aged man with athletic backpack walking away with one warm ceiling light casting long shadows, four chibi Taiwanese boys peeking from a doorway at end of corridor with GoPros, photorealistic Shanghai hotel hallway with numbered doors, suspenseful cinematic atmosphere"
+00:25-00:40  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day2/e-img-02-shengjian-juice-spray.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra close-up of chibi 5-year-old Taiwanese boy enqi biting into Xiao Yang Sheng Jian pan-fried bun with hot soup squirting out in slow motion, his eyes wide with surprise, GoPro chest mount visible on his shirt, photorealistic Chinese breakfast restaurant with bamboo steamers in background, mouth-watering steam, cinematic food-photography moment"
+00:55-01:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day2/e-img-03-yu-garden-rooftop-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic upward ultra-wide-angle shot of Ming Dynasty traditional Chinese curved rooftop of Yu Garden Shanghai with intricate dragon decorations against bright blue sky, four chibi Taiwanese boys standing below with GoPros pointing up at the eaves, photorealistic ancient Chinese architecture details with upturned corners and red lanterns, dramatic perspective from below, cinematic architectural shot"
+01:45-02:00  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day2/e-img-04-xitang-rainy-corridor.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle shot of misty Xitang water canal with traditional Chinese covered corridor yan yu chang lang on left and dark water canal on right, four chibi Taiwanese boys aged 5-9 with GoPros standing on stone embankment looking amazed with mouths open, photorealistic Ming-Qing dynasty architecture white walls and black tiles reflected in still water, atmospheric misty dawn light, cinematic wide-angle family adventure moment"
+`,
+  },
+
+  // Day 3 — 西塘整天：4 位小朋友的烏篷船 + 玩水 + 躲貓貓 + 同事足浴偷拍
+  {
+    date: "2026-07-19",
+    label: "Day 3 · 7/19 (日)",
+    theme: "西塘水鄉 · 烏篷船 + 玩水 + 躲貓貓",
+    scenes: "晨霧 → 4 位小朋友擠一條烏篷船 → 西塘老街玩水 → 躲貓貓 → 同事 5 人足浴被 4 個小朋友偷拍 → 烏鎮水宴晚餐",
+    mainCharacters: "恩齊 + 宸瑋 + 大宇 + 小宇 全程主導 + 同事 5 人被偷拍",
+    dialogue: `（06:00 — 西塘客棧窗邊，4 位小朋友被爸爸挖起來）
+阿喜（搖恩齊）：『起床！要去划船！』
+恩齊（迷迷糊糊）：『5 點還沒到嗎？』
+大宇（已經自己穿好）：『我準備好了！GoPro 在頭上！』
+小宇（舉手腕）：『我也有！』
+（4 位小朋友穿好跑到河邊）
+（晨霧中烏篷船夫準備 3 條船）
+船夫：『13 個人要分 3 條。』
+（4 位小朋友擠一條）
+船夫：『這條小朋友們坐可以嗎？』
+4 位小朋友：『可以！』
+（其他大人分 2 條在後面）
+（烏篷船出發 — 4 個小朋友的 GoPro 開錄）
+恩齊（胸前 GoPro 拍船夫）：『船夫叔叔在划！』
+大宇（頭上 GoPro 拍兩邊房子）：『房子在水上！』
+小宇（手腕 GoPro 對著河水）：『水！水會動！』
+宸瑋（自拍棒拍 4 個小朋友）：『小朋友們！我們在 600 年的水鄉！』
+恩齊（伸手摸水）：『啊！水冰冰的！』
+阿美（在後面船上喊）：『恩齊！不要伸手！』
+恩齊（縮手）：『可是水很漂亮！』
+（小宇也伸手）
+吳董（在後面）：『小宇！也不行！』
+小宇（對手腕 GoPro）：『爸爸都沒看到！』
+（西塘老街 09:00 — 4 個小朋友拿 GoPro 亂拍）
+恩齊（指著小店）：『那個店賣什麼？』
+大宇：『好像是糖！』
+（4 位小朋友擠進糖店）
+恩齊（胸前 GoPro 拍糖果）：『好多顏色！』
+宸瑋：『我們一人選一個！』
+大宇：『我要紅色！』
+小宇：『我要彩虹色！』
+恩齊：『我要綠色！像我的 GoPro 一樣！』
+（4 個小朋友買完糖對著 GoPro 拍自己吃的樣子）
+（西塘老街 10:00 — 4 位小朋友玩水）
+（西塘某條巷弄有淺淺的水溝）
+小宇（蹲下）：『這水好淺！可以玩！』
+（4 位小朋友脫鞋襪下水）
+大宇（戴頭上的 GoPro 拍）：『我在水裡了！』
+恩齊（拿 GoPro 對著水面）：『看！水會晃！』
+（4 個小朋友開始踢水）
+（小宇的 GoPro 進水了）
+小宇（緊張）：『啊！我的 GoPro 進水了！』
+吳董（衝過來）：『別擔心！GoPro 12 防水到 10 公尺！』
+小宇（把手腕伸到水下）：『真的嗎？那我再深一點！』
+（4 個小朋友對著水下錄影）
+恩齊（驚）：『哇！水底有石頭！』
+（小宇把 GoPro 整個泡在水裡 5 秒）
+小宇（舉起來甩一甩）：『看！還在錄！』
+（西塘躲貓貓 11:00）
+4 個小朋友玩躲貓貓
+恩齊（躲）：『我躲在橋下面！』
+大宇（戴頭上的 GoPro 拍找）：『我來找！』
+（4 個小朋友在西塘小巷裡跑）
+（4 台 GoPro 拍下混亂的跑跳畫面）
+（同事足浴 14:00 — 4 位小朋友偷拍）
+（5 位同事在足浴店）
+4 位小朋友偷偷溜進去
+（4 台 GoPro 同時開錄）
+小宇（手腕 GoPro 對著叔叔們的腳）：『叔叔的腳好大！』
+阿伸（嚇一跳）：『小朋友！你們怎麼進來的！』
+大宇（頭上 GoPro 對著叔叔們的表情）：『叔叔被我們嚇到了！』
+恩齊（胸前 GoPro 對著桶子）：『水裡有藥包！』
+阿茹（阿姨）：『小朋友！你們也要按嗎？』
+4 位小朋友（異口同聲）：『要！』
+（4 位小朋友開始泡腳）
+小宇（把手腕 GoPro 對著自己的腳）：『我的腳變紅了！』
+（西塘水宴晚餐 — 烏鎮抵達後 18:00）
+（4 位小朋友累癱在椅上）
+恩齊（舉 GoPro）：『我們今天走了好多路！』
+大宇：『明天還要去哪？』
+宸瑋：『明天去烏鎮！染布！』
+小宇：『染布！我要染一件！』
+4 位小朋友（異口同聲）：『耶！』`,
+    shots: `00:00-00:10  GoPro chest mount 恩齊拍船夫在晨霧中划船的廣角特寫
+00:10-00:25  GoPro head strap 大宇拍兩邊明清古宅在水面倒影的廣角
+00:25-00:40  GoPro selfie stick 宸瑋拍 4 個小朋友擠在烏篷船裡的笑臉合輯
+00:40-00:55  GoPro wrist POV 小宇拍自己伸手摸水的特寫 + 阿美奶奶遠處喊
+00:55-01:10  GoPro chest mount 恩齊拍西塘糖店五彩糖果的微距特寫
+01:10-01:25  GoPro wrist POV 小宇把 GoPro 泡水裡 5 秒的防水實測
+01:25-01:45  4 台 GoPro 拍 4 位小朋友在西塘水溝踢水的混亂廣角
+01:45-02:00  GoPro head strap 大宇拍找躲貓貓時的緊張臉
+02:00-02:20  GoPro wrist POV 小宇偷拍同事足浴的搞笑畫面
+02:20-02:40  GoPro chest mount 恩齊拍自己泡腳變紅的特寫
+
+00:00-00:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day3/e-img-01-gondola-4-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle shot inside traditional Chinese black-canopied wooden gondola in Xitang water canal at misty dawn, four chibi Taiwanese boys aged 5 to 9 squeezed together with GoPros visible, photorealistic water canal with stone bridges and white-walled black-tiled houses on both banks, atmospheric morning mist, cinematic intimate POV from boat"
+00:55-01:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day3/e-img-02-candy-shop.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle shot inside a traditional Chinese candy shop in Xitang old street, four chibi Taiwanese boys aged 5-9 with bright wide eyes looking at colorful traditional Chinese candies in glass jars, chibi yellow-shirted boy pointing at green candy, photorealistic wooden shop interior with jars of red green yellow rainbow candies, warm afternoon light, cinematic moment of childhood wonder"
+01:25-01:45  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day3/e-img-03-water-play-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic low-angle ultra-wide shot of four chibi Taiwanese boys aged 5-9 playing in shallow Xitang water canal with bare feet splashing, water droplets flying in mid-air caught by sunlight, GoPros visible on their heads and wrists, photorealistic ancient stone embankment and white-walled houses behind, dynamic action moment, cinematic joyful chaos"
+02:00-02:20  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day3/e-img-04-foot-massage-spy.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, comedic ultra-wide-angle POV of four chibi Taiwanese boys secretly filming their chibi middle-aged uncles in a Chinese foot massage parlor, uncles look shocked with towels on heads, chibi boys laughing and pointing GoPros at them, photorealistic wooden massage chairs and hot water buckets, warm interior lighting, cinematic candid moment"
+`,
+  },
+
+  // Day 4 — 烏鎮西柵：4 位小朋友逛染坊 + 手染布 + 烏鎮滑梯
+  {
+    date: "2026-07-20",
+    label: "Day 4 · 7/20 (一)",
+    theme: "烏鎮染布日 · 染坊手染 + 老街滑梯",
+    scenes: "烏鎮西柵入口 → 染坊看藍布 → 4 位小朋友手染小手帕 → 西柵老街 → 烏鎮滑梯 → 烏鎮夜景",
+    mainCharacters: "恩齊 + 宸瑋 + 大宇 + 小宇 + 阿美奶奶 (染坊跟著)",
+    dialogue: `（09:00 — 烏鎮西柵入口）
+（4 位小朋友擠在入口石牌坊下）
+4 位小朋友（異口同聲）：『哇！』
+大宇（戴頭上的 GoPro 抬頭拍牌坊）：『這個門好高！』
+小宇（手腕 GoPro 對著門）：『上面寫什麼字？』
+宸瑋（拿自拍棒對著 4 個人）：『烏鎮！寫烏鎮！』
+恩齊（胸前 GoPro 對著門）：『我們到了！』
+（4 台 GoPro 同時開錄，準備進場）
+（10:00 — 染坊）
+（4 位小朋友走進染坊，看到一條條藍布從屋頂吊下來）
+4 位小朋友：『哇——！』
+恩齊（胸前 GoPro 拍藍布）：『好多藍色的布！』
+大宇（戴頭上的 GoPro 抬頭）：『布從屋頂掉下來！』
+小宇（手腕 GoPro 對著一條布）：『布會動！』
+阿美（牽著宸瑋）：『這是中國古代的藍染，1000 年了。』
+宸瑋（拿自拍棒拍阿美）：『奶奶在講故事！』
+阿美：『以前的人用一種叫藍草的植物，發酵後染布。』
+恩齊（聽）：『奶奶好厲害！』
+（4 位小朋友在染坊手染小手帕）
+（染坊師傅發給每人白色小手帕 + 一桶藍染汁）
+師傅：『小朋友！把手帕泡進去 5 分鐘！』
+恩齊（手伸進去）：『啊！涼涼的！』
+大宇（戴頭上的 GoPro 拍染桶）：『我拍到了！我的手帕變藍了！』
+小宇（手腕 GoPro 對著自己變藍的手）：『看！我的手也變藍了！』
+（4 位小朋友把手帕拿出來晾）
+恩齊（胸前 GoPro 拍自己的小手帕）：『我染成功了！』
+（4 條小手帕在染坊晾乾）
+（11:30 — 烏鎮老街）
+（4 位小朋友沿著老街逛）
+恩齊（指著小店）：『有賣玩具！』
+（4 位小朋友擠進玩具店）
+（玩具店有迷你烏篷船模型）
+大宇（戴頭上的 GoPro 拍）：『這個船跟我們昨天划的一樣！』
+小宇：『可是這個比較小！』
+恩齊（胸前 GoPro 對著玩具船）：『我要買給弟弟！』
+（小宇指著另一個玩具）
+小宇：『我要買這個！烏鎮滑梯的模型！』
+（4 位小朋友買完玩具）
+（12:00 — 烏鎮滑梯 — 老街上有古色古香的石滑梯）
+（4 位小朋友發現滑梯）
+4 位小朋友：『有滑梯！』
+（4 位小朋友開始排隊）
+恩齊（第一個滑下來）：『嗚——！好快！』
+阿喜（緊張）：『小心！』
+（小宇從滑梯上拿手腕 GoPro 拍）
+小宇（從滑梯上錄）：『我在滑了！』
+（4 位小朋友輪流滑 5 次以上）
+大宇（戴頭上的 GoPro 從滑梯上）：『這個 GoPro 視角超酷！』
+（4 位小朋友玩到中午）
+（13:00 — 烏鎮午餐）
+（4 位小朋友吃烏鎮醬鴨 + 粉蒸肉）
+恩齊（胸前 GoPro 拍桌上的菜）：『好多菜！』
+小宇：『我要吃醬鴨！』
+大宇：『我要吃粉蒸肉！』
+（4 位小朋友對著自己的菜錄影）
+（15:00 — 烏鎮西柵夜景）
+（4 位小朋友累但不想回家）
+恩齊（指著夜景）：『晚上更漂亮！』
+（4 台 GoPro 拍夜景）
+4 位小朋友（擠在石橋上）：『茄子！』
+（4 台 GoPro 自拍合輯）
+（4 個小朋友累到搭肩）
+小宇（舉手腕 GoPro）：『我們明天要去杭州！』
+大宇：『西湖！』
+恩齊：『我要划船！』
+宸瑋：『明天見！』
+（4 個小朋友在烏鎮石橋上自拍的夜景）`,
+    shots: `00:00-00:10  4 台 GoPro 同時拍烏鎮西柵石牌坊的廣角仰角
+00:10-00:25  GoPro chest mount 恩齊拍染坊藍布從屋頂吊下的垂直廣角
+00:25-00:40  GoPro head strap 大宇拍阿美奶奶講故事的廣角特寫
+00:40-00:55  GoPro wrist POV 小宇拍自己變藍的手的微距特寫
+00:55-01:10  GoPro selfie stick 宸瑋拍 4 條小手帕晾在染坊的廣角
+01:10-01:25  GoPro head strap 大宇拍烏鎮玩具店迷你烏篷船的特寫
+01:25-01:40  GoPro wrist POV 小宇從烏鎮滑梯上自拍的高速移動
+01:40-01:55  GoPro chest mount 恩齊拍烏鎮午餐醬鴨的特寫
+01:55-02:10  4 台 GoPro 同時拍烏鎮夜景燈籠倒影的廣角合輯
+
+00:00-00:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day4/e-img-01-wuzhen-gate-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic low-angle ultra-wide shot of Wuzhen Xizha traditional Chinese stone gate tower with horizontal wooden plaque characters, four chibi Taiwanese boys aged 5-9 standing at base looking up with amazement and GoPros raised, photorealistic water town entrance with stone lions, bright morning light, cinematic adventure begins moment"
+00:10-00:25  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day4/e-img-02-indigo-dye-house.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic vertical ultra-wide composition of long strips of natural indigo-dyed blue cloth hanging from wooden poles in traditional Chinese dye workshop, four chibi Taiwanese boys looking up with wonder at the hanging cloth, chibi 5-year-old enqi touching a blue strip with his hand, photorealistic wooden beams and aged brick walls, atmospheric interior light filtering through blue cloth, cinematic heritage moment"
+00:40-00:55  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day4/e-img-03-blue-hands.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra close-up macro of chibi 7-year-old Taiwanese boy xiaoyus hands stained with bright indigo blue dye after dipping small handkerchief into dye vat, his bright orange hoodie sleeve rolled up, wrist GoPro visible, photorealistic wooden dye vat rim and aged brick wall in soft background, joyful messy moment, cinematic playful detail"
+01:25-01:40  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day4/e-img-04-stone-slide.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic action shot of chibi 7-year-old Taiwanese boy xiaoyu sliding down ancient Chinese stone slide in Wuzhen old street, his wrist GoPro recording from his left hand showing the high-speed motion blur, photorealistic mossy worn stone slide and water town alley background, dynamic motion moment, cinematic playful adventure POV"
+`,
+  },
+
+  // Day 5 — 杭州西湖：4 位小朋友的車上無聊 + 西湖踩水 + 餵魚
+  {
+    date: "2026-07-21",
+    label: "Day 5 · 7/22 (二)",
+    theme: "杭州西湖 · 車上無聊自拍 + 西湖踩水 + 餵魚",
+    scenes: "烏鎮早餐 → 包車去杭州（4 個小朋友車上自拍）→ 西湖蘇堤（4 個小朋友踩水）→ 餵魚 → 武林夜市糖葫蘆",
+    mainCharacters: "恩齊 + 宸瑋 + 大宇 + 小宇 + 全 13 人 + 阿美奶奶",
+    dialogue: `（08:00 — 烏鎮早餐告別）
+（4 位小朋友在烏鎮最後一頓早餐）
+恩齊（胸前 GoPro 對著桌上的菜）：『我們要離開烏鎮了！』
+大宇：『才 4 天就喜歡這裡了！』
+（4 位小朋友對著餐廳錄影）
+小宇（手腕 GoPro 對著窗外的烏鎮）：『烏鎮再見！』
+（4 台 GoPro 拍窗外烏鎮的告別）
+（10:00 — 包車去杭州 1.5 小時）
+（4 位小朋友擠在車上開始無聊）
+恩齊（躺在座椅上）：『好無聊！』
+宸瑋（拿自拍棒拍 4 個人）：『我們來自拍！』
+（4 位小朋友擠在一起自拍）
+大宇（戴頭上的 GoPro）：『我們 4 個人一起！』
+小宇：『茄子！』
+（4 台 GoPro 拍 4 位小朋友的車上合輯）
+（4 位小朋友開始在車上搞怪）
+恩齊（用 GoPro 對著大宇的臉）：『大宇！你的臉！』
+大宇（用 GoPro 對著恩齊）：『你的更大！』
+（小宇和宸瑋對拍）
+小宇（手腕 GoPro 對著宸瑋）：『宸瑋你戴墨鏡！』
+宸瑋（拿墨鏡）：『像這樣嗎？』
+（4 位小朋友開始拍車窗外的風景）
+恩齊（指著車窗）：『看！好多田！』
+大宇：『還有風車！』
+小宇（手腕 GoPro 對著窗外）：『風車在轉！』
+（11:30 — 杭州西湖）
+（4 位小朋友到達西湖）
+4 位小朋友：『哇——！』
+恩齊（指著湖）：『那個水好多！』
+小宇：『比西塘的水多好多！』
+（4 位小朋友沿著蘇堤走）
+（看到湖水可以踩水）
+小宇（蹲下）：『水！可以踩！』
+（4 位小朋友脫鞋下湖邊踩水）
+大宇（戴頭上的 GoPro 拍自己踩水）：『水涼涼的！』
+恩齊（拿 GoPro 對著湖面）：『看！有魚！』
+（4 位小朋友開始拿麵包餵魚）
+恩齊（拿一小塊麵包）：『來吃！』
+小宇（拿手腕 GoPro 對著魚）：『魚來了！好多！』
+大宇：『我把整塊丟下去！』
+（4 位小朋友一起丟）
+（魚群湧上來）
+4 位小朋友（驚）：『哇！』
+（4 台 GoPro 拍魚群的廣角）
+（13:00 — 樓外樓午餐）
+（4 位小朋友吃東坡肉）
+恩齊（胸前 GoPro 對著東坡肉）：『這是什麼肉？』
+阿喜：『東坡肉！蘇東坡的肉！』
+小宇：『蘇東坡是誰？』
+宸瑋：『是寫詩的人！』
+（4 位小朋友對著東坡肉錄影）
+（17:00 — 武林夜市）
+（4 位小朋友在武林夜市逛街）
+4 位小朋友（異口同聲）：『有糖葫蘆！』
+（4 位小朋友擠在糖葫蘆攤前）
+恩齊（指著糖葫蘆）：『我要草莓的！』
+大宇：『我要橘子的！』
+小宇：『我要葡萄的！』
+宸瑋：『我要山楂的！』
+（4 位小朋友各買一支）
+（4 台 GoPro 拍 4 位小朋友拿糖葫蘆自拍）
+小宇（手腕 GoPro 對著糖葫蘆）：『我的葡萄好大顆！』
+恩齊：『我的草莓紅紅的！』
+（4 個小朋友咬糖葫蘆）
+4 位小朋友：『喀！』
+（4 台 GoPro 拍 4 位小朋友咬糖葫蘆的特寫）
+（19:00 — 西湖夜景）
+（4 位小朋友在西湖邊拍夜景）
+4 位小朋友（蹲在湖邊）：『茄子！』
+（4 台 GoPro 自拍合輯）`,
+    shots: `00:00-00:10  GoPro chest mount 恩齊拍烏鎮早餐告別的特寫
+00:10-00:25  GoPro selfie stick 宸瑋拍 4 位小朋友車上搞怪的合輯
+00:25-00:40  GoPro wrist POV 小宇拍車窗外風景的高速移動
+00:40-00:55  4 台 GoPro 同時拍西湖全景的廣角
+00:55-01:10  GoPro head strap 大宇拍自己踩水的特寫
+01:10-01:25  GoPro wrist POV 小宇拍魚群湧上來吃麵包的廣角
+01:25-01:40  GoPro chest mount 恩齊拍東坡肉的特寫
+01:40-01:55  4 台 GoPro 拍 4 位小朋友拿糖葫蘆的廣角合輯
+01:55-02:10  GoPro selfie stick 宸瑋拍 4 位小朋友咬糖葫蘆的搞笑特寫
+
+00:00-00:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day5/e-img-01-car-selfie-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle selfie stick shot inside a tour van, four chibi Taiwanese boys aged 5-9 making funny faces at camera, chibi 8-year-old chenwei holding selfie stick in center, others pressing close, photorealistic van interior with windows showing Chinese countryside blurring past, joyful chaotic kids-on-road-trip moment, cinematic fun memory"
+00:40-00:55  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day5/e-img-02-west-lake-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle shot of West Lake Hangzhou with classical Chinese pagoda and willow trees along Su Causeway, four chibi Taiwanese boys aged 5-9 standing at lake edge looking amazed with hands pointing, GoPros visible on their heads and wrists, photorealistic serene lake water reflecting ancient buildings, soft afternoon sunlight, cinematic family discovery moment"
+01:10-01:25  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day5/e-img-03-feeding-fish.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle action shot of West Lake surface crowded with colorful koi fish rushing to eat bread thrown by four chibi Taiwanese boys standing on stone embankment, bread pieces flying through air, splashing water, chibi boys laughing with arms outstretched, photorealistic lake water and ancient stone railing, dynamic feeding frenzy moment, cinematic joyful chaos"
+01:40-01:55  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day5/e-img-04-candied-hawthorn-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, vibrant ultra-wide-angle night market shot of four chibi Taiwanese boys aged 5-9 holding different candied hawthorn sticks strawberry orange grape hawthorn, each boy biting into his own with delight, chibi xiaoyu showing off grape-sized candy, photorealistic Hangzhou Wulin night market with red lanterns and street food stalls, warm evening lighting, cinematic childrens sweet moment"
+`,
+  },
+
+  // Day 6 — 宋城千古情：4 位小朋友丟錢許願 + 馬鴻興川菜 + 宋城兒童 vs 大人
+  {
+    date: "2026-07-22",
+    label: "Day 6 · 7/23 (三)",
+    theme: "宋城千古情 · 丟錢許願 + 川菜辣嘴",
+    scenes: "318 公車 → 宋城千古情表演（4 個小朋友驚呼）→ 丟錢許願池 → 馬鴻興川菜晚餐",
+    mainCharacters: "恩齊 + 宸瑋 + 大宇 + 小宇 + 全 13 人",
+    dialogue: `（08:00 — 杭州飯店早餐）
+（4 位小朋友吃早餐）
+恩齊（指著窗外）：『今天要坐公車！』
+大宇（戴頭上的 GoPro）：『公車很擠！』
+（4 位小朋友擠上 318 公車 — 全 13 人分 3 台）
+（4 位小朋友擠一台）
+恩齊（胸前 GoPro 拍擠的畫面）：『好擠！』
+小宇（手腕 GoPro 對著大宇）：『大宇你的臉在我旁邊！』
+大宇：『因為太擠了！』
+（4 台 GoPro 拍擠公車的混亂畫面）
+（10:00 — 宋城千古情表演場）
+（4 位小朋友入場）
+4 位小朋友（看舞台）：『哇！』
+（表演開始）
+（宋城千古情舞台很壯觀）
+恩齊（胸前 GoPro 對著舞台）：『好多人在跳舞！』
+大宇（戴頭上的 GoPro 抬頭）：『屋頂在動！』
+小宇（手腕 GoPro 對著舞台）：『有人在飛！』
+宸瑋（拿自拍棒拍舞台）：『這就是千古情！』
+（4 位小朋友看表演看呆了）
+（表演到感動段落，阿美奶奶哭）
+恩齊（拍阿美）：『奶奶在哭！』
+阿美（擦眼淚）：『因為故事很感人。』
+（4 位小朋友對著阿美錄影）
+（12:00 — 宋城丟錢許願池）
+（4 位小朋友看到許願池）
+4 位小朋友（異口同聲）：『我要許願！』
+（4 位小朋友拿硬幣）
+恩齊（握著硬幣）：『我要許願……明天不要上課！』
+大宇：『我要許願……明天吃雞腿！』
+小宇：『我要許願……明天再去一次烏鎮！』
+宸瑋：『我要許願……爸爸帶我們再來！』
+（4 位小朋友一起丟）
+恩齊（胸前 GoPro 拍硬幣飛出去的特寫）：『我丟了！』
+大宇（戴頭上的 GoPro 拍許願池）：『看！我們的硬幣在水裡！』
+（4 台 GoPro 拍許願池的廣角）
+（13:00 — 宋城老街）
+（4 位小朋友逛宋城老街）
+（宋城老街有宋代打扮的工作人員）
+恩齊（指著工作人員）：『那個人穿古裝！』
+（4 位小朋友和工作人員自拍）
+小宇（手腕 GoPro 對著工作人員）：『叔叔！你是宋朝的嗎？』
+工作人員（笑）：『是啊！』
+（4 位小朋友驚呼）
+（15:00 — 馬鴻興川菜晚餐）
+（4 位小朋友吃川菜）
+恩齊（指著紅油）：『這個紅紅的是什麼？』
+阿喜：『辣油！』
+小宇（嚐一口）：『啊！辣！』
+（4 位小朋友開始辣嘴）
+大宇（戴頭上的 GoPro 拍自己的表情）：『我也辣！』
+（4 位小朋友對著 GoPro 做辣嘴表情）
+宸瑋（自拍棒拍 4 個小朋友辣嘴）：『大家都辣！』
+（4 位小朋友開始喝飲料）
+小宇（舉起可樂）：『我要喝可樂！』
+（4 位小朋友搶飲料）
+（馬鴻興的辣子雞）
+恩齊（胸前 GoPro 對著辣子雞）：『這個辣椒好多！』
+（4 位小朋友不敢吃）
+阿喜（夾一個給恩齊）：『試試！』
+恩齊（咬一口）：『嗚——辣！』
+（4 位小朋友一起辣嘴）
+4 台 GoPro 拍 4 個小朋友辣嘴的搞笑合輯`,
+    shots: `00:00-00:10  GoPro chest mount 恩齊拍 318 公車擠的廣角
+00:10-00:25  GoPro wrist POV 小宇拍大宇擠在旁邊的搞笑特寫
+00:25-00:40  GoPro head strap 大宇抬頭拍宋城千古情舞台屋頂在動的廣角
+00:40-00:55  GoPro selfie stick 宸瑋拍 4 位小朋友看千古情看呆的合輯
+00:55-01:10  GoPro chest mount 恩齊拍阿美奶奶擦眼淚的特寫
+01:10-01:25  GoPro wrist POV 小宇拍 4 個小朋友丟硬幣進許願池的特寫
+01:25-01:40  GoPro head strap 大宇拍許願池水面硬幣的廣角
+01:40-01:55  GoPro selfie stick 宸瑋拍 4 位小朋友和工作人員自拍的合輯
+01:55-02:10  4 台 GoPro 拍 4 位小朋友辣嘴表情的搞笑合輯
+
+00:00-00:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day6/e-img-01-bus-crowded-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle shot inside a crowded Chinese city bus 318 with standing passengers, four chibi Taiwanese boys aged 5-9 squeezed together with GoPros visible, faces pressed close to each other making funny faces, photorealistic Hangzhou city bus interior with handrails and Chinese commuters around, warm fluorescent lighting, cinematic chaotic commute moment"
+00:25-00:40  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day6/e-img-02-song-show.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic low-angle ultra-wide shot of an enormous Song Dynasty themed stage show with flying performers and moving set pieces above the audience, four chibi Taiwanese boys sitting in red velvet theater seats looking up with wide amazed mouths open, chibi red-shirted dayu pointing at the stage, photorealistic massive Chinese performance hall with theatrical lighting and ancient palace backdrop, cinematic spectacular show moment"
+00:55-01:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day6/e-img-03-grandma-crying.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, intimate emotional close-up of chibi healthy 70-year-old Asian grandma with jet-black silky hair wiping tears from her eyes during Song Dynasty show, chibi 5-year-old enqi sitting next to her holding his chest-mounted GoPro up to film her, photorealistic dim theater ambient light falling on grandma face, cinematic tender grandmother moment"
+01:10-01:25  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day6/e-img-04-coin-wish-pool.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle shot from below of four chibi Taiwanese boys aged 5-9 throwing coins into a Song Dynasty wishing pool, coins sparkling in mid-air catching sunlight, chibi boys leaning forward with arms extended, photorealistic ancient Chinese stone pool with bronze coins already at bottom, bright afternoon sunlight, cinematic hopeful wishing moment"
+`,
+  },
+
+  // Day 7 — 宮宴換裝高潮：4 個小朋友 vs 古裝 + 偷拍阿美奶奶唐裝 + 宮宴偷偷吃
+  {
+    date: "2026-07-23",
+    label: "Day 7 · 7/24 (四)",
+    theme: "宮宴換裝 · 4 個小朋友 vs 古裝 + 偷拍奶奶",
+    scenes: "杭州飯店 → 宮宴換裝（4 個小朋友抗拒）→ 阿美奶奶唐裝驚豔 → 宮宴偷偷吃 → 全 13 人古裝大合照",
+    mainCharacters: "恩齊 + 宸瑋 + 大宇 + 小宇 + 阿美奶奶 (唐裝主角) + 全 13 人",
+    dialogue: `（09:00 — 杭州飯店，4 位小朋友被告知今天要穿古裝）
+4 位小朋友（異口同聲）：『不要！』
+阿喜：『今天要穿漢服拍宮宴！』
+恩齊（拒絕）：『我才不要穿古裝！』
+大宇：『我也是！』
+小宇：『我也是！』
+宸瑋（猶豫）：『可是……好像很酷。』
+阿喜（勸）：『穿啦！穿完就可以吃大餐！』
+（4 位小朋友勉強同意）
+（10:00 — 宮宴換裝現場）
+（4 位小朋友換上古裝）
+（漢服店給 4 位小朋友換上小漢服）
+恩齊（穿紅色小漢服）：『這個好緊！』
+大宇（穿藍色小漢服）：『我的袖子太長！』
+小宇（穿黃色小漢服）：『我的褲子太寬！』
+宸瑋（穿綠色小漢服）：『我覺得還好！』
+（4 位小朋友對著鏡子看自己）
+恩齊（胸前 GoPro 對著鏡子）：『我變成古人了！』
+小宇（手腕 GoPro 對著自己）：『我好像皇帝！』
+（4 位小朋友開始互相嘲笑）
+大宇（戴頭上的 GoPro 拍恩齊）：『恩齊你的衣服好緊！』
+恩齊（拍大宇）：『你的袖子拖地！』
+（4 位小朋友追著跑）
+（11:00 — 阿美奶奶換唐裝）
+（4 位小朋友看到阿美奶奶穿唐裝出來）
+4 位小朋友：『哇——！』
+阿美（穿唐代宮裝）：『怎麼樣？好看嗎？』
+恩齊（胸前 GoPro 對著阿美）：『奶奶好像仙女！』
+大宇（戴頭上的 GoPro 對著阿美）：『奶奶好漂亮！』
+小宇（手腕 GoPro 對著阿美）：『奶奶是唐朝的公主！』
+宸瑋（拿自拍棒 4 個人 + 阿美入鏡）：『奶奶！我們一起拍！』
+（4 位小朋友擠在阿美身邊自拍）
+（4 台 GoPro 拍阿美奶奶唐裝的廣角合輯）
+（4 位小朋友開始偷拍阿美）
+小宇（躲在柱子後面偷拍）：『奶奶！我偷拍你！』
+阿美（轉頭）：『小宇！』
+（小宇逃跑）
+（4 位小朋友開始追著阿美跑拍）
+（12:00 — 宮宴午餐）
+（4 位小朋友坐下吃宮宴）
+恩齊（胸前 GoPro 對著桌上的御膳）：『好多菜！』
+大宇（戴頭上的 GoPro 對著菜）：『有蝦！有魚！有肉！』
+小宇（手腕 GoPro 對著自己的碗）：『還有湯！』
+（4 位小朋友開始吃）
+小宇（夾菜）：『這個是什麼？』
+阿喜：『是東坡肉！』
+（4 位小朋友咬東坡肉）
+4 位小朋友：『好吃！』
+（4 台 GoPro 拍 4 位小朋友吃的特寫）
+（4 位小朋友開始偷吃隔壁的菜）
+小宇（偷偷夾蝦）：『我偷吃蝦！』
+恩齊（偷偷夾魚）：『我偷吃魚！』
+大宇（偷偷夾肉）：『我偷吃肉！』
+宸瑋：『你們不要偷吃！』
+（13:00 — 全 13 人古裝大合照）
+（4 位小朋友 + 全 13 人穿古裝合照）
+恩齊（胸前 GoPro 對著大家）：『我們 13 個人都穿古裝！』
+大宇（戴頭上的 GoPro 拍合照）：『好像穿越劇！』
+小宇（手腕 GoPro 對著合照）：『我們是古代的大家族！』
+宸瑋（自拍棒拍 13 個人）：『茄子！』
+（4 台 GoPro 拍 13 人古裝大合照）
+（阿美奶奶唐裝在中間）
+恩齊（抱阿美）：『奶奶最漂亮！』
+4 位小朋友（異口同聲）：『奶奶是唐朝的公主！』`,
+    shots: `00:00-00:10  4 台 GoPro 拍 4 位小朋友抗拒古裝的搞笑表情
+00:10-00:25  GoPro chest mount 恩齊換上古裝後對鏡子的廣角自拍照
+00:25-00:40  GoPro head strap 大宇拍小宇袖子拖地的搞笑廣角
+00:40-00:55  GoPro selfie stick 宸瑋拍 4 個小朋友 + 阿美奶奶唐裝的廣角合輯
+00:55-01:10  GoPro wrist POV 小宇躲在柱子後偷拍阿美的搞笑特寫
+01:10-01:25  GoPro chest mount 恩齊拍宮宴御膳的特寫
+01:25-01:40  GoPro wrist POV 小宇偷吃蝦的搞笑特寫
+01:40-01:55  GoPro head strap 大宇拍 13 人古裝大合照的廣角
+01:55-02:10  4 台 GoPro 拍 4 個小朋友抱阿美奶奶的溫馨合輯
+
+00:00-00:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day7/e-img-01-kids-refuse-hanfu.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic ultra-wide-angle shot of four chibi Taiwanese boys aged 5-9 crossing arms and pouting refusing to wear hanfu traditional Chinese clothing, colorful hanfu robes laid out on chairs behind them, photorealistic Chinese costume shop interior with silk fabrics and mirrors, warm interior lighting, cinematic comedic childrens rebellion moment"
+00:40-00:55  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day7/e-img-02-grandma-tang-costume-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic wide shot of chibi healthy 70-year-old Asian grandma with jet-black silky hair wearing magnificent Tang Dynasty imperial concubine costume with golden phoenix crown and flowing red silk robes, four chibi Taiwanese boys in colorful hanfu standing around her with amazed expressions holding GoPros up, photorealistic ornate palace hall interior with red pillars and golden decorations, cinematic royal reveal moment"
+00:55-01:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day7/e-img-03-grandma-spy.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, comedic ultra-wide-angle POV of chibi 7-year-old Taiwanese boy xiaoyu peeking from behind an ornate red palace pillar secretly filming his chibi grandma in Tang Dynasty costume, his wrist GoPro capturing grandmas elegant pose, photorealistic Chinese palace interior with red lacquered columns and golden dragons, cinematic sneaky spy moment"
+01:40-01:55  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day7/e-img-04-grand-group-hanfu.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic grand group shot of 13 chibi Asian tourist characters all wearing various traditional Chinese hanfu costumes Tang Song Ming styles posing together in an ornate Chinese palace courtyard with red pillars and imperial yellow roof, chibi grandma in center wearing most elaborate Tang Dynasty phoenix crown costume, four chibi boys in front row wearing colorful hanfu, photorealistic imperial palace architecture, cinematic royal family portrait moment"
+`,
+  },
+
+  // Day 8 — 回家收心：4 位小朋友在機場累癱 + 收 GoPro + 互相看拍的影片
+  {
+    date: "2026-07-24",
+    label: "Day 8 · 7/25 (五)",
+    theme: "回家收心 · 機場累癱 + 收 GoPro + 看 8 天影片",
+    scenes: "綠茶餐廳早餐 → 靈隱寺 → 機場 → 收 GoPro → 飛機上看 8 天影片 → 桃園回家",
+    mainCharacters: "恩齊 + 宸瑋 + 大宇 + 小宇 + 全 13 人",
+    dialogue: `（08:00 — 綠茶餐廳早餐）
+（4 位小朋友吃最後一頓杭州早餐）
+恩齊（胸前 GoPro 對著綠茶餅）：『綠茶餅好吃！』
+小宇（手腕 GoPro 對著自己的盤子）：『我要吃第二個！』
+大宇（戴頭上的 GoPro）：『我們今天要回家了！』
+宸瑋（拿自拍棒拍 4 個人）：『8 天過得好快！』
+（10:00 — 靈隱寺）
+（4 位小朋友到靈隱寺）
+4 位小朋友（異口同聲）：『哇！廟好大！』
+恩齊（指著佛像）：『那個佛好高！』
+（4 位小朋友對著佛像錄影）
+小宇（手腕 GoPro 對著佛像）：『佛在笑！』
+（4 位小朋友跪拜）
+阿美（教 4 位小朋友）：『小朋友！要拜拜！』
+4 位小朋友（跪下）：『拜拜！』
+（4 台 GoPro 拍 4 位小朋友跪拜的廣角）
+（12:00 — 機場午餐）
+（4 位小朋友在杭州蕭山機場吃午餐）
+（4 位小朋友累到不行）
+恩齊（趴在桌上）：『好累！』
+大宇（趴在桌上）：『我走不動了！』
+小宇（趴在桌上）：『我想睡覺！』
+宸瑋（趴在桌上）：『我也是！』
+（4 台 GoPro 拍 4 位小朋友累趴的廣角）
+（13:00 — 機場退稅 + 安檢）
+（4 位小朋友在安檢處）
+恩齊（胸前 GoPro 對著 X 光機）：『我的 GoPro 要過 X 光！』
+（4 位小朋友排隊過安檢）
+（4 台 GoPro 拍過安檢的混亂畫面）
+（14:00 — 候機室）
+（4 位小朋友坐在候機室）
+大宇（拿著頭上的 GoPro）：『我們來看 8 天拍的影片！』
+（4 位小朋友擠在一起看 GoPro 螢幕）
+小宇（手腕 GoPro 對著大家）：『我們 4 個人一起看！』
+（4 位小朋友輪流播 8 天的影片）
+恩齊（指著螢幕）：『這是 D1 在機場！』
+大宇：『這是 D2 的小楊生煎！』
+小宇：『這是 D3 西塘玩水！』
+宸瑋：『這是 D4 染布！』
+（4 位小朋友開始笑）
+小宇：『我們玩得好開心！』
+（4 位小朋友擠在一起看 8 天影片的螢幕）
+（15:00 — 上飛機）
+（4 位小朋友上飛機）
+恩齊（指著窗外）：『杭州再見！』
+（4 位小朋友對著窗外錄影）
+（4 台 GoPro 拍杭州蕭山機場的告別）
+（飛機起飛後）
+4 位小朋友（累到睡著）
+恩齊（趴在阿喜肩上）
+大宇（趴在吳董肩上）
+小宇（趴在黃倩身上）
+宸瑋（靠在黃阿分身上）
+（4 台 GoPro 還在錄）
+（4 位小朋友在飛機上睡著的廣角）
+（17:00 — 桃園落地）
+（4 位小朋友被搖醒）
+恩齊（迷迷糊糊）：『到了？』
+大宇：『我想睡覺！』
+小宇：『我們回家囉？』
+宸瑋：『對！回家了！』
+（4 位小朋友走出桃園機場）
+（4 台 GoPro 拍桃園機場的回家畫面）
+（聖上，臣的 4 位小朋友 GoPro 8 天劇本寫完了！）
+（4 位小朋友的 8 天 GoPro 影片剪出來就是一部完整的「小朋友視角江南水鄉」紀錄片！）`,
+    shots: `00:00-00:10  4 台 GoPro 拍綠茶餐廳最後早餐的廣角
+00:10-00:25  GoPro chest mount 恩齊拍靈隱寺大佛像的仰角廣角
+00:25-00:40  4 台 GoPro 拍 4 位小朋友跪拜的廣角
+00:40-00:55  4 台 GoPro 拍 4 位小朋友在機場累趴的搞笑廣角
+00:55-01:10  GoPro wrist POV 小宇拍安檢 X 光機的特寫
+01:10-01:25  GoPro selfie stick 宸瑋拍 4 位小朋友擠在一起看 8 天 GoPro 影片的合輯
+01:25-01:40  GoPro head strap 大宇拍杭州蕭山機場告別的廣角
+01:40-01:55  4 台 GoPro 拍 4 位小朋友在飛機上睡著的溫馨廣角
+01:55-02:10  4 台 GoPro 拍桃園機場回家的告別廣角
+
+00:00-00:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day8/e-img-01-lingyin-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, dramatic low-angle ultra-wide shot of massive golden Buddha statue inside Lingyin Temple Hangzhou, four chibi Taiwanese boys aged 5-9 kneeling with hands clasped in prayer before the Buddha, incense smoke curling around them, GoPros visible on their heads and wrists, photorealistic ancient Chinese Buddhist temple hall with red pillars and golden decorations, cinematic spiritual moment"
+00:40-00:55  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day8/e-img-02-airport-tired-kids.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, comedic ultra-wide-angle shot of four chibi Taiwanese boys aged 5-9 sprawled face-down on airport terminal benches and tables looking completely exhausted, GoPros still attached, scattered snack wrappers and boarding passes around them, photorealistic modern Chinese airport terminal with flight information boards and warm terminal lighting, cinematic kids-tired-after-trip moment"
+01:10-01:25  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day8/e-img-03-watching-gopro-footage.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, intimate ultra-wide-angle shot of four chibi Taiwanese boys aged 5-9 huddled together in airport seats watching playback on their GoPro screens, each holding a small GoPro displaying different scenes from the trip, excited smiles and pointing at each others footage, photorealistic airport waiting area with large windows showing airplane tarmac, cinematic friendship memory-sharing moment"
+01:55-02:10  🖼 gpt-image-2-2k 1:1 src=https://bphhksbzedadaoscjctz.supabase.co/storage/v1/object/public/user-attraction-photos/vlog/day8/e-img-04-kids-sleeping-plane.jpg — "Chibi cartoon characters with big heads, small bodies, and cute anime proportions, placed in a photorealistic environment with cinematic lighting, hyperdetailed real-world background, tender ultra-wide-angle shot inside airplane cabin showing four chibi Taiwanese boys aged 5-9 sleeping on their parents shoulders two on fathers two on mothers, GoPros still attached to their heads and wrists, soft golden hour light through airplane windows, photorealistic economy class cabin with blue seats and overhead bins, cinematic sweet ending family moment"
+`,
+  },
+];
+
+
 export const SCRIPTS: Record<string, ScriptMeta> = {
   // 🅰️ 劇本 A — 阿喜的一天（主角視角 · 第一人稱 · 家庭喜劇）
   A: {
@@ -2932,20 +3742,34 @@ export const SCRIPTS: Record<string, ScriptMeta> = {
     dayBlocks: C_DAYS,
   },
 
-  // 🅳 劇本 D — 阿伸阿茹夫妻 + 好朋友阿橋（夫妻 + 好友出遊喜劇）
-  D: {
-    id: "D",
-    name: "愛美食的同事",
-    tagline: "阿伸 + 阿茹夫妻 + 女生朋友阿橋 · 美食博主小組 8 日 4 城吃吃喝喝 · 35-45 分鐘",
-    color: "ink",
-    storyArc:
-      "阿伸 + 阿茹夫妻帶女生朋友阿橋一起加入喜家 13 人江南之旅。三人化身美食博主小組，8 日 4 城吃吃喝喝：Day 1 上海生煎、Day 2 小楊生煎 + 南翔、Day 3 西塘粉蒸肉 + 芡實糕、Day 4 烏鎮醬鴨 + 水宴、Day 5 樓外樓東坡肉、Day 6 宋城叫化雞 + 馬鴻興、Day 7 杭州宮宴御膳、Day 8 綠茶餐廳。Day 8 阿橋總結美食榜 + 三人分享「吃什麼不重要一起吃才重要」。",
-    dayBlocks: D_DAYS,
-  },
+  // 🅳️ 劇本 D — 阿伸阿茹夫妻 + 好朋友阿橋（夫妻 + 好友出遊喜劇）
+    D: {
+      id: "D",
+      name: "愛美食的同事",
+      tagline: "阿伸 + 阿茹夫妻 + 女生朋友阿橋 · 美食博主小組 8 日 4 城吃吃喝喝 · 35-45 分鐘",
+      color: "ink",
+      storyArc:
+        "阿伸 + 阿茹夫妻帶女生朋友阿橋一起加入喜家 13 人江南之旅。三人化身美食博主小組,8 日 4 城吃吃喝喝:Day 1 上海生煎、Day 2 小楊生煎 + 南翔、Day 3 西塘粉蒸肉 + 芡實糕、Day 4 烏鎮醬鴨 + 水宴、Day 5 樓外樓東坡肉、Day 6 宋城叫化雞 + 馬鴻興、Day 7 杭州宮宴御膳、Day 8 綠茶餐廳。Day 8 阿橋總結美食榜 + 三人分享「吃什麼不重要一起吃才重要」。",
+      dayBlocks: D_DAYS,
+    },
 
-};
+    // 🅴️ 劇本 E — 4 位小朋友 GoPro（聖上 2026-07-14 拍板）
+    E: {
+      id: "E",
+      name: "4 位小朋友的 GoPro",
+      tagline: "恩齊 (5y) + 宸瑋 (8y) + 大宇 (9y) + 小宇 (7y) · 4 台 GoPro HERO12 × 8 日 4 城小朋友視角 · 30-40 分鐘",
+      color: "mint",
+      storyArc:
+        "恩齊 (5y 胸前 chest mount) + 宸瑋 (8y 自拍棒 selfie stick) + 大宇 (9y 頭戴 head strap) + 小宇 (7y 手腕 wrist strap) 4 位小朋友攜帶 4 台 GoPro HERO12 Black,8 日 4 城全紀錄。**4 個視角全程輪流切換**:胸前拍自己手腕、廣角自拍棒拍合輯、頭戴 POV 看世界、手腕偷拍爸媽奶奶。**鏡頭語言以 GoPro 特色為主**:廣角魚眼變形 (大頭)、低角度 (110-135cm 兒童身高)、晃動手持 (小孩走路不穩)、手腕防水 (GoPro 12 防水 10m)、偷拍大人反應、4 台同步錄影混剪。**聖上拍板色票第 6 色 mint** (5 色唯一化後開放兒童視角獨立色票)。**長度 30-40 分鐘**(4 主角分散,內容精簡)。生圖 32 張 (4 張/天 × 8 天,GoPro 簡潔風格)。",
+      dayBlocks: E_DAYS,
+    },
 
-export const SCRIPT_ORDER: Array<keyof typeof SCRIPTS> = ["A", "B", "C", "D"];
+  };
+
+  export const SCRIPT_ORDER: Array<keyof typeof SCRIPTS> = ["A", "B", "C", "D", "E"];
+
+
+
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Color key → CSS class lookup
@@ -2956,6 +3780,7 @@ export const COLOR_VAR: Record<ScriptColorKey, string> = {
   ink: "var(--jn-ink)",
   paper: "var(--jn-paper)",
   blue: "var(--jn-blue)",
+  mint: "var(--jn-mint)",
 };
 
 export const COLOR_BG_CLASS: Record<ScriptColorKey, string> = {
@@ -2964,6 +3789,7 @@ export const COLOR_BG_CLASS: Record<ScriptColorKey, string> = {
   ink: "bg-[var(--jn-ink)]",
   paper: "bg-[var(--jn-paper)]",
   blue: "bg-[var(--jn-blue)]",
+  mint: "bg-[var(--jn-mint)]",
 };
 
 export const COLOR_TEXT_CLASS: Record<ScriptColorKey, string> = {
@@ -2972,6 +3798,7 @@ export const COLOR_TEXT_CLASS: Record<ScriptColorKey, string> = {
   ink: "text-[var(--jn-ink)]",
   paper: "text-[var(--jn-paper)]",
   blue: "text-[var(--jn-blue)]",
+  mint: "text-[var(--jn-mint)]",
 };
 
 export const COLOR_BORDER_CLASS: Record<ScriptColorKey, string> = {
@@ -2980,4 +3807,6 @@ export const COLOR_BORDER_CLASS: Record<ScriptColorKey, string> = {
   ink: "border-[var(--jn-ink)]",
   paper: "border-[var(--jn-paper)]",
   blue: "border-[var(--jn-blue)]",
+  mint: "border-[var(--jn-mint)]",
 };
+
