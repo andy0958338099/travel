@@ -140,9 +140,18 @@ export default function VlogScriptClientPage({
               {script.storyArc}
             </p>
           )}
-          {/* 🆕 整劇本 ZIP 下載按鈕 — 聖上去杭州前一鍵備齊 8 PDF */}
+          {/* 🆕 ZIP 下載 + AI 相冊集按鈕 — 聖上 7-15 拍板 */}
           <div className="mt-6 flex flex-wrap gap-3">
             <ScriptZipDownload scriptId={script.id} scriptName={script.name} />
+            <Link
+              href={`/vlog/${script.id}/gallery`}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[var(--jn-paper)] text-[var(--jn-vermilion)] font-bold text-sm border-2 border-[var(--jn-paper)] hover:bg-[var(--jn-vermilion)] hover:text-[var(--jn-paper)] transition-colors"
+              style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
+            >
+              <span>🖼</span>
+              <span>看 AI 相冊集</span>
+              <span>→</span>
+            </Link>
           </div>
         </div>
         <div className="h-1 bg-gradient-to-r from-amber-300 via-amber-200 to-amber-300" />

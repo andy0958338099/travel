@@ -85,7 +85,20 @@ export default function VlogIndexClientPage() {
         </p>
       </section>
 
-      {/* 4-5 張卡片 — 5 劇本後改 3 欄網格 (4 劇本時 2+2 / 5 劇本時 3+2) */}
+      {/* 🆕 總覽 chip — 5 劇本 AI 相冊總覽入口 (聖上 7-15) */}
+        <div className="text-center mt-6 mb-2">
+          <Link
+            href="/vlog/gallery"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--jn-vermilion)] text-[var(--jn-paper)] text-sm font-bold shadow-md hover:shadow-lg transition-shadow"
+            style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
+          >
+            <span>🖼</span>
+            <span>5 劇本 · 224 張 AI 相冊總覽</span>
+            <span>→</span>
+          </Link>
+        </div>
+
+        {/* 4-5 張卡片 — 5 劇本後改 3 欄網格 (4 劇本時 2+2 / 5 劇本時 3+2) */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {SCRIPT_ORDER.map((id) => {
