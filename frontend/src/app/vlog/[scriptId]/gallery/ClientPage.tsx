@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * /vlog/[scriptId]/gallery — 單劇本 AI 相冊集
+ * /vlog/[scriptId]/gallery — 單劇本照片集
  *
- * 顯示該劇本 8 天所有 AI 生圖（從 data.ts shots 文字抽出）：
+ * 顯示該劇本 8 天所有照片（從 data.ts shots 文字抽出）：
  * - masonry grid (手機 2 欄 / tablet 3 欄 / desktop 4-5 欄)
  * - 每張圖 hover 顯示 day + filename chip
  * - 點圖開 lightbox（上一張/下一張/ESC/點背景關閉）
@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { SCRIPTS, COLOR_VAR } from "@/app/vlog/data";
+import DragDownloadImage from "@/components/DragDownloadImage";
 import {
   parseImagesForScript,
   type GalleryImage,
@@ -92,7 +93,7 @@ export default function ScriptGalleryClientPage({
             className="text-sm tracking-widest opacity-90"
             style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
           >
-            🖼 AI 相冊集
+            🖼 照片集
           </div>
         </div>
         <div className="h-1 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500" />
@@ -119,15 +120,15 @@ export default function ScriptGalleryClientPage({
           <span className="inline-block px-3 py-1 rounded-md text-sm bg-[var(--jn-vermilion)] text-[var(--jn-paper)] align-middle mr-2 shadow">
             🖼
           </span>
-          {script.name} · AI 相冊集
+          {script.name} · 照片集
         </h1>
         <p
           className="text-base sm:text-lg text-[var(--jn-ink)]/80 max-w-2xl mx-auto"
           style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
         >
           {images.length > 0
-            ? `8 天行程、${images.length} 張 AI 生圖。點任一張看大圖與上下張切換。`
-            : "此劇本 AI 相冊集尚未生成（內容待寫）。"}
+            ? `8 天行程、${images.length} 張照片。點任一張看大圖與上下張切換。`
+            : "此劇本照片集尚未生成（內容待寫）。"}
         </p>
       </section>
 
@@ -140,7 +141,7 @@ export default function ScriptGalleryClientPage({
               className="text-lg text-[var(--jn-ink)]/70"
               style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
             >
-              劇本 {script.id} 內容待寫，AI 相冊集稍後補上。
+              劇本 {script.id} 內容待寫，照片集稍後補上。
             </p>
             <Link
               href={`/vlog/${script.id}`}
@@ -193,20 +194,16 @@ function GalleryThumb({
   accentRaw: string;
 }) {
   return (
-    <button
-      onClick={onClick}
-      className="group relative block w-full aspect-square overflow-hidden rounded-xl bg-[var(--jn-paper)] shadow-sm hover:shadow-lg transition-all"
-      aria-label={`Day ${img.day} ${img.filename}`}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+    <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-[var(--jn-paper)] shadow-sm hover:shadow-lg transition-shadow">
+      <DragDownloadImage
         src={img.url}
         alt={`Day ${img.day} - ${img.filename}`}
-        loading="lazy"
-        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        filename={img.filename + ".jpg"}
+        onClick={onClick}
+        imgClassName="group-hover:scale-105 transition-transform duration-300"
       />
       {/* Hover overlay with day + filename */}
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 sm:p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 sm:p-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
         <div
           className="text-[10px] sm:text-xs text-white/90 font-bold tracking-wider"
           style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
@@ -216,7 +213,7 @@ function GalleryThumb({
       </div>
       {/* Day chip (always visible top-left) */}
       <div
-        className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold shadow"
+        className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold shadow z-10 pointer-events-none"
         style={{
           background: accentRaw,
           color: "var(--jn-paper)",
@@ -225,7 +222,7 @@ function GalleryThumb({
       >
         D{img.day}
       </div>
-    </button>
+    </div>
   );
 }
 

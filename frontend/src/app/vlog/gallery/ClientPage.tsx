@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * /vlog/gallery — 5 劇本 AI 相冊集總覽入口
+ * /vlog/gallery — 5 劇本照片集總覽入口
  *
- * 顯示 5 張劇本小卡 + 「看 N 張 AI 相冊」CTA，點進各劇本相冊。
+ * 顯示 5 張劇本小卡 + 「看 N 張照片集」CTA，點進各劇本照片集。
  */
 
 import Link from "next/link";
@@ -35,7 +35,7 @@ export default function GalleryIndexClientPage() {
             className="text-sm tracking-widest opacity-90"
             style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
           >
-            🖼 AI 相冊總覽
+            🖼 照片集總覽
           </div>
         </div>
         <div className="h-1 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500" />
@@ -47,7 +47,7 @@ export default function GalleryIndexClientPage() {
           className="text-sm tracking-[0.3em] text-[var(--jn-vermilion)] mb-3"
           style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
         >
-          VLOG · 5 劇本 · 224 張 AI 生圖
+          VLOG · 5 劇本 · 224 張照片
         </p>
         <h1
           className="text-3xl sm:text-4xl md:text-5xl font-black mb-4"
@@ -60,13 +60,13 @@ export default function GalleryIndexClientPage() {
             color: "transparent",
           }}
         >
-          AI 相冊總覽
+          照片集總覽
         </h1>
         <p
           className="text-base sm:text-lg text-[var(--jn-ink)]/80 max-w-2xl mx-auto"
           style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
         >
-          5 劇本 · 224 張 AI 生圖 · 一頁看完整趟旅程的視覺可能。
+          5 劇本 · 224 張照片 · 一頁看完整趟旅程的視覺可能。
         </p>
       </section>
 
@@ -99,7 +99,24 @@ export default function GalleryIndexClientPage() {
                           src={img.url}
                           alt={`${s.name} 預覽 ${idx + 1}`}
                           loading="lazy"
-                          className="w-full h-full object-cover"
+                          draggable={true}
+                          onDragStart={(e) => {
+                            try {
+                              e.dataTransfer.setData(
+                                "DownloadURL",
+                                `image/jpeg:${img.filename}.jpg:${img.url}`
+                              );
+                            } catch {}
+                            try {
+                              e.dataTransfer.setData("text/uri-list", img.url);
+                            } catch {}
+                            try {
+                              e.dataTransfer.setData("text/plain", img.url);
+                            } catch {}
+                            e.dataTransfer.effectAllowed = "copy";
+                          }}
+                          className="w-full h-full object-cover cursor-grab active:cursor-grabbing"
+                          title="拖到桌面下載"
                         />
                       ))}
                       {/* 若只有 4 張以內, 補空白 */}
@@ -162,7 +179,7 @@ export default function GalleryIndexClientPage() {
                       fontFamily: "var(--font-noto-serif-tc), serif",
                     }}
                   >
-                    看 {images.length > 0 ? images.length : "待寫"} 張 AI 相冊
+                    看 {images.length > 0 ? images.length : "待寫"} 張照片集
                     <span className="transition-transform group-hover:translate-x-1">
                       →
                     </span>

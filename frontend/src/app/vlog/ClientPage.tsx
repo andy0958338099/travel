@@ -85,7 +85,7 @@ export default function VlogIndexClientPage() {
         </p>
       </section>
 
-      {/* 🆕 總覽 chip — 5 劇本 AI 相冊總覽入口 (聖上 7-15) */}
+      {/* 🆕 總覽 chip — 5 劇本照片集總覽入口 (聖上 7-15) */}
         <div className="text-center mt-6 mb-2">
           <Link
             href="/vlog/gallery"
@@ -93,7 +93,7 @@ export default function VlogIndexClientPage() {
             style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
           >
             <span>🖼</span>
-            <span>5 劇本 · 224 張 AI 相冊總覽</span>
+            <span>5 劇本 · 224 張照片集總覽</span>
             <span>→</span>
           </Link>
         </div>

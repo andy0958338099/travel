@@ -15,6 +15,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import PerImageShare from "@/components/PerImageShare";
+import DragDownloadImage from "@/components/DragDownloadImage";
 import DayPdfExport from "./DayPdfExport";
 import ScriptZipDownload from "./ScriptZipDownload";
 import {
@@ -140,7 +141,7 @@ export default function VlogScriptClientPage({
               {script.storyArc}
             </p>
           )}
-          {/* 🆕 ZIP 下載 + AI 相冊集按鈕 — 聖上 7-15 拍板 */}
+          {/* 🆕 ZIP 下載 + 照片集按鈕 — 聖上 7-15 拍板 */}
           <div className="mt-6 flex flex-wrap gap-3">
             <ScriptZipDownload scriptId={script.id} scriptName={script.name} />
             <Link
@@ -149,7 +150,7 @@ export default function VlogScriptClientPage({
               style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
             >
               <span>🖼</span>
-              <span>看 AI 相冊集</span>
+              <span>看照片集</span>
               <span>→</span>
             </Link>
           </div>
@@ -297,7 +298,7 @@ export default function VlogScriptClientPage({
                   <DialogueWithScenes dialogue={d.dialogue} shotsText={d.shots} />
                 </dl>
 
-                {/* 鏡頭腳本 + AI 生圖清單（混合欄位） */}
+                {/* 鏡頭腳本 + 照片清單（混合欄位） */}
                 <ShotsWithAiImages
                   shotsText={d.shots}
                   accentText={accentText}
@@ -362,7 +363,7 @@ function BlockRow({ label, value }: { label: string; value: string }) {
 }
 
 // 鏡頭腳本（純文字版）
-// 注意：AI 生圖清單已搬到對白下方（DialogueWithScenes 配對渲染）
+// 注意：照片清單已搬到對白下方（DialogueWithScenes 配對渲染）
 // 這裡只保留鏡頭腳本文字，圖不再列兩次
 function ShotsWithAiImages({
   shotsText,
@@ -375,7 +376,7 @@ function ShotsWithAiImages({
 }) {
   if (!shotsText || shotsText.startsWith("（待填")) {
     return (
-      <BlockRow label="鏡頭建議 / AI 生圖" value={shotsText} />
+      <BlockRow label="鏡頭建議 / 照片" value={shotsText} />
     );
   }
 
@@ -384,7 +385,7 @@ function ShotsWithAiImages({
   const aiImageCount = { value: 0 };
 
   for (const line of lines) {
-    // 跳過 AI 生圖行（這些圖已在對白下方配對渲染）
+    // 跳過照片行（這些圖已在對白下方配對渲染）
     if (/🖼/.test(line)) {
       aiImageCount.value++;
       continue;
@@ -407,7 +408,7 @@ function ShotsWithAiImages({
           fontFamily: "var(--font-noto-serif-tc), serif",
         }}
       >
-        🎥 鏡頭腳本（{cameraShots.length} 個 shot · {aiImageCount.value} 張 AI 生圖已搬到對白下方）
+        🎥 鏡頭腳本（{cameraShots.length} 個 shot · {aiImageCount.value} 張照片已搬到對白下方）
       </h3>
 
       <div className="space-y-1">
@@ -431,7 +432,7 @@ function ShotsWithAiImages({
 }
 
 // 把對白按「場景」切區塊（每個場景以（xxx）開頭），每個場景內對白
-// + 把 AI 生圖清單 (從 shotsText 解析) 按 timecode 配對到場景
+// + 把照片清單 (從 shotsText 解析) 按 timecode 配對到場景
 // 配對邏輯:
 //   1. 解析 dialogue → sceneBlocks (按 (xxx) 切)
 //   2. 解析 shotsText → aiImages (按 🖼 行切，含 time/model/aspect/src/prompt)
@@ -479,7 +480,7 @@ function DialogueWithScenes({ dialogue, shotsText }: { dialogue: string; shotsTe
   //
   // 改用「順序分組」：
   //   - dialogue 場景按時間軸順序寫（D1~D8 全劇本統一時間軸）
-  //   - shots 內嵌 AI 生圖按時間軸順序排（D1~D8 統一規則）
+  //   - shots 內嵌照片按時間軸順序排（D1~D8 統一規則）
   //   - 場景 i 配對第 [i * M/N .. (i+1) * M/N) 張圖（M=總圖數, N=場景數）
   //   - 即使不完全 1:1，順序本身已對齊時間軸，視覺連貫
   //
@@ -504,7 +505,7 @@ function DialogueWithScenes({ dialogue, shotsText }: { dialogue: string; shotsTe
         className="text-xs uppercase tracking-wider text-[var(--jn-vermilion)]/80 font-semibold mb-3"
         style={{ fontFamily: "var(--font-noto-serif-tc), serif" }}
       >
-        🎬 場景對白（{sceneBlocks.length} 場 · 含 {aiImages.length} 張 AI 生圖）
+        🎬 場景對白（{sceneBlocks.length} 場 · 含 {aiImages.length} 張照片）
       </h3>
       <div className="space-y-4">
         {sceneBlocks.map((scene, i) => {
@@ -530,7 +531,7 @@ function DialogueWithScenes({ dialogue, shotsText }: { dialogue: string; shotsTe
                 {scene.body}
               </div>
 
-              {/* 此場景對應的 AI 生圖（圖片內嵌在場景對白下方） */}
+              {/* 此場景對應的照片（圖片內嵌在場景對白下方） */}
               {scene.images && scene.images.length > 0 && (
                 <div className="mt-3 space-y-2">
                   {scene.images.map((img, j) => (
@@ -549,19 +550,13 @@ function DialogueWithScenes({ dialogue, shotsText }: { dialogue: string; shotsTe
                         </span>
                       </div>
                       {img.src && (
-                        <PerImageShare
+                        <DragDownloadImage
                           src={img.src}
                           alt={img.prompt}
                           filename={`vlog-${img.src.split("/").pop() || "image.jpg"}`}
-                        >
-                          <img
-                            src={img.src}
-                            alt={img.prompt}
-                            className="w-full max-w-md h-auto rounded shadow-sm border border-[var(--jn-ink)]/10"
-                            style={{ aspectRatio: "1/1", objectFit: "cover" }}
-                            loading="lazy"
-                          />
-                        </PerImageShare>
+                          className="relative w-full max-w-md"
+                          imgClassName="w-full aspect-square object-cover rounded shadow-sm border border-[var(--jn-ink)]/10"
+                        />
                       )}
                       <details className="text-[10px] mt-1">
                         <summary className="cursor-pointer text-[var(--jn-blue)] font-semibold select-none hover:underline">
