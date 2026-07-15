@@ -1,26 +1,18 @@
 "use client";
-import { useState } from "react";
 import {
   useHangzhouWeather,
   getWeatherEmoji,
   getWeatherLabel,
-  type SixHourSlot,
 } from "@/hooks/useHangzhouWeather";
 
 export default function WeatherWidget() {
   const { forecast, current, loading, source, fetchedAt } = useHangzhouWeather();
-  // 🅒 7/15: 點擊每日展開 6 小時細分
-  const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
   const isMock = source === "mock";
   const fetchedDate = fetchedAt ? new Date(fetchedAt) : null;
   const fetchedLabel = fetchedDate
     ? `${fetchedDate.getMonth() + 1}/${fetchedDate.getDate()} ${String(fetchedDate.getHours()).padStart(2, "0")}:${String(fetchedDate.getMinutes()).padStart(2, "0")}`
     : "—";
-
-  // 哪些日期有 6 小時細分(對應 Open-Meteo hourly 預報範圍)
-  const hasHourlyData = (day: { slots?: SixHourSlot[] }) =>
-    day.slots && day.slots.length === 4 && day.slots.some((s) => s.tempMin !== 0 || s.tempMax !== 0);
 
   return (
     <div className="space-y-4">
@@ -33,7 +25,7 @@ export default function WeatherWidget() {
               ⚠️ 離線資料
             </span>
           )}
-          <span className="text-gray-500">7月17日 - 7月24日</span>
+          <span className="text-gray-500">7月17日 - 7月24日 · 6 小時細分</span>
         </div>
       </div>
 
@@ -65,117 +57,80 @@ export default function WeatherWidget() {
             </div>
           )}
 
-          {/* 8-Day Forecast — 每日 click 展開 6 小時細分 */}
+          {/* 🅒 7/15 重構: 每日直接展開 6 小時細分, 不用 click toggle
+              - 主列高度降低 (一行日期+天氣+整天 max/min)
+              - 6 小時細分永遠顯示, 緊湊 inline (手機 2x2, 平板 4 欄)
+              - 每段一行: 時段 + emoji + 溫度區間 + 降雨%
+          */}
           <div className="border rounded-lg overflow-hidden">
-            <div className="bg-gray-50 px-4 py-2 font-medium text-sm flex items-center justify-between">
-              <span>📅 八日天氣預報</span>
-              <span className="text-xs text-gray-500 font-normal">
-                點擊每日展開 6 小時細分
-              </span>
+            <div className="bg-gray-50 px-4 py-2 font-medium text-sm">
+              📅 八日天氣預報（每日 6 小時細分）
             </div>
             <div className="divide-y">
-              {forecast.map((day) => {
-                const isExpanded = expandedDate === day.date;
-                const canExpand = hasHourlyData(day);
-                return (
-                  <div key={day.date}>
-                    {/* 主列 — 整天摘要 */}
-                    <button
-                      type="button"
-                      onClick={() => canExpand && setExpandedDate(isExpanded ? null : day.date)}
-                      disabled={!canExpand}
-                      className={`w-full px-4 py-3 flex items-center justify-between text-left ${
-                        canExpand ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
-                      }`}
-                      aria-expanded={isExpanded}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="text-center w-12">
-                          <div className="text-xs text-gray-500">{day.dayName}</div>
-                          <div className="text-sm font-medium">
-                            {Number(day.date.split("-")[1])}/{Number(day.date.split("-")[2])}
-                          </div>
-                        </div>
-                        <span className="text-2xl">{getWeatherEmoji(day.weatherCode)}</span>
-                        <div>
-                          <div className="text-sm text-gray-600">{getWeatherLabel(day.weatherCode)}</div>
-                          {day.precipitation > 0 && (
-                            <div className="text-xs text-blue-500">
-                              💧 {day.precipitation}mm · {day.precipitationProbability}%
-                            </div>
-                          )}
-                          {!canExpand && (
-                            <div className="text-xs text-gray-400 italic mt-0.5">
-                              (無 6 小時細分)
-                            </div>
-                          )}
+              {forecast.map((day) => (
+                <div key={day.date} className="px-4 py-2.5">
+                  {/* 主列 — 整天摘要 */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-3">
+                      <div className="text-center w-10">
+                        <div className="text-[11px] text-gray-500 leading-tight">{day.dayName}</div>
+                        <div className="text-sm font-medium leading-tight">
+                          {Number(day.date.split("-")[1])}/{Number(day.date.split("-")[2])}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 text-sm">
-                        <span className="text-red-500 font-medium">{day.tempMax}°</span>
-                        <span className="text-gray-400">/</span>
-                        <span className="text-blue-500">{day.tempMin}°</span>
-                        {canExpand && (
-                          <span
-                            className={`text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
-                            aria-hidden="true"
-                          >
-                            ▼
-                          </span>
+                      <span className="text-xl">{getWeatherEmoji(day.weatherCode)}</span>
+                      <div>
+                        <div className="text-sm text-gray-700 leading-tight">{getWeatherLabel(day.weatherCode)}</div>
+                        {day.precipitation > 0 && (
+                          <div className="text-[11px] text-blue-600 leading-tight">
+                            整天 💧 {day.precipitation}mm · {day.precipitationProbability}%
+                          </div>
                         )}
                       </div>
-                    </button>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium">
+                      <span className="text-red-500">{day.tempMax}°</span>
+                      <span className="text-gray-300">/</span>
+                      <span className="text-blue-500">{day.tempMin}°</span>
+                    </div>
+                  </div>
 
-                    {/* 🅒 展開的 6 小時細分 */}
-                    {isExpanded && day.slots && (
-                      <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                        <div className="text-xs font-semibold text-gray-700 mb-2">
-                          ⏰ 6 小時細分預報
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {day.slots.map((slot) => (
-                            <div
-                              key={slot.range}
-                              className="bg-white rounded-lg p-2.5 border border-gray-200 text-center"
-                            >
-                              <div className="text-xs font-medium text-gray-700">
-                                {slot.label}
-                              </div>
-                              <div className="text-[10px] text-gray-400 mb-1">
-                                {slot.range}
-                              </div>
-                              <div className="text-2xl mb-1">
-                                {getWeatherEmoji(slot.weatherCode)}
-                              </div>
-                              <div className="text-xs">
-                                <span className="text-red-500 font-semibold">{slot.tempMax}°</span>
-                                <span className="text-gray-400 mx-0.5">/</span>
-                                <span className="text-blue-500">{slot.tempMin}°</span>
-                              </div>
+                  {/* 6 小時細分 — 永遠顯示, 4 段 inline */}
+                  {day.slots && day.slots.length === 4 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      {day.slots.map((slot) => (
+                        <div
+                          key={slot.range}
+                          className="bg-gray-50 rounded px-2 py-1 flex items-center gap-1.5 text-[11px] leading-tight"
+                        >
+                          <span className="text-base">{getWeatherEmoji(slot.weatherCode)}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-1">
+                              <span className="font-medium text-gray-700">{slot.label}</span>
+                              <span className="text-[10px] text-gray-400">{slot.range}</span>
+                            </div>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-red-500 font-semibold">{slot.tempMax}°</span>
+                              <span className="text-gray-300">/</span>
+                              <span className="text-blue-500 font-semibold">{slot.tempMin}°</span>
                               {slot.precipitationProbMax > 0 && (
-                                <div className="text-[10px] text-blue-600 mt-1">
-                                  💧 {slot.precipitationProbMax}%
-                                </div>
-                              )}
-                              {slot.precipitationMm > 0 && (
-                                <div className="text-[10px] text-gray-500">
-                                  {slot.precipitationMm}mm
-                                </div>
+                                <span className="text-blue-600 ml-auto">
+                                  💧{slot.precipitationProbMax}%
+                                </span>
                               )}
                             </div>
-                          ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-gray-400 italic">
+                      （此日期無 6 小時細分預報）
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
-
-          {/* 6 小時細分預報說明 */}
-          <div className="text-xs text-gray-500 text-center italic">
-            💡 點擊每日展開 6 小時細分預報（凌晨 / 上午 / 下午 / 晚上）· 資料來源 Open-Meteo 即時
           </div>
 
           {/* ⚠️ 重要發現 — 7/19-7/20 雷暴+冰雹警示 (2026-07-15 Open-Meteo 實測)
@@ -193,7 +148,10 @@ export default function WeatherWidget() {
             <div className="text-xs text-red-700 space-y-1.5">
               <div className="flex items-start gap-1.5">
                 <span className="font-semibold flex-shrink-0">📅 7/19 週日（D4 烏鎮西柵）：</span>
-                <span>16.5mm 降雨 · <span className="font-bold">97% 機率</span> · 雷暴+冰雹</span>
+                <span>
+                  雷暴集中在 <span className="font-bold">下午 12-18</span>（15.6mm · 97% 機率）·
+                  上午只有 65% 0.6mm
+                </span>
               </div>
               <div className="flex items-start gap-1.5">
                 <span className="font-semibold flex-shrink-0">📅 7/20 週一（D5 烏鎮→杭州）：</span>
