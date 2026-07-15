@@ -5,6 +5,10 @@ import { TIPS, ALL_ATTRACTIONS } from "./data";
 import dynamic from "next/dynamic";
 import ItineraryPlanner from "./ItineraryPlanner";
 import WeatherWidget from "./WeatherWidget";
+import {
+  useHangzhouWeather,
+  getWeatherEmoji,
+} from "@/hooks/useHangzhouWeather";
 import { exportCloudBackup, importCloudBackup } from "@/utils/cloudBackup";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Toast } from "@/components/Toast";
@@ -58,6 +62,15 @@ export default function TravelPage() {
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [budgetData, setBudgetData] = useState({ budget: 50000, spent: 0, percent: 0 });
   const [packingData, setPackingData] = useState({ packed: 0, total: 0 });
+  // 🅒 真實天氣 hook (Open-Meteo) — 共用 fetch cache 給 widget + dashboard 格子
+  // 2026-07-15 對照真實 Open-Meteo 後修正: 之前 hardcoded「30-35°C」是錯的,
+  // 真實 7/17-7/24 是 26-37°C + 6 天有雨(其中 7/19-7/20 是雷暴+冰雹 90-97%)
+  // 抽成 hook 是為了 (1) 不重複打 Open-Meteo API (2) module-level cache 跨元件共享
+  // (3) 30 分鐘 refetch 確保即時預報不過時
+  const {
+    summary: weatherSummary,
+    loading: weatherLoading,
+  } = useHangzhouWeather();
   // Nav state removed: handled by /travel/layout.tsx (TravelLayout).
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 0 | 1 | 2 }>({
@@ -246,16 +259,36 @@ export default function TravelPage() {
             </div>
             {/* Quick Weather */}
             <div className="flex items-center gap-3 px-3 py-2 min-w-[140px] sm:min-w-0 flex-shrink-0">
-              <div className="text-2xl">🌤️</div>
+              <div className="text-2xl">
+                {weatherSummary ? getWeatherEmoji(weatherSummary.dominantWeatherCode) : "🌤️"}
+              </div>
               <div>
                 <div className="text-xs text-gray-500">杭州天氣</div>
-                <div className="font-bold text-sm leading-tight">7/17-7/24</div>
-                <div className="text-xs text-gray-400">高溫 30-35°C</div>
+                <div className="font-bold text-sm leading-tight">
+                  {weatherLoading
+                    ? "載入中..."
+                    : weatherSummary?.rangeLabel ?? "—"}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {weatherSummary
+                    ? `7/17-7/24 · ${weatherSummary.rainyDays}天有雨`
+                    : "7/17-7/24"}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Weather Widget — 移上來,讓用戶一進站就看到完整天氣
+          🅒 2026-07-15: 從底部搬到 dashboard 下方,一進站即可見
+          真實預報取代 hardcoded「30-35°C」(實際 26-37°C,6 天有雨)
+      */}
+      <section id="weather" className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-amber-400">
+          <WeatherWidget />
+        </div>
+      </section>
 
       {/* Sync status + Export / Import JSON */}
       <div className="bg-white border-b">
@@ -432,10 +465,7 @@ export default function TravelPage() {
               </ul>
             </section>
 
-            {/* Weather Widget */}
-            <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-              <WeatherWidget />
-            </section>
+            {/* Weather Widget 已搬到上方,讓用戶進站即可見 */}
 
             {/* Packing Checklist */}
             <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
