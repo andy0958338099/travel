@@ -31,6 +31,28 @@ export interface CurrentWeather {
   windSpeed: number;
 }
 
+// 6 小時細分預報(每日分 4 段: 00-06 / 06-12 / 12-18 / 18-24)
+export interface SixHourSlot {
+  label: string;            // "凌晨" / "上午" / "下午" / "晚上"
+  range: string;            // "00-06"
+  tempMin: number;
+  tempMax: number;
+  weatherCode: number;      // 該段最常見的天氣 code
+  precipitationMm: number;  // 該段累計降雨 mm
+  precipitationProbMax: number; // 該段最高降雨機率 %
+}
+
+export interface DayWeather {
+  date: string;
+  dayName: string;
+  tempMax: number;
+  tempMin: number;
+  weatherCode: number;
+  precipitation: number;
+  precipitationProbability: number;
+  slots?: SixHourSlot[];    // 🅒 7/15: 加 6 小時細分 (僅 Open-Meteo 有 hourly 預報的日期才有)
+}
+
 export interface TripWeatherSummary {
   // 行程 8 天 (7/17-7/24) 統計
   tripTempMin: number; // 整趟最低溫
@@ -92,6 +114,83 @@ function getDayName(dateStr: string): string {
   const date = new Date(dateStr);
   const days = ["週日", "週一", "週二", "週三", "週四", "週五", "週六"];
   return days[date.getDay()];
+}
+
+// 🅒 7/15: 6 小時分段的 label 對應
+const SLOT_DEFS = [
+  { range: "00-06", label: "凌晨" },
+  { range: "06-12", label: "上午" },
+  { range: "12-18", label: "下午" },
+  { range: "18-24", label: "晚上" },
+];
+
+// 從 Open-Meteo hourly 資料 + 目標日期, 聚合出 4 個 6 小時段
+// ⚠️ Open-Meteo 免費 hourly forecast 只到未來 7 天 (2026-07-15 抓的話, 到 7/21 23:00)
+// 行程 7/22-7/24 沒有 hourly 資料, slots 會是 undefined
+function aggregateHourlyToSlots(
+  hourlyTime: string[],
+  hourlyTemp: number[],
+  hourlyCode: number[],
+  hourlyPrecipMm: number[],
+  hourlyPrecipProb: number[],
+  targetDate: string,
+): SixHourSlot[] {
+  const slots: SixHourSlot[] = SLOT_DEFS.map((def) => ({
+    label: def.label,
+    range: def.range,
+    tempMin: Infinity,
+    tempMax: -Infinity,
+    weatherCode: 0,
+    precipitationMm: 0,
+    precipitationProbMax: 0,
+  }));
+
+  // 該日期對應的 code 計數(取眾數)
+  const codeCounts: Record<number, number>[] = SLOT_DEFS.map(() => ({}));
+
+  for (let i = 0; i < hourlyTime.length; i++) {
+    const t = hourlyTime[i]; // "2026-07-17T03:00"
+    if (!t.startsWith(targetDate)) continue;
+    const hour = parseInt(t.slice(11, 13), 10); // 0-23
+    const slotIdx = Math.min(3, Math.floor(hour / 6)); // 0=00-06, 1=06-12, 2=12-18, 3=18-24
+
+    const slot = slots[slotIdx];
+    slot.tempMin = Math.min(slot.tempMin, hourlyTemp[i]);
+    slot.tempMax = Math.max(slot.tempMax, hourlyTemp[i]);
+    slot.precipitationMm += hourlyPrecipMm[i] || 0;
+    slot.precipitationProbMax = Math.max(
+      slot.precipitationProbMax,
+      hourlyPrecipProb[i] || 0,
+    );
+    const c = hourlyCode[i];
+    codeCounts[slotIdx][c] = (codeCounts[slotIdx][c] || 0) + 1;
+  }
+
+  // 決定每段眾數 weather code + 處理完全無資料的時段(把 Infinity 改回 0)
+  for (let i = 0; i < slots.length; i++) {
+    const slot = slots[i];
+    if (slot.tempMin === Infinity) {
+      // 該段沒資料(罕見), 用整天 max/min 代替
+      slot.tempMin = 0;
+      slot.tempMax = 0;
+    } else {
+      slot.tempMin = Math.round(slot.tempMin);
+      slot.tempMax = Math.round(slot.tempMax);
+    }
+    // 眾數
+    let topCode = 0;
+    let topCount = -1;
+    for (const [c, cnt] of Object.entries(codeCounts[i])) {
+      if (cnt > topCount) {
+        topCount = cnt;
+        topCode = Number(c);
+      }
+    }
+    slot.weatherCode = topCode;
+    slot.precipitationMm = Math.round(slot.precipitationMm * 10) / 10; // 1 位小數
+  }
+
+  return slots;
 }
 
 function buildSummary(forecast: DayWeather[]): TripWeatherSummary {
@@ -184,8 +283,12 @@ async function fetchFromOpenMeteo(): Promise<WeatherCacheEntry> {
     `https://api.open-meteo.com/v1/forecast?latitude=${HANGZHOU_COORDS.lat}` +
     `&longitude=${HANGZHOU_COORDS.lng}` +
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max` +
+    // 🅒 7/15: 加 hourly 給 6 小時細分預報用
+    // ⚠️ Open-Meteo 預設 hourly 只給 7 天, 但 forecast_days=14 拿得到 14 天 hourly
+    // 顯式 forecast_hours=240 (10 天) 確保 7/17-7/24 全部 8 天都有 hourly
+    `&hourly=temperature_2m,weather_code,precipitation,precipitation_probability` +
     `&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m` +
-    `&timezone=Asia%2FShanghai&forecast_days=14`;
+    `&timezone=Asia%2FShanghai&forecast_days=14&forecast_hours=240`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Open-Meteo HTTP ${res.status}`);
   const data = await res.json();
@@ -196,15 +299,30 @@ async function fetchFromOpenMeteo(): Promise<WeatherCacheEntry> {
   for (let i = 0; i < data.daily.time.length; i++) {
     const date = new Date(data.daily.time[i]);
     if (date >= tripStart && date <= tripEnd) {
+      const dayDate = data.daily.time[i];
+      // 組裝 6 小時細分 (如果有 hourly 資料)
+      const slots =
+        data.hourly && data.hourly.time
+          ? aggregateHourlyToSlots(
+              data.hourly.time,
+              data.hourly.temperature_2m,
+              data.hourly.weather_code,
+              data.hourly.precipitation ?? [],
+              data.hourly.precipitation_probability ?? [],
+              dayDate,
+            )
+          : undefined;
+
       forecast.push({
-        date: data.daily.time[i],
-        dayName: getDayName(data.daily.time[i]),
+        date: dayDate,
+        dayName: getDayName(dayDate),
         tempMax: Math.round(data.daily.temperature_2m_max[i]),
         tempMin: Math.round(data.daily.temperature_2m_min[i]),
         weatherCode: data.daily.weather_code[i],
         precipitation: data.daily.precipitation_sum[i] ?? 0,
         precipitationProbability:
           data.daily.precipitation_probability_max?.[i] ?? 0,
+        slots,
       });
     }
   }

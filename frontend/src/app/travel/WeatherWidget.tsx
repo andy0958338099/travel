@@ -1,18 +1,26 @@
 "use client";
+import { useState } from "react";
 import {
   useHangzhouWeather,
   getWeatherEmoji,
   getWeatherLabel,
+  type SixHourSlot,
 } from "@/hooks/useHangzhouWeather";
 
 export default function WeatherWidget() {
   const { forecast, current, loading, source, fetchedAt } = useHangzhouWeather();
+  // 🅒 7/15: 點擊每日展開 6 小時細分
+  const [expandedDate, setExpandedDate] = useState<string | null>(null);
 
   const isMock = source === "mock";
   const fetchedDate = fetchedAt ? new Date(fetchedAt) : null;
   const fetchedLabel = fetchedDate
     ? `${fetchedDate.getMonth() + 1}/${fetchedDate.getDate()} ${String(fetchedDate.getHours()).padStart(2, "0")}:${String(fetchedDate.getMinutes()).padStart(2, "0")}`
     : "—";
+
+  // 哪些日期有 6 小時細分(對應 Open-Meteo hourly 預報範圍)
+  const hasHourlyData = (day: { slots?: SixHourSlot[] }) =>
+    day.slots && day.slots.length === 4 && day.slots.some((s) => s.tempMin !== 0 || s.tempMax !== 0);
 
   return (
     <div className="space-y-4">
@@ -57,37 +65,117 @@ export default function WeatherWidget() {
             </div>
           )}
 
-          {/* 8-Day Forecast */}
+          {/* 8-Day Forecast — 每日 click 展開 6 小時細分 */}
           <div className="border rounded-lg overflow-hidden">
-            <div className="bg-gray-50 px-4 py-2 font-medium text-sm">📅 八日天氣預報</div>
-            <div className="divide-y">
-              {forecast.map((day) => (
-                <div key={day.date} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div className="text-center w-12">
-                      <div className="text-xs text-gray-500">{day.dayName}</div>
-                      <div className="text-sm font-medium">
-                        {Number(day.date.split("-")[1])}/{Number(day.date.split("-")[2])}
-                      </div>
-                    </div>
-                    <span className="text-2xl">{getWeatherEmoji(day.weatherCode)}</span>
-                    <div>
-                      <div className="text-sm text-gray-600">{getWeatherLabel(day.weatherCode)}</div>
-                      {day.precipitation > 0 && (
-                        <div className="text-xs text-blue-500">
-                          💧 {day.precipitation}mm · {day.precipitationProbability}%
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-red-500 font-medium">{day.tempMax}°</span>
-                    <span className="text-gray-400">/</span>
-                    <span className="text-blue-500">{day.tempMin}°</span>
-                  </div>
-                </div>
-              ))}
+            <div className="bg-gray-50 px-4 py-2 font-medium text-sm flex items-center justify-between">
+              <span>📅 八日天氣預報</span>
+              <span className="text-xs text-gray-500 font-normal">
+                點擊每日展開 6 小時細分
+              </span>
             </div>
+            <div className="divide-y">
+              {forecast.map((day) => {
+                const isExpanded = expandedDate === day.date;
+                const canExpand = hasHourlyData(day);
+                return (
+                  <div key={day.date}>
+                    {/* 主列 — 整天摘要 */}
+                    <button
+                      type="button"
+                      onClick={() => canExpand && setExpandedDate(isExpanded ? null : day.date)}
+                      disabled={!canExpand}
+                      className={`w-full px-4 py-3 flex items-center justify-between text-left ${
+                        canExpand ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
+                      }`}
+                      aria-expanded={isExpanded}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-center w-12">
+                          <div className="text-xs text-gray-500">{day.dayName}</div>
+                          <div className="text-sm font-medium">
+                            {Number(day.date.split("-")[1])}/{Number(day.date.split("-")[2])}
+                          </div>
+                        </div>
+                        <span className="text-2xl">{getWeatherEmoji(day.weatherCode)}</span>
+                        <div>
+                          <div className="text-sm text-gray-600">{getWeatherLabel(day.weatherCode)}</div>
+                          {day.precipitation > 0 && (
+                            <div className="text-xs text-blue-500">
+                              💧 {day.precipitation}mm · {day.precipitationProbability}%
+                            </div>
+                          )}
+                          {!canExpand && (
+                            <div className="text-xs text-gray-400 italic mt-0.5">
+                              (無 6 小時細分)
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="text-red-500 font-medium">{day.tempMax}°</span>
+                        <span className="text-gray-400">/</span>
+                        <span className="text-blue-500">{day.tempMin}°</span>
+                        {canExpand && (
+                          <span
+                            className={`text-gray-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                            aria-hidden="true"
+                          >
+                            ▼
+                          </span>
+                        )}
+                      </div>
+                    </button>
+
+                    {/* 🅒 展開的 6 小時細分 */}
+                    {isExpanded && day.slots && (
+                      <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+                        <div className="text-xs font-semibold text-gray-700 mb-2">
+                          ⏰ 6 小時細分預報
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {day.slots.map((slot) => (
+                            <div
+                              key={slot.range}
+                              className="bg-white rounded-lg p-2.5 border border-gray-200 text-center"
+                            >
+                              <div className="text-xs font-medium text-gray-700">
+                                {slot.label}
+                              </div>
+                              <div className="text-[10px] text-gray-400 mb-1">
+                                {slot.range}
+                              </div>
+                              <div className="text-2xl mb-1">
+                                {getWeatherEmoji(slot.weatherCode)}
+                              </div>
+                              <div className="text-xs">
+                                <span className="text-red-500 font-semibold">{slot.tempMax}°</span>
+                                <span className="text-gray-400 mx-0.5">/</span>
+                                <span className="text-blue-500">{slot.tempMin}°</span>
+                              </div>
+                              {slot.precipitationProbMax > 0 && (
+                                <div className="text-[10px] text-blue-600 mt-1">
+                                  💧 {slot.precipitationProbMax}%
+                                </div>
+                              )}
+                              {slot.precipitationMm > 0 && (
+                                <div className="text-[10px] text-gray-500">
+                                  {slot.precipitationMm}mm
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 6 小時細分預報說明 */}
+          <div className="text-xs text-gray-500 text-center italic">
+            💡 點擊每日展開 6 小時細分預報（凌晨 / 上午 / 下午 / 晚上）· 資料來源 Open-Meteo 即時
           </div>
 
           {/* ⚠️ 重要發現 — 7/19-7/20 雷暴+冰雹警示 (2026-07-15 Open-Meteo 實測)
