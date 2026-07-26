@@ -347,8 +347,10 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
 
       {/* Itinerary List */}
       <div className="space-y-3">
-        {itinerary.map((day) => (
-          <div key={day.day} className="border rounded-lg overflow-hidden">
+        {itinerary.map((day, dayIndex) => (
+          // 🆕 2026-07-26 修 React duplicate key 警告 (聖上雲端 itinerary 有重複的 D1/D2, 例如貼上文字匯入時 day 行被重複匹配)
+          // 複合 key = index + day,確保唯一性
+          <div key={`${dayIndex}-${day.day}`} className="border rounded-lg overflow-hidden">
             {/* Day Header */}
             <div
               className={`p-3 sm:p-4 ${editingDay === day.day ? "bg-teal-50" : "bg-gray-50"}`}
@@ -432,8 +434,9 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
                 </div>
                 <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
                   {(day.attractions || []).map((attraction, attrIndex) => (
+                    // 🆕 2026-07-26 複合 key = dayIndex + attrIndex,避免同 day 內 attraction 名稱重複
                     <div
-                      key={attraction}
+                      key={`${dayIndex}-${attrIndex}-${attraction}`}
                       draggable
                       onDragStart={() => handleDragStart(day.day, attrIndex)}
                       onDragOver={(e) => handleDragOver(e, attrIndex)}
@@ -496,9 +499,10 @@ export default function ItineraryPlanner({ onUpdateAttractions }: ItineraryPlann
                       autoFocus
                     />
                     <div className="max-h-40 overflow-y-auto space-y-1">
-                      {matchedAttractions.map(attr => (
+                      {matchedAttractions.map((attr, matchIndex) => (
                         <button
-                          key={attr.name}
+                          // 🆕 2026-07-26 複合 key = dayIndex + matchIndex,避免跨 day 同名 attraction 重複
+                          key={`${dayIndex}-${matchIndex}-${attr.name}`}
                           onClick={() => {
                             setItinerary(prev => prev.map(d => {
                               if (d.day === day.day && !d.attractions.includes(attr.name)) {

@@ -28,14 +28,8 @@ const DynamicAttractionsMap = dynamic(() => import("./AttractionsMap"), {
   ),
 });
 
-const DynamicPackingChecklist = dynamic(() => import("./PackingChecklist"), {
-  ssr: false,
-  loading: () => (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className="text-gray-500">行李清單載入中...</div>
-    </div>
-  ),
-});
+// 🆕 2026-07-26 聖上拍板: packing 搬到 /travel/prepare,主頁 sidebar 不再重複顯示
+// (原 DynamicPackingChecklist 已移除,避免一魚三吃)
 
 const DynamicPdfExporter = dynamic(() => import("./PdfExporter"), {
   ssr: false,
@@ -467,10 +461,24 @@ export default function TravelPage() {
 
             {/* Weather Widget 已搬到上方,讓用戶進站即可見 */}
 
-            {/* Packing Checklist */}
-            <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
-              <DynamicPackingChecklist />
-            </section>
+            {/* 🆕 2026-07-26 Packing 搬到 /travel/prepare — sidebar 改用連結卡取代 */}
+            <Link
+              href="/travel/prepare#packing"
+              className="block bg-white rounded-xl shadow-sm p-4 sm:p-6 hover:shadow-md transition-all border-l-4 border-[var(--jn-ink)] group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="text-2xl sm:text-3xl">🧳</div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-sm sm:text-base text-stone-900 group-hover:text-red-700 transition-colors">
+                    行李準備清單
+                  </div>
+                  <div className="text-xs text-stone-500 mt-0.5">
+                    42 項 · 雲端同步 · 點此查看完整 checklist
+                  </div>
+                </div>
+                <span className="text-stone-400 group-hover:text-red-700 transition-colors">→</span>
+              </div>
+            </Link>
 
           </div>
         </div>

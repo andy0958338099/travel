@@ -72,3 +72,10 @@ regen_*.py
 scripts/batch_*.py
 scripts/batch_repair_*.py
 .git.backup-pre-filter/
+
+# 🆕 2026-07-26 聖上拍板: 8 天 7 夜相簿系統 (photo-album page)
+# - 855MB 本地預覽圖, build-time 重新產, 不入 git
+# - 暫存腳本, 不入 git
+# - new takeout 處理腳本 (含 .mjs 副檔), 全部 commit
+frontend/public/photos-previews/
+frontend/scripts/.tmp-*.mjs

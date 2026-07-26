@@ -26,7 +26,6 @@ export interface NavItem {
 export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'planner',     label: '🗓️ 行程規劃器',  href: '/travel/planner'     },
   { key: 'attractions', label: '📷 景點寫真',     href: '/travel/attractions' },
-  { key: 'sim-guide',   label: '📶 陸旅通訊',     href: '/travel/sim-guide'   },
   { key: 'journal',     label: '📖 旅程日誌',     href: '/travel/journal'     },
   { key: 'stories',     label: '📚 地理歷史',     href: '/travel/stories'     },
   // 🆕 2026-07-03 聖上拍板: Q版漫畫編輯器 + 圖鑑全刪掉 (太 Q 版)
@@ -34,11 +33,11 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'gufeng-zhenren', label: '🎎 古風寫真',    href: '/travel/gufeng-zhenren' },
   { key: 'room-tour',      label: '🏨 Room Tour',    href: '/travel/room-tour'      },
   { key: 'videos',      label: '🎬 影片分享牆',   href: '/travel/videos'      },
-  { key: 'dining',      label: '🍜 餐食評論',     href: '/travel/dining'      },
+  // 🆕 2026-07-26 聖上拍板: 刪 dining + apple-watch-s11,加 prepare + photo-album
+  // sim-guide/payment-guide/toilet-tour 收進 /travel/prepare 但保留 subpage (deep link + SEO)
   { key: 'foodie-stops', label: '🧋 網紅名店',     href: '/travel/foodie-stops' },
-  { key: 'payment-guide', label: '💴 換匯/支付',  href: '/travel/payment-guide' },
-  { key: 'toilet-tour', label: '🚻 Toilet Tour',  href: '/travel/toilet-tour' },
-  { key: 'apple-watch-s11', label: '⌚ Apple Watch S11 攻略',  href: '/travel/apple-watch-s11' },
+  { key: 'prepare',        label: '⌚ 行前須知',     href: '/travel/prepare'        },
+  { key: 'photo-album',    label: '📷 旅程照片集',   href: '/travel/photo-album'    },
   // 🆕 2026-07-11 Vlog 劇本 4 選 1 — /vlog 入口（不在 /travel 子樹，共用聖上的 nav）
   { key: 'vlog',            label: '🎬 Vlog 劇本 4 選 1',  href: '/vlog' },
 ];

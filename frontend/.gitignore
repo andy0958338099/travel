@@ -56,3 +56,5 @@ next-env.d.ts
 # 注意: 之後改 vlog data.ts 要本機重跑 `npm run vlog-pdfs` 然後 commit
 /public/vlog-pdfs/.gitkeep
 # /public/vlog-pdfs/*.pdf ← 不排除, commit 進去
+
+# 確保最後有換行
