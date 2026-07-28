@@ -58,3 +58,4 @@ next-env.d.ts
 # /public/vlog-pdfs/*.pdf ← 不排除, commit 進去
 
 # 確保最後有換行
+.hermes/

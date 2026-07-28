@@ -13,47 +13,33 @@
  *     → 聖上 exiftool 匯出 CSV → scripts/import-photos-from-csv.mjs
  *     → Supabase travel_photo_meta → 這頁從 Supabase 拉 metadata 顯示
  *
- * 5 個新區塊:
- *   B. 🗺️ EXIF 時空軸地圖 (leaflet + day 顏色 marker)
- *   C. 📊 互動統計排行 (top 10 rank = likes×0.7 + views×0.3)
- *   D. 👥 13 位團員 filter chip
- *   E. ⏱️ 時間軸 slider (D1-D8 × 凌晨/上午/中午/下午/晚上)
- *   F. 🛡️ EXIF 完整性規範
+ * 🆕 2026-07-27 簡化: 砍掉地圖 + 排行, 只留 3 個區塊
+ *   A. ⏱️ 日期篩選 (filter bar)
+ *   B. 🖼️ 相片集 (GallerySection, 4×4 grid, 16 張/頁)
+ *   C. 🛡️ EXIF 完整性規範
  */
 
-import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "@/components/GlobalToastHost";
 import GallerySection from "./GallerySection";
 import {
   fetchAllPhotos,
-  fetchTopRankedPhotos,
-  fetchPhotosByUploader,
-  fetchPhotosByTimeSlot,
   fetchLikedPhotoIds,
   toggleLike,
   recordView,
-  TEAM_MEMBERS,
+  updatePhotoDay,
+  deletePhoto,
+  uploadPhotoFromFile,
   type TravelPhoto,
-  type TeamMember,
   DAY_TITLES,
   DAY_RANGES,
-  HOUR_BUCKETS,
   DAY_COLOR,
 } from "@/utils/travelPhotos";
 
-// 🆕 2026-07-26 聖上拍板: 用 next/dynamic + ssr:false 載 ExifMap
-//   - 原因: SSR prerender 時 leaflet / react-leaflet 內部 reference window
-//   - 聖上之前報 "Map container is being reused" 的 leaflet race 已透過
-//     ClientPage 條件式渲染 (filteredPhotos.length === 0 ? 不渲染地圖) 避開
-const DynamicMap = dynamic(() => import("./ExifMap").then((m) => m.default), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[400px] bg-stone-100 rounded-xl flex items-center justify-center text-stone-500">
-      🗺️ 時空軸地圖載入中…
-    </div>
-  ),
-});
+// 🆕 2026-07-27 聖上拍板: 砍掉「時空軸地圖」+「互動統計排行」, 只留「相片集」
+//   - 原 DynamicMap + ExifMap.tsx + 排行 section 全刪
+//   - fetchTopRankedPhotos import 不再使用
+//   - 整理: 頁面從 5 大區塊縮到 3 大區塊 (相簿封面 + 日期篩選 + 相片集)
 
 // ── Google 相簿 URL ─────────────────────────────────────────────────────────
 const ALBUM_URL =
@@ -64,33 +50,46 @@ const COVER_IMAGE =
 
 export default function PhotoAlbumPage() {
   const [allPhotos, setAllPhotos] = useState<TravelPhoto[]>([]);
-  const [topRanked, setTopRanked] = useState<TravelPhoto[]>([]);
+  // 🆕 2026-07-27 砍掉 topRanked state (排行已刪)
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   // 🆕 2026-07-26 預設選 D1 (避免 fitBounds 把所有 day marker 疊在一起)
   const [selectedDay, setSelectedDay] = useState<number | "all">(1);
-  const [selectedBucket, setSelectedBucket] = useState<string>("all");
-  const [selectedUploader, setSelectedUploader] = useState<
-    TeamMember | "all"
-  >("all");
+  // 🆕 2026-07-27 聖上拍板: 砍掉「時段 Hour Bucket」+「團員 Uploader」兩個 filter 維度
+  //   - 只保留「日期 Day」一個維度,UX 簡化
+  //   - 原 selectedBucket + selectedUploader state 刪除
   const [loading, setLoading] = useState(true);
-  // 🆕 2026-07-26 當前地圖點選的 cluster (給 GallerySection 顯示 8 張大圖)
+  // 🆕 2026-07-27 當 day chip 切換, 自動把整個 filteredPhotos 餵給 GallerySection
+  // (GallerySection 內部 PAGE_SIZE=12 自動分頁, 不要在這裡 slice)
   const [selectedClusterPhotos, setSelectedClusterPhotos] = useState<
     TravelPhoto[] | null
   >(null);
+  // 🆕 2026-07-27 拖曳中: 記住正在拖的 photoId 跟目標 day, 給 chip 視覺反饋
+  const [draggingPhotoId, setDraggingPhotoId] = useState<string | null>(null);
+  const [dragOverDay, setDragOverDay] = useState<number | "all" | "trash" | null>(null);
+  // 🆕 2026-07-27 拖到 🗑️ 垃圾筒 → 確認 modal (危險操作)
+  const [pendingDelete, setPendingDelete] = useState<{ photoId: string; filename: string } | null>(null);
+  // 🆕 2026-07-27 上傳照片 drop zone: 拖檔案到本頁時的視覺反饋
+  const [isUploadDragging, setIsUploadDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number; errors: string[] }>({ done: 0, total: 0, errors: [] });
+  // 🆕 2026-07-27 本機路徑 import (server-side, 給路徑讓 server 讀 + 抽 EXIF)
+  const [isPathModalOpen, setIsPathModalOpen] = useState(false);
+  const [pathInput, setPathInput] = useState("");
+  const [isPathImporting, setIsPathImporting] = useState(false);
+  const [pathResults, setPathResults] = useState<{ path: string; ok: boolean; day?: number; hour?: number; error?: string }[]>([]);
 
   // ── Initial load: 全部 + top 10 + 已讚清單 ─────────────────────────────
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const [all, top, liked] = await Promise.all([
+      // 🆕 2026-07-27 砍掉 fetchTopRankedPhotos, 不再需要 top 10 排行
+      const [all, liked] = await Promise.all([
         fetchAllPhotos(),
-        fetchTopRankedPhotos(10),
         fetchLikedPhotoIds(),
       ]);
       if (cancelled) return;
       setAllPhotos(all);
-      setTopRanked(top);
       setLikedIds(liked);
       setLoading(false);
     })();
@@ -99,31 +98,23 @@ export default function PhotoAlbumPage() {
     };
   }, []);
 
-  // ── 計算目前顯示的照片(過濾後) ─────────────────────────────────────────
+  // ── 計算目前顯示的照片(過濾後) — 2026-07-27 砍掉時段/團員,只保留日期 ──
   const filteredPhotos = useMemo(() => {
     if (allPhotos.length === 0) return [];
     return allPhotos.filter((p) => {
       if (selectedDay !== "all" && p.day !== selectedDay) return false;
-      if (selectedUploader !== "all" && p.uploader_name !== selectedUploader)
-        return false;
-      if (selectedBucket !== "all") {
-        const bucket = HOUR_BUCKETS.find((b) => b.label === selectedBucket);
-        if (bucket && (p.hour < bucket.range[0] || p.hour > bucket.range[1]))
-          return false;
-      }
       return true;
     });
-  }, [allPhotos, selectedDay, selectedBucket, selectedUploader]);
+  }, [allPhotos, selectedDay]);
 
   // 🆕 2026-07-26 當 chip 改 filter, 自動把整個 filteredPhotos 餵給 GallerySection
-  // (GallerySection 內部 PAGE_SIZE=8 自動分頁, 不要在這裡 slice)
+  // (GallerySection 內部 PAGE_SIZE=16 自動分頁, 不要在這裡 slice)
   useEffect(() => {
     setSelectedClusterPhotos(filteredPhotos.length > 0 ? filteredPhotos : null);
   }, [filteredPhotos]);
 
-  // ── 統計 ────────────────────────────────────────────────────────────────
+  // ── 統計 (🆕 2026-07-27 砍掉 withGPS, 地圖已刪不需要) ─────────────────────
   const stats = useMemo(() => {
-    const photosWithGPS = allPhotos.filter((p) => p.lat !== null).length;
     const totalLikes = allPhotos.reduce((sum, p) => sum + p.likes_count, 0);
     const totalViews = allPhotos.reduce((sum, p) => sum + p.views_count, 0);
     const uploaderSet = new Set(
@@ -131,7 +122,6 @@ export default function PhotoAlbumPage() {
     );
     return {
       total: allPhotos.length,
-      withGPS: photosWithGPS,
       uploaders: uploaderSet.size,
       totalLikes,
       totalViews,
@@ -151,9 +141,7 @@ export default function PhotoAlbumPage() {
     setAllPhotos((prev) =>
       prev.map((p) => (p.id === photoId ? { ...p, likes_count: likesCount } : p))
     );
-    setTopRanked((prev) =>
-      prev.map((p) => (p.id === photoId ? { ...p, likes_count: likesCount } : p))
-    );
+    // 🆕 2026-07-27 砍掉 setTopRanked (排行已刪)
   }
 
   function copyShareLink() {
@@ -163,8 +151,241 @@ export default function PhotoAlbumPage() {
       .catch(() => toast.error("複製失敗,請手動選取"));
   }
 
+  // 🆕 2026-07-27 聖上拍板: 拖曳照片到 day chip 改分類
+  //   - target day: 1-8 ("all" 不處理, 拖到「全部 8 天」不做事)
+  //   - 樂觀更新: local allPhotos 立即改 day, API 失敗才 revert
+  //   - Supabase PATCH: updatePhotoDay → travel_photo_meta.day
+  // 🆕 2026-07-27 + "trash" 觸發 pendingDelete modal
+  async function handleDropToDay(
+    targetDay: number | "all" | "trash",
+    photoId: string | null
+  ) {
+    // 拖到 🗑️ 垃圾筒 → 跳確認 modal (不直接刪)
+    if (targetDay === "trash" && photoId) {
+      const photo = allPhotos.find((p) => p.id === photoId);
+      setPendingDelete({ photoId, filename: photo?.filename || photoId });
+      setDraggingPhotoId(null);
+      setDragOverDay(null);
+      return;
+    }
+    if (targetDay === "all" || !photoId) {
+      setDraggingPhotoId(null);
+      setDragOverDay(null);
+      return;
+    }
+    // 🆕 2026-07-27 TS narrow: 用 type guard 確認到這裡是 number
+    if (typeof targetDay !== "number") {
+      setDraggingPhotoId(null);
+      setDragOverDay(null);
+      return;
+    }
+    const newDay = targetDay;
+    const prev = allPhotos.find((p) => p.id === photoId);
+    if (!prev || prev.day === newDay) {
+      setDraggingPhotoId(null);
+      setDragOverDay(null);
+      return;
+    }
+    // 樂觀更新
+    setAllPhotos((all) =>
+      all.map((p) => (p.id === photoId ? { ...p, day: newDay } : p))
+    );
+    setSelectedClusterPhotos((sel) =>
+      sel ? sel.map((p) => (p.id === photoId ? { ...p, day: newDay } : p)) : sel
+    );
+    setDraggingPhotoId(null);
+    setDragOverDay(null);
+    // 寫 Supabase
+    const result = await updatePhotoDay(photoId, newDay);
+    if (!result.ok) {
+      // revert
+      setAllPhotos((all) =>
+        all.map((p) => (p.id === photoId ? { ...p, day: prev.day } : p))
+      );
+      setSelectedClusterPhotos((sel) =>
+        sel ? sel.map((p) => (p.id === photoId ? { ...p, day: prev.day } : p)) : sel
+      );
+      toast.error(`改 day 失敗: ${result.error}`);
+    } else {
+      toast.success(`已移到 D${newDay} · ${DAY_TITLES[newDay - 1]}`);
+    }
+  }
+
+  // 🆕 2026-07-27 確認刪除 → DELETE from Supabase + 從 local state 拿掉
+  async function handleDeleteConfirm() {
+    if (!pendingDelete) return;
+    const { photoId, filename } = pendingDelete;
+    setPendingDelete(null);
+    // 樂觀刪除 (從 local state 拿掉)
+    setAllPhotos((all) => all.filter((p) => p.id !== photoId));
+    setSelectedClusterPhotos((sel) => sel ? sel.filter((p) => p.id !== photoId) : sel);
+    setDraggingPhotoId(null);
+    setDragOverDay(null);
+    const result = await deletePhoto(photoId);
+    if (!result.ok) {
+      // 失敗 — 不 revert (因為不知道原本資料細節, 重新 fetch 比較安全)
+      toast.error(`刪除失敗: ${result.error} (請重新整理)`);
+    } else {
+      toast.success(`已永久刪除 ${filename}`);
+    }
+  }
+
+  // 🆕 2026-07-27 聖上拍板: 從 Google 相簿下載原檔後, 拖到本頁 → client 端抽 EXIF → 上傳 + 寫 DB
+  //   - 接受 HEIC / JPG / PNG (Google 原始下載)
+  //   - 一次可拖多張
+  //   - 進度條 + 錯誤訊息顯示
+  async function handleFileUpload(files: FileList | File[]) {
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+    setIsUploading(true);
+    setUploadProgress({ done: 0, total: fileArray.length, errors: [] });
+    let successCount = 0;
+    const errors: string[] = [];
+    for (const file of fileArray) {
+      const result = await uploadPhotoFromFile(file);
+      if (result.ok) {
+        successCount++;
+        // 加入 local state (讓相片集立刻顯示)
+        if (result.photoId) {
+          setAllPhotos((prev) => [
+            ...prev,
+            {
+              id: result.photoId!,
+              filename: result.filename!,
+              day: result.day!,
+              hour: result.hour!,
+              google_drive_url: null,
+              google_photos_thumb_url: null,
+              datetime_original: "",
+              lat: null,
+              lng: null,
+              location_name: null,
+              uploader_id: null,
+              uploader_name: null,
+              caption: null,
+              likes_count: 0,
+              views_count: 0,
+              rank_score: 0,
+              created_at: new Date().toISOString(),
+            } as TravelPhoto,
+          ]);
+        }
+      } else {
+        errors.push(`${file.name}: ${result.error}`);
+      }
+      setUploadProgress((p) => ({ ...p, done: p.done + 1, errors }));
+    }
+    setIsUploading(false);
+    setIsUploadDragging(false);
+    if (successCount > 0) {
+      toast.success(`✅ 成功上傳 ${successCount} 張${errors.length ? ` (${errors.length} 失敗)` : ""}`);
+    } else {
+      toast.error(`上傳全部失敗, 請看 toast 訊息`);
+    }
+  }
+
+  // 🆕 2026-07-27 聖上拍板: 給本機檔案路徑 → server 讀 + 抽 EXIF + 上傳 Supabase
+  //   - localhost dev server 跑得通 (server 讀聖上 Mac 檔案)
+  //   - 部署後失效 (Netlify serverless 讀不到 Mac)
+  async function handlePathImport() {
+    if (!pathInput.trim()) return;
+    // 解析路徑: 一行一個, 支援逗號/分號/空白分隔
+    const paths = pathInput
+      .split(/[\n,;\s]+/)
+      .map(p => p.trim().replace(/^["']|["']$/g, ""))  // 去引號
+      .filter(p => p.length > 0);
+    if (paths.length === 0) {
+      toast.error("沒有有效的路徑");
+      return;
+    }
+    if (paths.length > 50) {
+      toast.error("一次最多 50 個檔案");
+      return;
+    }
+    setIsPathImporting(true);
+    setPathResults([]);
+    try {
+      const r = await fetch("/api/import-photo-from-path", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paths }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        toast.error(`Server 失敗: ${data.error || r.statusText}`);
+        setPathResults([]);
+        return;
+      }
+      setPathResults(data.results || []);
+      const success = (data.results || []).filter((r: any) => r.ok).length;
+      const failed = (data.results || []).filter((r: any) => !r.ok).length;
+      if (success > 0) {
+        toast.success(`✅ 從本機匯入 ${success} 張${failed ? ` (${failed} 失敗)` : ""}`);
+        // 把成功的加到 local state
+        for (const r of (data.results || []).filter((x: any) => x.ok)) {
+          setAllPhotos((prev) => [
+            ...prev,
+            {
+              id: r.photoId || crypto.randomUUID(),
+              filename: r.filename || r.path.split("/").pop() || "",
+              day: r.day,
+              hour: r.hour,
+              google_drive_url: null,
+              google_photos_thumb_url: r.publicUrl || null,
+              datetime_original: "",
+              lat: null,
+              lng: null,
+              location_name: null,
+              uploader_id: null,
+              uploader_name: null,
+              caption: null,
+              likes_count: 0,
+              views_count: 0,
+              rank_score: 0,
+              created_at: new Date().toISOString(),
+            } as TravelPhoto,
+          ]);
+        }
+      } else if (failed > 0) {
+        toast.error(`本機匯入 ${failed} 個全部失敗, 看下方結果`);
+      }
+    } catch (e: any) {
+      toast.error(`本機匯入失敗: ${e.message}`);
+    } finally {
+      setIsPathImporting(false);
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-stone-50">
+    <div
+      className="min-h-screen bg-stone-50 relative"
+      onDragEnter={(e) => {
+        // 🆕 2026-07-27 區分兩種拖曳: 照片 → day chip (chip 接管) vs 檔案 → 上傳 (本 div 接管)
+        //   拖 day chip: e.dataTransfer.types 不含 'Files'
+        //   拖檔案 (從 desktop/其他瀏覽器分頁): e.dataTransfer.types 包含 'Files'
+        if (e.dataTransfer.types.includes("Files")) {
+          e.preventDefault();
+          setIsUploadDragging(true);
+        }
+      }}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }
+      }}
+      onDragLeave={(e) => {
+        // 只在離開整個 main div 時才清掉
+        if (e.currentTarget === e.target) setIsUploadDragging(false);
+      }}
+      onDrop={async (e) => {
+        if (e.dataTransfer.files.length > 0) {
+          e.preventDefault();
+          setIsUploadDragging(false);
+          await handleFileUpload(e.dataTransfer.files);
+        }
+      }}
+    >
       {/* Hero — 🆕 2026-07-26 聖上拍板: 縮成一小列 (原本 Hero 太大) */}
       <div className="bg-gradient-to-r from-amber-100 via-stone-50 to-rose-100 border-b-2 border-amber-300/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
@@ -185,26 +406,22 @@ export default function PhotoAlbumPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
-        {/* ── A. Google Photos iframe + cover ─────────────────────────── */}
-        <GooglePhotosSection
-          iframeLoaded={loading ? false : true}
-          coverImage={COVER_IMAGE}
-          albumUrl={ALBUM_URL}
-          shortUrl={SHORT_URL}
-          onCopy={copyShareLink}
-        />
-
-        {/* 🆕 2026-07-26 第 1 個位置 (原本第 2 個) */}
+        {/* 🆕 2026-07-28 聖上拍板: Google 相簿封面區塊搬到最下面 (原最上面) */}
         {/* ── A. ⏱️ 時空軸篩選 (filter bar) ────────────────────────── */}
-        {/* 🆕 2026-07-26 移到第二個位置 (地圖後, 排行前) */}
 
         <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-[var(--jn-vermilion)]">
           <SectionHeader
             emoji="⏱️"
             label="時空軸篩選"
-            subtitle="按 Day / 時段 / 團員 多維度過濾"
+            subtitle="按 Day 篩選 (8 天行程)"
             colorClass="bg-[var(--jn-vermilion)]"
           />
+
+          {/* 🆕 2026-07-27 上傳提示: 拖 Google 相簿下載的原檔到本頁任何位置 */}
+          <div className="mt-2 mb-2 bg-amber-50 border border-amber-200 rounded-lg p-2 text-xs text-amber-900">
+            💡 從 Google 相簿下載原檔後, <strong>拖到本頁任何空白處</strong> 自動上傳 + 從 EXIF 算 day
+            (HEIC / JPG 都可以, 接受多張)
+          </div>
 
           {/* Day selector */}
           <div className="mt-3">
@@ -217,6 +434,20 @@ export default function PhotoAlbumPage() {
                 onClick={() => setSelectedDay("all")}
                 label="全部 8 天"
                 color="#1e293b"
+                // 🆕 2026-07-27 拖曳支援
+                day="all"
+                isDragOver={dragOverDay === "all"}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setDragOverDay("all");
+                }}
+                onDragLeave={() => setDragOverDay(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const photoId = e.dataTransfer.getData("text/plain") || draggingPhotoId;
+                  handleDropToDay("all", photoId);
+                }}
               />
               {DAY_TITLES.map((title, i) => (
                 <FilterChip
@@ -225,76 +456,111 @@ export default function PhotoAlbumPage() {
                   onClick={() => setSelectedDay(i + 1)}
                   label={title}
                   color={DAY_COLOR[i + 1]}
+                  // 🆕 2026-07-27 拖曳支援
+                  day={i + 1}
+                  isDragOver={dragOverDay === i + 1}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    setDragOverDay(i + 1);
+                  }}
+                  onDragLeave={() => setDragOverDay(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const photoId = e.dataTransfer.getData("text/plain") || draggingPhotoId;
+                    handleDropToDay(i + 1, photoId);
+                  }}
                 />
               ))}
+              {/* 🆕 2026-07-27 聖上拍板: 🗑️ 垃圾筒 — 拖到這裡 = 刪除確認 */}
+              <FilterChip
+                key="trash"
+                active={false}
+                onClick={() => {}}  // 不能點, 只能拖入
+                label="🗑️ 垃圾筒"
+                color="#dc2626"
+                day="trash"
+                isDragOver={dragOverDay === "trash"}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setDragOverDay("trash");
+                }}
+                onDragLeave={() => setDragOverDay(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const photoId = e.dataTransfer.getData("text/plain") || draggingPhotoId;
+                  handleDropToDay("trash", photoId);
+                }}
+                isTrash
+              />
+              {/* 🆕 2026-07-27 聖上拍板: 📤 上傳區 — 拖到這裡 OR 點擊都開 file picker */}
+              <FilterChip
+                key="upload"
+                active={false}
+                onClick={() => {
+                  // 開隱藏 file input
+                  const input = document.createElement("input");
+                  input.type = "file";
+                  input.accept = "image/*,.heic,.jpg,.jpeg,.png,.mov";
+                  input.multiple = true;
+                  input.onchange = () => {
+                    if (input.files && input.files.length > 0) {
+                      handleFileUpload(input.files);
+                    }
+                  };
+                  input.click();
+                }}
+                label="📤 上傳"
+                color="#0e7490"
+                day="upload"
+                isDragOver={isUploadDragging}
+                onDragOver={(e) => {
+                  if (e.dataTransfer.types.includes("Files")) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "copy";
+                    setIsUploadDragging(true);
+                  }
+                }}
+                onDragLeave={() => setIsUploadDragging(false)}
+                onDrop={(e) => {
+                  if (e.dataTransfer.files.length > 0) {
+                    e.preventDefault();
+                    setIsUploadDragging(false);
+                    handleFileUpload(e.dataTransfer.files);
+                  }
+                }}
+                isUpload
+              />
+              {/* 🆕 2026-07-27 聖上拍板: 📁 本機路徑 — 點開 modal 貼聖上 Mac 檔案路徑, server 讀 + 抽 EXIF */}
+              <FilterChip
+                key="path"
+                active={false}
+                onClick={() => setIsPathModalOpen(true)}
+                label="📁 本機"
+                color="#7c3aed"
+                day="path"
+                isDragOver={false}
+                isPath
+              />
             </div>
           </div>
 
-          {/* Hour bucket selector */}
-          <div className="mt-3">
-            <div className="text-xs font-semibold text-stone-600 mb-1.5">
-              🕐 時段 (Hour Bucket)
-            </div>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              <FilterChip
-                active={selectedBucket === "all"}
-                onClick={() => setSelectedBucket("all")}
-                label="⏰ 全天"
-                color="#1e293b"
-              />
-              {HOUR_BUCKETS.map((bucket) => (
-                <FilterChip
-                  key={bucket.label}
-                  active={selectedBucket === bucket.label}
-                  onClick={() => setSelectedBucket(bucket.label)}
-                  label={`${bucket.label} (${bucket.range[0]}-${bucket.range[1]}時)`}
-                  color="#0e7490"
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Uploader selector */}
-          <div className="mt-3">
-            <div className="text-xs font-semibold text-stone-600 mb-1.5">
-              👥 團員 (Uploader)
-            </div>
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              <FilterChip
-                active={selectedUploader === "all"}
-                onClick={() => setSelectedUploader("all")}
-                label="👥 全員"
-                color="#1e293b"
-              />
-              {TEAM_MEMBERS.map((member) => (
-                <FilterChip
-                  key={member}
-                  active={selectedUploader === member}
-                  onClick={() => setSelectedUploader(member)}
-                  label={member}
-                  color="#10b981"
-                />
-              ))}
-            </div>
-          </div>
+          {/* 🆕 2026-07-27 砍掉時段/團員 2 個 filter chip 區塊 (只留日期) */}
 
           {/* Filter result — 🆕 2026-07-26 聖上拍板: 0 張不顯示 "0 / 297", 改顯示「沒人拍」友善提示 */}
           <div className="mt-4 pt-3 border-t border-stone-100 text-xs text-stone-600">
             {filteredPhotos.length === 0 ? (
               <span className="text-stone-500">
-                📷 這個組合目前還沒人上傳照片
+                📷 這天目前還沒人上傳照片
                 {selectedDay !== "all" && ` · ${DAY_TITLES[selectedDay - 1]}`}
-                {selectedBucket !== "all" && ` · ${selectedBucket}`}
-                {selectedUploader !== "all" && ` · ${selectedUploader}`}
               </span>
             ) : filteredPhotos.length === allPhotos.length ? (
               <span>📊 共 {filteredPhotos.length} 張</span>
             ) : (
               <span>
-                📊 篩選結果: {filteredPhotos.length} / {allPhotos.length} 張
-                {selectedDay !== "all" && ` · ${DAY_TITLES[selectedDay - 1]}`}
-                {selectedBucket !== "all" && ` · ${selectedBucket}`}
-                {selectedUploader !== "all" && ` · ${selectedUploader}`}
+                📊 {selectedDay !== "all" ? DAY_TITLES[selectedDay - 1] : "全部"}
+                · {filteredPhotos.length} 張
               </span>
             )}
           </div>
@@ -303,124 +569,218 @@ export default function PhotoAlbumPage() {
           <div className="mt-4 pt-4 border-t border-stone-200">
             <GallerySection
               photos={selectedClusterPhotos}
+              onPhotoDragStart={(photoId) => setDraggingPhotoId(photoId)}
+              filterKey={String(selectedDay)}
               locationLabel={(() => {
                 if (!selectedClusterPhotos || selectedClusterPhotos.length === 0) return undefined;
                 // 優先: 第一張的 location_name
                 const first = selectedClusterPhotos[0];
                 if (first.location_name) return first.location_name;
                 // fallback: 根據 filter 描述
-                const parts: string[] = [];
-                if (selectedDay !== "all") parts.push(`D${selectedDay}`);
-                if (selectedBucket !== "all") parts.push(selectedBucket);
-                if (selectedUploader !== "all") parts.push(selectedUploader);
-                return parts.length > 0 ? parts.join(" · ") : `D${first.day}`;
+                return selectedDay !== "all"
+                  ? `${DAY_TITLES[selectedDay - 1]}`
+                  : `D${first.day}`;
               })()}
               emptyMessage={
                 filteredPhotos.length === 0
-                  ? `目前篩選條件 (${[
-                      selectedDay !== "all" ? `D${selectedDay}` : null,
-                      selectedBucket !== "all" ? selectedBucket : null,
-                      selectedUploader !== "all" ? selectedUploader : null,
-                    ]
-                      .filter(Boolean)
-                      .join(" + ") || "全部條件"}) 沒有照片`
+                  ? `目前篩選條件 (${
+                      selectedDay !== "all" ? `D${selectedDay} ${DAY_TITLES[selectedDay - 1]}` : "全部 8 天"
+                    }) 沒有照片`
                   : undefined
               }
             />
           </div>
         </section>
 
-        {/* 🆕 2026-07-26 第 2 個位置 (原本第 1 個) */}
-        {/* ── B. 🗺️ EXIF 時空軸地圖 ────────────────────────────────────── */}
-        <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-[var(--jn-blue)]">
-          <SectionHeader
-            emoji="🗺️"
-            label="EXIF 時空軸地圖"
-            subtitle={`GPS 標記每張照片的拍攝地點 · 聖旨規則 §一 第 1 條: 讀 GPS 自動排序`}
-            colorClass="bg-[var(--jn-blue)]"
-            extra={
-              stats.total > 0 ? (
-                <span className="text-xs text-stone-500">
-                  {stats.withGPS}/{stats.total} 張有 GPS 座標
-                </span>
-              ) : undefined
-            }
-          />
-          {allPhotos.length === 0 ? (
-            <EmptyState
-              icon="🗺️"
-              message={
-                loading
-                  ? "載入中…"
-                  : "尚未匯入照片 EXIF。請聖上跑 exiftool 匯出 CSV,再執行 scripts/import-photos-from-csv.mjs 匯入 Supabase。"
-              }
-            />
-          ) : filteredPhotos.length === 0 ? (
-            // 🆕 2026-07-26 聖上拍板: 篩選後 0 張不顯示地圖 (避免 leaflet race + 給乾淨畫面)
-            <div className="bg-stone-50 border-2 border-dashed border-stone-300 rounded-xl p-6 sm:p-8 text-center">
-              <div className="text-4xl mb-2">🗺️</div>
-              <div className="text-sm text-stone-600">
-                目前篩選條件下沒有任何照片
-              </div>
-              <div className="text-xs text-stone-500 mt-2">
-                試著切換其他 Day / 時段 / 團員,讓地圖有資料可顯示
-              </div>
-            </div>
-          ) : (
-            <DynamicMap
-              key={`map-${filteredPhotos.length}`}
-              photos={filteredPhotos}
-              allPhotos={allPhotos}
-              selectedDay={selectedDay}
-              onMarkerClick={(photos) => {
-                // 🆕 2026-07-26 設定當前 cluster photos 給 GallerySection
-                if (photos.length > 0) {
-                  setSelectedClusterPhotos(photos);
-                  // 順便記錄 view 計數 (用第一張代表性)
-                  recordView(photos[0].id);
-                }
+        {/* ── A. ⏱️ 日期篩選 (filter bar) ────────────────────────── */}
+
+        {/* 🆕 2026-07-27 砍掉 EXIF 完整性規範 + 上傳指引, 直接不 render */}
+
+        {/* ── C. Google Photos iframe + cover (搬到底部) ─────────────────── */}
+        <GooglePhotosSection
+          iframeLoaded={loading ? false : true}
+          coverImage={COVER_IMAGE}
+          albumUrl={ALBUM_URL}
+          shortUrl={SHORT_URL}
+          onCopy={copyShareLink}
+        />
+      </div>
+
+      {/* 🆕 2026-07-27 上傳照片 drop overlay (拖檔案到本頁時顯示) */}
+      {isUploadDragging && !isUploading && (
+        <div className="fixed inset-0 z-40 bg-amber-500/30 border-4 border-dashed border-amber-600 pointer-events-none flex items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-2xl px-8 py-6 text-center">
+            <div className="text-6xl mb-2">📤</div>
+            <div className="text-xl font-bold text-amber-900">鬆手上傳</div>
+            <div className="text-sm text-amber-700 mt-1">從 Google 相簿下載的原檔 (HEIC / JPG)</div>
+          </div>
+        </div>
+      )}
+
+      {/* 🆕 2026-07-27 上傳中進度條 */}
+      {isUploading && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-white rounded-2xl shadow-2xl px-6 py-4 w-96 max-w-[90vw]">
+          <div className="text-sm font-bold text-stone-800 mb-2 flex items-center gap-2">
+            <span className="animate-spin">⏳</span>
+            <span>上傳中... {uploadProgress.done} / {uploadProgress.total}</span>
+          </div>
+          <div className="w-full bg-stone-200 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-[var(--jn-vermilion)] h-2 transition-all"
+              style={{
+                width: `${uploadProgress.total > 0 ? (uploadProgress.done / uploadProgress.total) * 100 : 0}%`,
               }}
             />
+          </div>
+          {uploadProgress.errors.length > 0 && (
+            <details className="mt-2 text-xs text-red-700">
+              <summary className="cursor-pointer">
+                ⚠️ {uploadProgress.errors.length} 個錯誤 (點開看)
+              </summary>
+              <ul className="mt-1 list-disc list-inside max-h-32 overflow-y-auto">
+                {uploadProgress.errors.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </details>
           )}
-        </section>
+        </div>
+      )}
 
+      {/* 🆕 2026-07-27 本機路徑 import modal (點 📁 本機 chip 開) */}
+      {isPathModalOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => !isPathImporting && setIsPathModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-2xl">
+                📁
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-stone-900">從本機路徑匯入</h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  貼聖上 Mac 檔案路徑 (每行一個), server 讀 + 抽 EXIF + 上傳 Supabase
+                </p>
+              </div>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3 text-xs text-amber-900">
+              ⚠️ 只在 localhost dev server 跑得通, 部署到 Netlify 後失效
+              <br />
+              範例: <code className="bg-amber-100 px-1 rounded">/Users/brian/Downloads/杭州共享相簿/IMG_1217.HEIC</code>
+            </div>
+            <textarea
+              value={pathInput}
+              onChange={(e) => setPathInput(e.target.value)}
+              placeholder="/Users/brian/Downloads/杭州共享相簿/IMG_1217.HEIC
+/Users/brian/Downloads/杭州共享相簿/IMG_1218.HEIC
+/Users/brian/Downloads/杭州共享相簿/IMG_1220.HEIC"
+              rows={6}
+              disabled={isPathImporting}
+              className="w-full border border-stone-300 rounded-lg p-2 text-sm font-mono focus:outline-none focus:border-purple-500 disabled:bg-stone-100"
+            />
+            {pathResults.length > 0 && (
+              <div className="mt-3 max-h-48 overflow-y-auto border border-stone-200 rounded-lg">
+                {pathResults.map((r, i) => (
+                  <div
+                    key={i}
+                    className={`px-3 py-1.5 text-xs flex items-center gap-2 ${
+                      r.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"
+                    } ${i > 0 ? "border-t border-stone-200" : ""}`}
+                  >
+                    <span>{r.ok ? "✅" : "❌"}</span>
+                    <span className="font-mono truncate flex-1">{r.path}</span>
+                    <span className="flex-shrink-0">
+                      {r.ok ? `D${r.day} H${r.hour?.toString().padStart(2, "0")}` : r.error}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2 justify-end mt-4">
+              <button
+                onClick={() => {
+                  setIsPathModalOpen(false);
+                  setPathInput("");
+                  setPathResults([]);
+                }}
+                disabled={isPathImporting}
+                className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 text-sm font-medium disabled:opacity-50"
+              >
+                關閉
+              </button>
+              <button
+                onClick={handlePathImport}
+                disabled={isPathImporting || !pathInput.trim()}
+                className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold flex items-center gap-1 disabled:opacity-50"
+              >
+                {isPathImporting ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>處理中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>📁</span>
+                    <span>匯入</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-
-        {/* ── C. 📊 互動統計排行 (從第 3 個位置移到這) ─────────────── */}
-        {/* ── C. 📊 互動統計排行 (從第 3 個位置移到這) ─────────────── */}
-        <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-[var(--jn-gold)]">
-          <SectionHeader
-            emoji="📊"
-            label="互動統計排行 (TOP 10)"
-            subtitle={`聖旨規則 §二 第 2 條: 點讚權重 70% + 瀏覽權重 30% · rank = likes × 0.7 + views × 0.3`}
-            colorClass="bg-[var(--jn-gold)]"
-          />
-          {topRanked.length === 0 ? (
-            <EmptyState icon="🏆" message="還沒有照片上榜" />
-          ) : (
-            <ol className="space-y-2 sm:space-y-3 mt-3">
-              {topRanked.map((photo, idx) => (
-                <RankedItem
-                  key={photo.id}
-                  photo={photo}
-                  rank={idx + 1}
-                  liked={likedIds.has(photo.id)}
-                  onToggleLike={() => handleToggleLike(photo.id)}
-                />
-              ))}
-            </ol>
-          )}
-        </section>
-
-        {/* 🆕 2026-07-26 第 1 個位置 (原本第 2 個) */}
-        {/* ── A. ⏱️ 時空軸篩選 (filter bar) ────────────────────────── */}
-        {/* 🆕 2026-07-26 移到第二個位置 (地圖後, 排行前) */}
-
-        <ExifRulesSection />
-
-        {/* ── G. 上傳指引 (How to contribute) ──────────────────────────── */}
-        <UploadGuideSection />
-      </div>
+      {/* 🆕 2026-07-27 刪除確認 modal (拖到 🗑️ 垃圾筒後跳出) */}
+      {pendingDelete && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-2xl">
+                🗑️
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-stone-900">永久刪除照片?</h3>
+                <p className="text-xs text-stone-500 mt-0.5">此操作無法復原</p>
+              </div>
+            </div>
+            <div className="bg-stone-50 rounded-lg p-3 mb-4 text-sm">
+              <div className="font-mono text-stone-800 break-all">
+                {pendingDelete.filename}
+              </div>
+            </div>
+            <p className="text-sm text-stone-600 mb-5">
+              從 Supabase <code className="bg-stone-100 px-1 rounded">travel_photo_meta</code> 永久刪除此筆 EXIF metadata。
+              Google Photos 上的原圖不會受影響,但本頁的「相片集」會立刻看不到這張。
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setPendingDelete(null)}
+                className="px-4 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 text-sm font-medium"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold flex items-center gap-1"
+              >
+                <span>🗑️</span>
+                <span>確認永久刪除</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -525,23 +885,95 @@ function FilterChip({
   onClick,
   label,
   color,
+  // 🆕 2026-07-27 拖曳支援
+  day,
+  isDragOver,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  isTrash,  // 🆕 2026-07-27 🗑️ 垃圾筒 chip 樣式 (紅色 + cursor-not-allowed)
+  isUpload, // 🆕 2026-07-27 📤 上傳 chip 樣式 (青色 + dashed border)
+  isPath,   // 🆕 2026-07-27 📁 本機路徑 chip 樣式 (紫色 + dashed border)
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   color: string;
+  day?: number | "all" | "trash" | "upload" | "path";
+  isDragOver?: boolean;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent) => void;
+  isTrash?: boolean;
+  isUpload?: boolean;
+  isPath?: boolean;
 }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
+  // 🆕 2026-07-27 拖曳高亮: 朱紅色 + scale 110% (chip 變大表示「準備接收」)
+  // 🆕 2026-07-27 垃圾筒拖曳高亮: 深紅色 + scale 115% (危險感更強)
+  // 🆕 2026-07-27 上傳 chip 拖曳高亮: 青色 + scale 115% (跟藍色主題一致)
+  const dragStyle = isDragOver
+    ? isTrash
+      ? {
+          backgroundColor: "#7f1d1d",
+          color: "white",
+          borderColor: "#7f1d1d",
+          transform: "scale(1.15)",
+          boxShadow: "0 0 0 6px rgba(220,38,38,0.3)",
+        }
+      : isUpload
+      ? {
+          backgroundColor: "var(--jn-blue)",
+          color: "white",
+          borderColor: "var(--jn-blue)",
+          transform: "scale(1.15)",
+          boxShadow: "0 0 0 6px rgba(14,116,144,0.3)",
+        }
+      : {
+          backgroundColor: "var(--jn-vermilion)",
+          color: "white",
+          borderColor: "var(--jn-vermilion)",
+          transform: "scale(1.1)",
+          boxShadow: "0 0 0 4px rgba(220,38,38,0.2)",
+        }
+    : isTrash
+    ? {
+        backgroundColor: "white",
+        color: "#dc2626",
+        borderColor: "#dc2626",
+        borderStyle: "dashed",
+      }
+    : isUpload
+    ? {
+        backgroundColor: "white",
+        color: "var(--jn-blue)",
+        borderColor: "var(--jn-blue)",
+        borderStyle: "dashed",
+      }
+    : isPath
+    ? {
+        backgroundColor: "white",
+        color: "#7c3aed",
+        borderColor: "#7c3aed",
+        borderStyle: "dashed",
+      }
+    : {
         backgroundColor: active ? color : "white",
         color: active ? "white" : "#1e293b",
         borderColor: active ? color : "#e7e5e4",
-      }}
-      className="px-3 py-1.5 rounded-full text-xs sm:text-sm border-2 font-medium transition-all hover:scale-105"
+      };
+  return (
+    <button
+      onClick={isTrash ? undefined : onClick}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      style={dragStyle}
+      className={`px-3 py-1.5 rounded-full text-xs sm:text-sm border-2 font-medium transition-all ${
+        isTrash ? "cursor-not-allowed" : isUpload || isPath ? "cursor-pointer hover:scale-105" : "hover:scale-105"
+      }`}
     >
       {label}
+      {isDragOver && <span className="ml-1">📥</span>}
     </button>
   );
 }
@@ -638,96 +1070,13 @@ function RankedItem({
 }
 
 function ExifRulesSection() {
-  return (
-    <section className="bg-gradient-to-br from-red-50 via-amber-50 to-orange-50 rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-[var(--jn-vermilion)]">
-      <div className="flex items-start gap-3 sm:gap-4 mb-3">
-        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-[var(--jn-vermilion)] text-white flex items-center justify-center text-xl sm:text-2xl shadow-md flex-shrink-0">
-          🛡️
-        </div>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-base sm:text-lg font-bold text-stone-900 font-serif">
-            EXIF 完整性規範 (必讀)
-          </h2>
-          <p className="text-xs sm:text-sm text-stone-700 mt-0.5">
-            聖旨規則 §一 第 1 條:系統讀取 EXIF 拍攝時間 + GPS,
-            <strong className="text-red-700">
-              嚴禁自動壓縮、刪除、篡改任何元資料
-            </strong>
-            ,團員必須上傳原始檔,禁止截圖、二次轉發壓縮檔。
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mt-4">
-        {/* DO */}
-        <div className="bg-white/80 rounded-lg p-3 sm:p-4 border border-emerald-200">
-          <div className="font-bold text-emerald-800 mb-2 flex items-center gap-1">
-            ✅ 必須這樣做
-          </div>
-          <ul className="space-y-1.5 text-xs sm:text-sm text-stone-700">
-            <li>• 從手機相簿「直接選原始照片」上傳</li>
-            <li>• iPhone 用「AirDrop → Mac → Google Drive」</li>
-            <li>• 或 Google Photos App 自動備份上傳</li>
-            <li>• 影片 (MP4/MOV) 請傳 Drive 保留完整 EXIF</li>
-            <li>• 同一張照若多人想上傳,各自傳一份 (不同時間 metadata)</li>
-          </ul>
-        </div>
-
-        {/* DON'T */}
-        <div className="bg-white/80 rounded-lg p-3 sm:p-4 border border-red-200">
-          <div className="font-bold text-red-800 mb-2 flex items-center gap-1">
-            ❌ 禁止這樣做
-          </div>
-          <ul className="space-y-1.5 text-xs sm:text-sm text-stone-700">
-            <li>• 禁止截圖 (會丟失 GPS + 時間)</li>
-            <li>• 禁止 LINE 轉傳後再下載 (重新編碼 EXIF)</li>
-            <li>• 禁止從 IG 限動下載 (EXIF 完全被剝)</li>
-            <li>• 禁止從微信 / 微博 / 小紅書下載壓縮版</li>
-            <li>• 禁止編輯修圖後再上傳 (覆蓋原始拍攝時間)</li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="mt-3 sm:mt-4 bg-amber-100 border border-amber-300 rounded-lg p-2.5 sm:p-3 text-xs sm:text-sm text-amber-900">
-        💡 <strong>怎麼驗證原檔?</strong>{" "}
-        Mac 終端機: <code className="bg-amber-200 px-1 rounded">exiftool IMG_4523.jpg</code>{" "}
-        應能看到 <code>Date Time Original</code> + <code>GPS Position</code>。
-        沒有 = 已被壓縮過。
-      </div>
-    </section>
-  );
+  // 🆕 2026-07-27 聖上拍板: 刪除 EXIF 完整性規範整段, 不顯示
+  return null;
 }
 
 function UploadGuideSection() {
-  return (
-    <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-[var(--jn-gold)]">
-      <h2 className="text-lg sm:text-xl font-bold text-stone-900 mb-3 flex items-center gap-2">
-        <span className="text-2xl">📲</span>
-        <span>怎麼加入上傳照片？</span>
-      </h2>
-      <ol className="space-y-2.5 text-sm text-stone-700">
-        {[
-          "手機開啟 Google Photos App,點聖上分享的相簿連結",
-          "加入「貢獻者」,即可從手機相機 / 既有相簿挑選照片上傳",
-          "或開啟 Google Photos 「備份」→ 相簿自動彙整到這趟旅程",
-          "影片直接上傳到 Google Drive「江南水鄉 2026-原檔備份」資料夾",
-          "完成後聖上跑 exiftool + scripts/import-photos-from-csv.mjs 匯入 metadata",
-          "所有人在這頁都能看到自己的照片 + 互動統計",
-        ].map((step, i) => (
-          <li key={i} className="flex items-start gap-2">
-            <span className="bg-red-100 text-red-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-              {i + 1}
-            </span>
-            <span>{step}</span>
-          </li>
-        ))}
-      </ol>
-      <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs sm:text-sm text-amber-900">
-        💡 <strong>小提示</strong>:Google Photos 共享相簿貢獻者人數無上限,
-        但「每人每天上傳 1,000 張 / 200 GB」,8 天行程綽綽有餘。
-      </div>
-    </section>
-  );
+  // 🆕 2026-07-27 聖上拍板: 刪除「怎麼加入上傳照片」整段, 不顯示
+  return null;
 }
 
 function EmptyState({

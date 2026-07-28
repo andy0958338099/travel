@@ -164,6 +164,153 @@ async function bumpLikesCount(photoId: string, delta: number): Promise<number> {
   return newCount;
 }
 
+// 🆕 2026-07-27 拖曳到 day chip 改 day
+//   - 即時 PATCH 寫 Supabase (拖完立刻持久化, 重新整理不丟)
+//   - 樂觀更新: 本地 state 立即更新, API 失敗才 revert
+export async function updatePhotoDay(
+  photoId: string,
+  newDay: number
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createClient();
+  if (newDay < 1 || newDay > 8) {
+    return { ok: false, error: `day 必須在 1-8 之間, 收到 ${newDay}` };
+  }
+  const { error } = await supabase
+    .from("travel_photo_meta")
+    .update({ day: newDay })
+    .eq("id", photoId);
+  if (error) {
+    console.error("[travelPhotos] updatePhotoDay error:", error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
+// 🆕 2026-07-27 上傳單張照片到 Supabase (從 Google 相簿下載後用)
+//   - client 端用 exifr 抽 EXIF (date + GPS)
+//   - 從拍攝時間算 day (1-8)
+//   - 上傳 HEIC/JPG 到 travel-photos bucket
+//   - 寫一筆到 travel_photo_meta
+//   - RLS 已開放 anon DELETE / UPDATE; INSERT 也用 anon (將來如擋可改 service_role)
+export interface UploadResult {
+  ok: boolean;
+  photoId?: string;
+  filename?: string;
+  day?: number;
+  hour?: number;
+  error?: string;
+}
+
+export async function uploadPhotoFromFile(
+  file: File
+): Promise<UploadResult> {
+  try {
+    // 1. 抽 EXIF (client 端用 exifr 抽)
+    const exifr = (await import("exifr")).default;
+    const exif: any = await exifr.parse(file, {
+      tiff: true,
+      exif: true,
+      gps: true,
+    }).catch(() => null);
+
+    if (!exif) {
+      return { ok: false, error: "EXIF 讀取失敗, 請確認檔案是原檔 HEIC/JPG" };
+    }
+    const dto: Date | string | undefined = exif.DateTimeOriginal || exif.CreateDate;
+    if (!dto) {
+      return { ok: false, error: "EXIF 沒有 DateTimeOriginal, 沒辦法算 day" };
+    }
+    const dt = dto instanceof Date ? dto : new Date(dto as string);
+    if (isNaN(dt.getTime())) {
+      return { ok: false, error: `EXIF 日期無法解析: ${String(dto)}` };
+    }
+    // 2. 算 day + hour (台灣時間 UTC+8)
+    const twMs = dt.getTime() + 8 * 60 * 60 * 1000;
+    const tw = new Date(twMs);
+    const dateStr = tw.toISOString().substring(0, 10);
+    const DAY_MAP: Record<string, number> = {
+      "2026-07-17": 1, "2026-07-18": 2, "2026-07-19": 3, "2026-07-20": 4,
+      "2026-07-21": 5, "2026-07-22": 6, "2026-07-23": 7, "2026-07-24": 8,
+    };
+    const day = DAY_MAP[dateStr];
+    if (!day) {
+      return { ok: false, error: `拍攝日 ${dateStr} 不在 8 天行程內 (7/17-7/24)` };
+    }
+    const hour = tw.getUTCHours();
+    const datePart = dateStr;
+    const hh = String(tw.getUTCHours()).padStart(2, "0");
+    const mm = String(tw.getUTCMinutes()).padStart(2, "0");
+    const ss = String(tw.getUTCSeconds()).padStart(2, "0");
+    const datetime_original = `${datePart}T${hh}:${mm}:${ss}+00:00`;
+
+    // 3. 上傳到 Supabase Storage (travel-photos bucket)
+    const supabase = createClient();
+    const stem = file.name.replace(/\.[^.]+$/, "");
+    const ext = file.name.split(".").pop() || "jpg";
+    const storagePath = `${datePart}/${stem}.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from("travel-photos")
+      .upload(storagePath, file, {
+        contentType: file.type || "image/jpeg",
+        upsert: true,
+      });
+    if (uploadErr) {
+      return { ok: false, error: `Storage 上傳失敗: ${uploadErr.message}` };
+    }
+    const { data: publicUrl } = supabase.storage
+      .from("travel-photos")
+      .getPublicUrl(storagePath);
+
+    // 4. 寫 travel_photo_meta
+    const lat = exif.latitude ?? exif.GPSLatitude ?? null;
+    const lng = exif.longitude ?? exif.GPSLongitude ?? null;
+    const record = {
+      filename: file.name,
+      day,
+      hour,
+      datetime_original,
+      lat: typeof lat === "number" ? lat : null,
+      lng: typeof lng === "number" ? lng : null,
+      google_photos_thumb_url: publicUrl.publicUrl,
+    };
+    const { data: inserted, error: insertErr } = await supabase
+      .from("travel_photo_meta")
+      .insert(record)
+      .select("id")
+      .single();
+    if (insertErr) {
+      return { ok: false, error: `DB 寫入失敗: ${insertErr.message}` };
+    }
+    return {
+      ok: true,
+      photoId: inserted?.id,
+      filename: file.name,
+      day,
+      hour,
+    };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || String(e) };
+  }
+}
+
+// 🆕 2026-07-27 聖上拍板: 拖到 🗑️ 垃圾筒 → 真的 DELETE (永久刪除)
+//   - 危險操作, 由 ClientPage 彈 confirm dialog 確認
+//   - 不寫 audit log (Supabase 沒建 trigger, 之後可加)
+export async function deletePhoto(
+  photoId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("travel_photo_meta")
+    .delete()
+    .eq("id", photoId);
+  if (error) {
+    console.error("[travelPhotos] deletePhoto error:", error.message);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
+}
+
 export async function toggleLike(photoId: string): Promise<{
   liked: boolean;
   likesCount: number;
