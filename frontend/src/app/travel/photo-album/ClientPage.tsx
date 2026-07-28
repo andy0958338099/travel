@@ -897,6 +897,73 @@ function GooglePhotosSection({
           </div>
         </div>
       </div>
+
+      {/* 🆕 2026-07-28 聖上拍板: Google 相簿下載教學 (為何不能直接拖 iframe) */}
+      <details className="mt-0 border-t-2 border-stone-200 bg-amber-50/60">
+        <summary className="cursor-pointer px-5 sm:px-6 py-3 text-sm font-bold text-amber-900 hover:bg-amber-100/60 transition-colors flex items-center gap-2 select-none">
+          <span className="text-base">📥</span>
+          <span>怎麼把 Google 相簿照片加到這?</span>
+          <span className="text-xs text-amber-700 ml-auto">(點開看 3 步驟)</span>
+        </summary>
+        <div className="px-5 sm:px-6 pb-4 pt-2 text-xs sm:text-sm text-stone-700 space-y-3 leading-relaxed">
+          <p className="text-amber-900 bg-amber-100 px-3 py-2 rounded">
+            ⚠️ <strong>不能直接從相簿拖</strong> — Google 用 iframe sandbox 鎖住,
+            右鍵另存也只拿到壓縮圖 (沒 EXIF、沒原始畫質)。必須先下載原檔。
+          </p>
+
+          <div className="font-bold text-stone-900 text-sm pt-1">📋 3 步驟把照片加進來:</div>
+
+          <div className="flex gap-3 items-start">
+            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold">1</span>
+            <div className="flex-1 min-w-0">
+              <strong className="text-stone-900">Google 相簿下載原檔</strong>
+              <p className="mt-1">
+                開相簿 → 右上「⋯」→ 「全選」→ 「⋯」→ 「下載」。
+                會拿到一個 <code className="bg-stone-100 px-1 rounded">.zip</code>, 裡面每張照片都附 <code className="bg-stone-100 px-1 rounded">.json</code> 記錄拍攝時間 + GPS。
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 items-start">
+            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold">2</span>
+            <div className="flex-1 min-w-0">
+              <strong className="text-stone-900">解壓到桌面</strong>
+              <p className="mt-1">
+                雙擊 zip 自動解壓。建議放 <code className="bg-stone-100 px-1 rounded">~/Desktop/Takeout/Google 相簿/</code>。
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 items-start">
+            <span className="flex-shrink-0 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold">3</span>
+            <div className="flex-1 min-w-0">
+              <strong className="text-stone-900">回到本頁, 拖到 Day chip</strong>
+              <p className="mt-1">
+                從 Finder 一次拖多張 → 放到上方 <strong>D1-D8 任一 chip</strong>。
+                系統自動抽 EXIF 算 day、上傳 Supabase、顯示在相片集。一次最多 50 張, 支援整個資料夾。
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-green-50 border-l-4 border-green-500 p-3 rounded-r text-xs">
+            <strong className="text-green-900">🤖 懶人模式: 設完一次就免動</strong>
+            <p className="mt-1">
+              到 <a href="https://takeout.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">takeout.google.com</a>
+              設「每 2 個月自動匯出到 Google Drive」, zip 收到後解壓到桌面。
+              這個站每天 14:00 自動掃描新檔, 寫進資料庫。
+              <strong className="text-green-700">之後你完全不用管</strong>。
+            </p>
+          </div>
+
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r text-xs">
+            <strong className="text-blue-900">🛡️ EXIF 規範</strong>
+            <p className="mt-1">
+              為了保護 13 位團員隱私, GPS 座標不上傳。
+              照片只顯示「日期 + 位置名稱」(如「西塘古鎮」), 不顯示經緯度。
+            </p>
+          </div>
+        </div>
+      </details>
     </section>
   );
 }
