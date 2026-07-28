@@ -192,6 +192,10 @@ export async function updatePhotoDay(
 //   - 上傳 HEIC/JPG 到 travel-photos bucket
 //   - 寫一筆到 travel_photo_meta
 //   - RLS 已開放 anon DELETE / UPDATE; INSERT 也用 anon (將來如擋可改 service_role)
+// 🆕 2026-07-28 聖上拍板: overrideDay 參數
+//   - 拖檔案到 Day chip 時, EXIF 有就用 EXIF 算 day
+//   - EXIF 缺 → fallback 用 overrideDay (chip 選的 day)
+//   - overrideDay 沒傳 → 走原本「EXIF 缺就報錯」邏輯
 export interface UploadResult {
   ok: boolean;
   photoId?: string;
@@ -199,10 +203,12 @@ export interface UploadResult {
   day?: number;
   hour?: number;
   error?: string;
+  usedFallbackDay?: boolean; // 🆕 7-28: true = EXIF 缺, 用 chip fallback day
 }
 
 export async function uploadPhotoFromFile(
-  file: File
+  file: File,
+  overrideDay?: number
 ): Promise<UploadResult> {
   try {
     // 1. 抽 EXIF (client 端用 exifr 抽)
@@ -213,15 +219,25 @@ export async function uploadPhotoFromFile(
       gps: true,
     }).catch(() => null);
 
+    // 🆕 7-28: EXIF 缺 + 有 overrideDay → 直接用 chip 選的 day
     if (!exif) {
+      if (overrideDay && overrideDay >= 1 && overrideDay <= 8) {
+        return await uploadWithFallbackDay(file, overrideDay, null, null);
+      }
       return { ok: false, error: "EXIF 讀取失敗, 請確認檔案是原檔 HEIC/JPG" };
     }
     const dto: Date | string | undefined = exif.DateTimeOriginal || exif.CreateDate;
     if (!dto) {
+      if (overrideDay && overrideDay >= 1 && overrideDay <= 8) {
+        return await uploadWithFallbackDay(file, overrideDay, null, null);
+      }
       return { ok: false, error: "EXIF 沒有 DateTimeOriginal, 沒辦法算 day" };
     }
     const dt = dto instanceof Date ? dto : new Date(dto as string);
     if (isNaN(dt.getTime())) {
+      if (overrideDay && overrideDay >= 1 && overrideDay <= 8) {
+        return await uploadWithFallbackDay(file, overrideDay, null, null);
+      }
       return { ok: false, error: `EXIF 日期無法解析: ${String(dto)}` };
     }
     // 2. 算 day + hour (台灣時間 UTC+8)
@@ -234,6 +250,10 @@ export async function uploadPhotoFromFile(
     };
     const day = DAY_MAP[dateStr];
     if (!day) {
+      // 🆕 7-28: 拍攝日不在 8 天內, 但有 overrideDay → fallback 用 chip 選的 day
+      if (overrideDay && overrideDay >= 1 && overrideDay <= 8) {
+        return await uploadWithFallbackDay(file, overrideDay, exif, dt);
+      }
       return { ok: false, error: `拍攝日 ${dateStr} 不在 8 天行程內 (7/17-7/24)` };
     }
     const hour = tw.getUTCHours();
@@ -287,6 +307,73 @@ export async function uploadPhotoFromFile(
       filename: file.name,
       day,
       hour,
+    };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || String(e) };
+  }
+}
+
+// 🆕 2026-07-28 聖上拍板: fallback day 上傳 (EXIF 缺時用 chip 選的 day)
+//   - 用 overrideDay 直接寫 DB, 不再算拍攝日
+//   - hour 設 12 (中午, 避免影響「時段」filter)
+//   - datetime_original 寫「2026-07-{17+day-1}T12:00:00+00:00」當 placeholder
+//   - exifDate 有就用 exifDate 算 hour (更準), null 就 12
+async function uploadWithFallbackDay(
+  file: File,
+  fallbackDay: number,
+  exif: any | null,
+  exifDate: Date | null
+): Promise<UploadResult> {
+  try {
+    const supabase = createClient();
+    // hour: 有 exifDate 用拍攝 hour, 否則 12 (中午)
+    const hour = exifDate ? exifDate.getHours() : 12;
+    const datePart = `2026-07-${String(16 + fallbackDay).padStart(2, "0")}`; // D1=7/17, D8=7/24
+    const hh = String(hour).padStart(2, "0");
+    const datetime_original = `${datePart}T${hh}:00:00+00:00`;
+    const lat = exif?.latitude ?? exif?.GPSLatitude ?? null;
+    const lng = exif?.longitude ?? exif?.GPSLongitude ?? null;
+
+    const stem = file.name.replace(/\.[^.]+$/, "");
+    const ext = file.name.split(".").pop() || "jpg";
+    const storagePath = `${datePart}/${stem}.${ext}`;
+    const { error: uploadErr } = await supabase.storage
+      .from("travel-photos")
+      .upload(storagePath, file, {
+        contentType: file.type || "image/jpeg",
+        upsert: true,
+      });
+    if (uploadErr) {
+      return { ok: false, error: `Storage 上傳失敗: ${uploadErr.message}` };
+    }
+    const { data: publicUrl } = supabase.storage
+      .from("travel-photos")
+      .getPublicUrl(storagePath);
+
+    const record = {
+      filename: file.name,
+      day: fallbackDay,
+      hour,
+      datetime_original,
+      lat: typeof lat === "number" ? lat : null,
+      lng: typeof lng === "number" ? lng : null,
+      google_photos_thumb_url: publicUrl.publicUrl,
+    };
+    const { data: inserted, error: insertErr } = await supabase
+      .from("travel_photo_meta")
+      .insert(record)
+      .select("id")
+      .single();
+    if (insertErr) {
+      return { ok: false, error: `DB 寫入失敗: ${insertErr.message}` };
+    }
+    return {
+      ok: true,
+      photoId: inserted?.id,
+      filename: file.name,
+      day: fallbackDay,
+      hour,
+      usedFallbackDay: true,
     };
   } catch (e: any) {
     return { ok: false, error: e?.message || String(e) };

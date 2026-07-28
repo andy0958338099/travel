@@ -234,7 +234,7 @@ export default function PhotoAlbumPage() {
   //   - 接受 HEIC / JPG / PNG (Google 原始下載)
   //   - 一次可拖多張
   //   - 進度條 + 錯誤訊息顯示
-  async function handleFileUpload(files: FileList | File[]) {
+  async function handleFileUpload(files: FileList | File[], targetDay?: number) {
     const fileArray = Array.from(files);
     if (fileArray.length === 0) return;
     setIsUploading(true);
@@ -242,9 +242,14 @@ export default function PhotoAlbumPage() {
     let successCount = 0;
     const errors: string[] = [];
     for (const file of fileArray) {
-      const result = await uploadPhotoFromFile(file);
+      // 🆕 2026-07-28 聖上拍板: 拖檔案到 Day chip 時, targetDay 帶過來, EXIF 缺 fallback 用這個 day
+      const result = await uploadPhotoFromFile(file, targetDay);
       if (result.ok) {
         successCount++;
+        // 🆕 7-28: 統計用了 fallback day 的張數 (放進 errors 但 prefix 標記, 不算真錯誤)
+        if (result.usedFallbackDay) {
+          errors.push(`FALLBACK:${file.name}`);
+        }
         // 加入 local state (讓相片集立刻顯示)
         if (result.photoId) {
           setAllPhotos((prev) => [
@@ -278,7 +283,12 @@ export default function PhotoAlbumPage() {
     setIsUploading(false);
     setIsUploadDragging(false);
     if (successCount > 0) {
-      toast.success(`✅ 成功上傳 ${successCount} 張${errors.length ? ` (${errors.length} 失敗)` : ""}`);
+      // 🆕 7-28: 統計多少張用了 fallback day (EXIF 缺)
+      const fallbackCount = uploadProgress.errors.filter(e => e.startsWith("FALLBACK:")).length;
+      const realSuccess = successCount;
+      const dayHint = targetDay ? ` → D${targetDay} ${DAY_TITLES[targetDay - 1] || ""}` : "";
+      const fallbackHint = fallbackCount > 0 ? ` (${fallbackCount} 張 EXIF 缺, 用 chip 選的 day)` : "";
+      toast.success(`✅ 成功上傳 ${realSuccess} 張${dayHint}${fallbackHint}`);
     } else {
       toast.error(`上傳全部失敗, 請看 toast 訊息`);
     }
@@ -461,12 +471,18 @@ export default function PhotoAlbumPage() {
                   isDragOver={dragOverDay === i + 1}
                   onDragOver={(e) => {
                     e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
+                    e.dataTransfer.dropEffect = "copy";
                     setDragOverDay(i + 1);
                   }}
                   onDragLeave={() => setDragOverDay(null)}
                   onDrop={(e) => {
                     e.preventDefault();
+                    // 🆕 2026-07-28 聖上拍板: 拖檔案到 chip → 上傳到該 day (EXIF 缺 fallback 用這個 day)
+                    if (e.dataTransfer.files.length > 0) {
+                      handleFileUpload(e.dataTransfer.files, i + 1);
+                      return;
+                    }
+                    // 既有照片拖到 chip → 改 day
                     const photoId = e.dataTransfer.getData("text/plain") || draggingPhotoId;
                     handleDropToDay(i + 1, photoId);
                   }}
@@ -566,6 +582,9 @@ export default function PhotoAlbumPage() {
           </div>
 
           {/* 🆕 2026-07-26 GallerySection — 時空軸篩選下面, 顯示 8 張大圖 (不嵌在地圖裡) */}
+          {/* 🆕 2026-07-28 聖上拍板: locationLabel 優先用「day 標題」(D3 西塘→烏鎮東柵) */}
+          {/*   - 原因: chip 是按 day 篩選, 不是按 location; 跨 location 的 day 不該用第一張的 location */}
+          {/*   - 例: D3 含 119 西塘 + 5 上海 + 139 無GPS, 標題應該是「D3 西塘→烏鎮東柵」 */}
           <div className="mt-4 pt-4 border-t border-stone-200">
             <GallerySection
               photos={selectedClusterPhotos}
@@ -573,13 +592,15 @@ export default function PhotoAlbumPage() {
               filterKey={String(selectedDay)}
               locationLabel={(() => {
                 if (!selectedClusterPhotos || selectedClusterPhotos.length === 0) return undefined;
-                // 優先: 第一張的 location_name
+                // 🆕 7-28: chip 篩選時, 優先顯示 day 標題 (D3 西塘→烏鎮東柵)
+                //   DAY_TITLES 已含 "D3" 前綴, 不要重複加
+                if (typeof selectedDay === "number") {
+                  return DAY_TITLES[selectedDay - 1];
+                }
+                // 「全部 8 天」時, 用第一張照片的 location (當下位置感)
                 const first = selectedClusterPhotos[0];
                 if (first.location_name) return first.location_name;
-                // fallback: 根據 filter 描述
-                return selectedDay !== "all"
-                  ? `${DAY_TITLES[selectedDay - 1]}`
-                  : `D${first.day}`;
+                return DAY_TITLES[first.day - 1] || `D${first.day}`;
               })()}
               emptyMessage={
                 filteredPhotos.length === 0
