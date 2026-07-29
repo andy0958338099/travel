@@ -24,6 +24,36 @@ const SUPABASE_URL = "https://bphhksbzedadaoscjctz.supabase.co";
 const SUPABASE_KEY =
   "sb_publishable_p9okAW11Ss8f9dlGru4vag_YkO8u9-g";
 
+// ── Burst 去重規則 ──────────────────────────────────────────────────────────
+// iPhone 連拍 = 同一秒多張, 聖上 7-29 拍板視為「真重複」
+function detectBursts(photos: PhotoRow[]): BurstGroup[] {
+  const map = new Map<string, PhotoRow[]>();
+  for (const p of photos) {
+    if (!p.datetime_original) continue;
+    if (!map.has(p.datetime_original)) map.set(p.datetime_original, []);
+    map.get(p.datetime_original)!.push(p);
+  }
+  const groups: BurstGroup[] = [];
+  for (const [dt, rows] of map) {
+    if (rows.length < 2) continue;
+    // 自動 KEEP 規則: HEIC 優先, 再 IMG_ 編號最小
+    const heic = rows.filter((r) => r.filename.toUpperCase().endsWith(".HEIC"));
+    const defaultKeep = heic.length
+      ? heic.sort((a, b) => a.filename.localeCompare(b.filename))[0]
+      : rows.sort((a, b) => a.filename.localeCompare(b.filename))[0];
+    groups.push({
+      datetime: dt,
+      all: rows,
+      defaultKeepId: defaultKeep.id,
+      keepId: defaultKeep.id,
+      wholeGroupDelete: false,
+    });
+  }
+  // 大群在前
+  groups.sort((a, b) => b.all.length - a.all.length);
+  return groups;
+}
+
 const DAY_LIST = [
   { day: 1, date: "7/17", title: "D1 桃園 → 上海" },
   { day: 2, date: "7/18", title: "D2 上海 → 西塘" },
@@ -50,6 +80,8 @@ export default function ClassifyPage() {
   const [hoverDay, setHoverDay] = useState<number | null>(null);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const [lightbox, setLightbox] = useState<PhotoRow | null>(null);
+  // 🆕 7-29 聖上拍板: 三 tab 切換 — 分類 / 找重複 / 統計
+  const [tab, setTab] = useState<"classify" | "dedupe" | "stats">("classify");
 
   // 載入所有照片 (從 Supabase)
   useEffect(() => {
@@ -181,11 +213,46 @@ export default function ClassifyPage() {
               <span className="text-stone-500"> / {progress.total} 張</span>
             </div>
           </div>
+          {/* 🆕 7-29 三 tab 切換 */}
+          <div className="flex gap-2 mt-4 border-b border-stone-200">
+            <button
+              onClick={() => setTab("classify")}
+              className={`px-4 py-2 text-sm font-bold transition-colors border-b-2 ${
+                tab === "classify"
+                  ? "border-amber-600 text-amber-700"
+                  : "border-transparent text-stone-500 hover:text-stone-700"
+              }`}
+            >
+              📋 分類
+            </button>
+            <button
+              onClick={() => setTab("dedupe")}
+              className={`px-4 py-2 text-sm font-bold transition-colors border-b-2 ${
+                tab === "dedupe"
+                  ? "border-red-600 text-red-700"
+                  : "border-transparent text-stone-500 hover:text-stone-700"
+              }`}
+            >
+              🔍 找重複
+            </button>
+            <button
+              onClick={() => setTab("stats")}
+              className={`px-4 py-2 text-sm font-bold transition-colors border-b-2 ${
+                tab === "stats"
+                  ? "border-blue-600 text-blue-700"
+                  : "border-transparent text-stone-500 hover:text-stone-700"
+              }`}
+            >
+              📊 統計
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* 篩選器 */}
+      {tab === "classify" && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+            {/* 分類 tab 內容 — 既有 3 個 section */}
+            {/* 篩選器 */}
         <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-stone-400">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -291,7 +358,20 @@ export default function ClassifyPage() {
             💡 拖一張照片到任一 day bucket = 自動寫入 Supabase + DB day 欄位更新
           </div>
         </section>
-      </div>
+        </div>
+      )}
+
+      {tab === "dedupe" && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <DedupeTab photos={photos} onReload={loadPhotos} />
+        </div>
+      )}
+
+      {tab === "stats" && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <StatsTab photos={photos} dayCounts={dayCounts} />
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightbox && (
@@ -548,4 +628,372 @@ interface PhotoRow {
   lng: number | null;
   location_name: string | null;
   google_photos_thumb_url: string | null;
+}
+
+interface BurstGroup {
+  datetime: string;
+  all: PhotoRow[];
+  defaultKeepId: string;
+  keepId: string;
+  wholeGroupDelete: boolean;
+}
+
+// ── 🔍 找重複 Tab (7-29 聖上拍板) ────────────────────────────────────────────
+function DedupeTab({
+  photos,
+  onReload,
+}: {
+  photos: PhotoRow[];
+  onReload: () => Promise<void>;
+}) {
+  const [groups, setGroups] = useState<BurstGroup[]>(() => detectBursts(photos));
+  const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [error, setError] = useState<string | null>(null);
+
+  // 當父層 photos 重 load 後, 重新 detectBursts
+  useEffect(() => {
+    setGroups(detectBursts(photos));
+  }, [photos]);
+
+  // 計算總刪除數
+  const totalDelete = groups.reduce(
+    (acc, g) => (g.wholeGroupDelete ? g.all.length : acc + (g.all.length - 1)),
+    0
+  );
+  const totalKeep = groups.reduce(
+    (acc, g) => (g.wholeGroupDelete ? 0 : acc + 1),
+    0
+  );
+
+  async function doDelete() {
+    if (
+      !confirm(
+        `⚠️ 即將從 Supabase 永久 DELETE ${totalDelete} 張照片 (保留 ${totalKeep} 張)\n\n此操作不可逆, 確定繼續?`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    // 收集所有要刪的 id
+    const ids: string[] = [];
+    for (const g of groups) {
+      if (g.wholeGroupDelete) {
+        for (const p of g.all) ids.push(p.id);
+      } else {
+        for (const p of g.all) {
+          if (p.id !== g.keepId) ids.push(p.id);
+        }
+      }
+    }
+    setProgress({ done: 0, total: ids.length });
+
+    let success = 0;
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/travel_photo_meta?id=eq.${id}`,
+          {
+            method: "DELETE",
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`,
+            },
+          }
+        );
+        if (res.ok) success++;
+        else {
+          const txt = await res.text();
+          setError(`id=${id} failed: HTTP ${res.status} ${txt}`);
+          break;
+        }
+      } catch (e) {
+        setError(`id=${id} exception: ${String(e)}`);
+        break;
+      }
+      setProgress({ done: i + 1, total: ids.length });
+    }
+
+    setBusy(false);
+    if (success === ids.length) {
+      toast.success(`✅ 已刪除 ${success} 張, 重新載入...`);
+      await onReload();
+      // useEffect 會依賴 photos prop 自動 re-detect
+    } else {
+      toast.error(`部分成功 ${success}/${ids.length}, 請看 console`);
+    }
+  }
+
+  if (groups.length === 0) {
+    return (
+      <section className="bg-white rounded-xl shadow-sm p-8 border-l-4 border-emerald-400 text-center">
+        <div className="text-6xl mb-3">🎉</div>
+        <h2 className="text-xl font-bold text-stone-900 font-serif">
+          沒有找到 burst 重複群組
+        </h2>
+        <p className="text-sm text-stone-600 mt-2">
+          DB 內已無「同秒 burst」連拍群組。
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      {/* 警告卡片 */}
+      <section className="bg-red-50 rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-red-500 mb-4">
+        <h2 className="text-lg font-bold text-red-700 mb-2">
+          ⚠️ 找到 {groups.length} 個 burst 群組
+        </h2>
+        <p className="text-sm text-stone-700">
+          規則: <strong>同秒拍攝多張</strong> = 視為 iPhone 連拍 burst, 真實重複。
+        </p>
+        <p className="text-sm text-stone-700 mt-2">
+          預計: <strong className="text-red-700">DELETE {totalDelete} 張</strong>,
+          保留 <strong className="text-emerald-700">{totalKeep} 張</strong>,
+          完全不動 <strong>{photos.length - groups.reduce((a, g) => a + g.all.length, 0)} 張</strong>。
+        </p>
+        <p className="text-xs text-stone-500 mt-2">
+          🔒 聖上按下方確認前, DB 不會動。確認後 DELETE 永久不可逆。
+        </p>
+      </section>
+
+      {/* 群組列表 */}
+      {groups.map((g, idx) => (
+        <BurstCard
+          key={g.datetime}
+          group={g}
+          index={idx + 1}
+          onChangeKeep={(id) =>
+            setGroups((prev) =>
+              prev.map((x) =>
+                x.datetime === g.datetime
+                  ? { ...x, keepId: id, wholeGroupDelete: false }
+                  : x
+              )
+            )
+          }
+          onWholeDelete={(b) =>
+            setGroups((prev) =>
+              prev.map((x) =>
+                x.datetime === g.datetime ? { ...x, wholeGroupDelete: b } : x
+              )
+            )
+          }
+        />
+      ))}
+
+      {/* 確認大按鈕 */}
+      <section className="bg-white rounded-xl shadow-lg p-6 border-2 border-red-400 mt-6 sticky bottom-4">
+        {error && (
+          <div className="mb-3 p-3 bg-red-100 text-red-800 rounded text-sm">
+            ❌ {error}
+          </div>
+        )}
+        {busy && (
+          <div className="mb-3">
+            <div className="text-sm text-stone-700 mb-1">
+              刪除中: {progress.done} / {progress.total}
+            </div>
+            <div className="w-full bg-stone-200 rounded h-3 overflow-hidden">
+              <div
+                className="bg-red-600 h-full transition-all"
+                style={{
+                  width:
+                    progress.total > 0
+                      ? `${(progress.done / progress.total) * 100}%`
+                      : "0%",
+                }}
+              />
+            </div>
+          </div>
+        )}
+        <button
+          onClick={doDelete}
+          disabled={busy || totalDelete === 0}
+          className="w-full py-4 bg-red-600 hover:bg-red-700 disabled:bg-stone-400 text-white font-bold text-lg rounded-lg shadow-md transition-colors"
+        >
+          {busy
+            ? `刪除中 ${progress.done}/${progress.total}...`
+            : totalDelete === 0
+              ? "無需刪除 (全部保留)"
+              : `🗑️ 確認 DELETE ${totalDelete} 張 (不可逆)`}
+        </button>
+      </section>
+    </>
+  );
+}
+
+function BurstCard({
+  group,
+  index,
+  onChangeKeep,
+  onWholeDelete,
+}: {
+  group: BurstGroup;
+  index: number;
+  onChangeKeep: (id: string) => void;
+  onWholeDelete: (wholeDelete: boolean) => void;
+}) {
+  const dtDisplay = group.datetime.replace("T", " ").replace("+00:00", " UTC");
+
+  return (
+    <section className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border-l-4 border-orange-400 mb-4">
+      <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
+        <div>
+          <h3 className="text-base font-bold text-stone-900">
+            📦 Burst #{index} — <span className="font-mono text-sm">{dtDisplay}</span>
+          </h3>
+          <p className="text-xs text-stone-500 mt-1">
+            {group.all.length} 張同秒 · 真實重複
+          </p>
+        </div>
+        {group.wholeGroupDelete ? (
+          <span className="px-3 py-1 bg-stone-700 text-white text-sm font-bold rounded">
+            🗑️ 整組刪除
+          </span>
+        ) : (
+          <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-sm font-bold rounded">
+            ✅ 保留 {group.all.find((p) => p.id === group.keepId)?.filename}
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 mb-3">
+        {group.all.map((p) => {
+          const isKept = !group.wholeGroupDelete && p.id === group.keepId;
+          const isDel = group.wholeGroupDelete || p.id !== group.keepId;
+          return (
+            <button
+              key={p.id}
+              onClick={() => onChangeKeep(p.id)}
+              className={`relative aspect-square bg-stone-100 rounded-lg overflow-hidden border-2 transition-all cursor-pointer hover:scale-105 ${
+                isKept
+                  ? "border-emerald-500 ring-2 ring-emerald-300"
+                  : isDel
+                    ? "border-red-300 opacity-60 hover:opacity-100"
+                    : "border-stone-200"
+              }`}
+              title={p.filename}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={p.google_photos_thumb_url || ""}
+                alt={p.filename}
+                loading="lazy"
+                className="w-full h-full object-cover"
+                draggable={false}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+              {isKept && (
+                <div className="absolute top-1 left-1 w-6 h-6 bg-emerald-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow">
+                  ✓
+                </div>
+              )}
+              {isDel && (
+                <div className="absolute top-1 left-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow">
+                  ×
+                </div>
+              )}
+              <div className="absolute bottom-0 inset-x-0 bg-black/70 text-white text-xs p-1 truncate">
+                {p.filename}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <select
+          value={group.keepId}
+          onChange={(e) => onChangeKeep(e.target.value)}
+          disabled={group.wholeGroupDelete}
+          className="px-3 py-1.5 text-sm border border-stone-300 rounded bg-white"
+        >
+          {group.all.map((p) => (
+            <option key={p.id} value={p.id}>
+              保留 {p.filename}
+              {p.id === group.defaultKeepId ? " (預設)" : ""}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => onWholeDelete(!group.wholeGroupDelete)}
+          className={`px-3 py-1.5 text-sm rounded font-bold transition-colors ${
+            group.wholeGroupDelete
+              ? "bg-stone-700 hover:bg-stone-800 text-white"
+              : "bg-stone-200 hover:bg-stone-300 text-stone-700"
+          }`}
+        >
+          {group.wholeGroupDelete
+            ? "↩️ 取消整組刪除"
+            : "🗑️ 整組都不要"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+// ── 📊 統計 Tab (7-29 聖上拍板, 暫放佔位) ──────────────────────────────────
+function StatsTab({
+  photos,
+  dayCounts,
+}: {
+  photos: PhotoRow[];
+  dayCounts: Record<number, number>;
+}) {
+  const total = photos.length;
+  const classified = photos.filter((p) => p.day && p.day > 0).length;
+  const unclassified = total - classified;
+  const withGps = photos.filter((p) => p.lat && p.lng).length;
+  const withUploader = photos.filter((p) => p.location_name).length;
+
+  return (
+    <section className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-400">
+      <h2 className="text-lg font-bold text-stone-900 mb-4">
+        📊 旅程照片統計
+      </h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <StatCard label="總張數" value={total} />
+        <StatCard label="已分類" value={classified} suffix={`/ ${total}`} />
+        <StatCard label="未分類" value={unclassified} />
+        <StatCard label="含 GPS" value={withGps} suffix={`/ ${total}`} />
+        <StatCard label="含地點名" value={withUploader} suffix={`/ ${total}`} />
+        <StatCard label="D1" value={dayCounts[1] || 0} />
+        <StatCard label="D2" value={dayCounts[2] || 0} />
+        <StatCard label="D3" value={dayCounts[3] || 0} />
+        <StatCard label="D4" value={dayCounts[4] || 0} />
+        <StatCard label="D5" value={dayCounts[5] || 0} />
+        <StatCard label="D6" value={dayCounts[6] || 0} />
+        <StatCard label="D7" value={dayCounts[7] || 0} />
+        <StatCard label="D8" value={dayCounts[8] || 0} />
+      </div>
+    </section>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  suffix,
+}: {
+  label: string;
+  value: number;
+  suffix?: string;
+}) {
+  return (
+    <div className="bg-stone-50 px-4 py-3 rounded">
+      <div className="text-xs text-stone-500">{label}</div>
+      <div className="text-lg font-bold text-stone-900 mt-1">
+        {value}
+        {suffix && (
+          <span className="text-sm text-stone-500 font-normal"> {suffix}</span>
+        )}
+      </div>
+    </div>
+  );
 }
