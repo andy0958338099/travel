@@ -496,6 +496,39 @@ export default function PhotoClassifierClient() {
     toast.success(`已 console.log 嵌入 JSON · ${result.photoCount} 張`);
   }, [albums, photos, selectedAlbumId]);
 
+  // 🆕 7-30 聖上實證「為什麼我看不到 JSON」—
+  //   把 fetch /photos-metadata.json + renderGallery 範例直接做按鈕, 點下去在 modal 預覽
+  const [demoPreviewOpen, setDemoPreviewOpen] = useState(false);
+  const [demoPreviewHTML, setDemoPreviewHTML] = useState("");
+  const handleFetchAndPreview = useCallback(async () => {
+    try {
+      // 直接 fetch 公開 JSON (用同一個 origin, 證明 production 上 JSON 可讀)
+      const mod = await import("./utils/renderGalleryExample");
+      const data = await mod.fetchPhotosMetadata("/photos-metadata.json");
+      // 取第一個 album 預覽
+      const firstAlbum = data.albums.find((a) => a.id !== "inbox") ?? data.albums[0];
+      if (!firstAlbum) {
+        toast.error("JSON 內無 album");
+        return;
+      }
+      // 暫時建一個隱藏 div, 讓 renderGallery 注入 HTML, 我們抓 innerHTML 進 modal
+      const tmp = document.createElement("div");
+      document.body.appendChild(tmp);
+      mod.renderGallery(data, {
+        albumId: firstAlbum.id,
+        target: tmp,
+        layout: "grid",
+        columns: 4,
+      });
+      setDemoPreviewHTML(tmp.innerHTML);
+      document.body.removeChild(tmp);
+      setDemoPreviewOpen(true);
+      toast.success(`已 fetch /photos-metadata.json + 渲染 ${data.photos.length} 張`);
+    } catch (e) {
+      toast.error(`fetch 失敗: ${String(e)}`);
+    }
+  }, []);
+
   // ── Render ──
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col">
@@ -509,6 +542,12 @@ export default function PhotoClassifierClient() {
             </span>
           </h1>
           <div className="flex gap-2">
+            <button
+              onClick={handleFetchAndPreview}
+              className="px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold"
+            >
+              📥 載入 Demo JSON
+            </button>
             <button
               onClick={handleExportEmbed}
               className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded font-bold"
@@ -676,6 +715,45 @@ export default function PhotoClassifierClient() {
           )}
         </main>
       </div>
+
+      {/* 🆕 7-30 Demo Preview Modal — 點 📥 載入 Demo JSON 後彈出 */}
+      {demoPreviewOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4"
+          onClick={() => setDemoPreviewOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[85vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-2xl font-bold text-stone-900 font-serif">
+                  📥 Demo Metadata 預覽
+                </h2>
+                <p className="text-xs text-stone-500 mt-1">
+                  從 <code className="bg-stone-100 px-1 rounded">/photos-metadata.json</code> fetch 後的渲染結果
+                </p>
+              </div>
+              <button
+                onClick={() => setDemoPreviewOpen(false)}
+                className="w-10 h-10 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <div
+              className="border-2 border-stone-200 rounded-lg p-4 bg-stone-50 overflow-x-auto"
+              dangerouslySetInnerHTML={{ __html: demoPreviewHTML }}
+            />
+            <div className="mt-3 text-xs text-stone-500">
+              💡 上方 grid = <code>renderGallery(metadata, {`{ albumId, target, layout: 'grid', columns: 4 }`})</code> 輸出
+              · 換 <code>layout: 'carousel'</code> 就變水平 slider
+              · 換 <code>albumId</code> 就顯示不同相簿
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
