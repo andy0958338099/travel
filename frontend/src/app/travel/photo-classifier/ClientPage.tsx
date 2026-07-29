@@ -747,8 +747,8 @@ export default function PhotoClassifierClient() {
               dangerouslySetInnerHTML={{ __html: demoPreviewHTML }}
             />
             <div className="mt-3 text-xs text-stone-500">
-              💡 上方 grid = <code>renderGallery(metadata, {`{ albumId, target, layout: 'grid', columns: 4 }`})</code> 輸出
-              · 換 <code>layout: 'carousel'</code> 就變水平 slider
+              💡 上方 grid = <code>renderGallery(metadata, {`{ albumId, target, layout: "grid", columns: 4 }`})</code> 輸出
+              · 換 <code>layout: &apos;carousel&apos;</code> 就變水平 slider
               · 換 <code>albumId</code> 就顯示不同相簿
             </div>
           </div>
