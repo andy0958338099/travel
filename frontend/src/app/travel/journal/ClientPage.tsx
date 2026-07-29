@@ -7,6 +7,7 @@ import "leaflet/dist/leaflet.css";
 import { ALL_ATTRACTIONS } from "../data";
 import { useCloudState } from "@/utils/useCloudState";
 import ShareButtons from "@/components/ShareButtons";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Dynamic import for Leaflet (no SSR)
 const MapContainer = dynamic(() => import("react-leaflet").then(m => m.MapContainer), { ssr: false });
@@ -595,43 +596,45 @@ export default function TravelJournalPage() {
               className={`rounded-xl overflow-hidden border border-gray-200 journal-leaflet-${leafletId.replace(/[^a-zA-Z0-9_-]/g, "_")}`}
               style={{ height: "750px" }}
             >
-              <MapContainer
-                key={leafletId}
-                center={[30.4, 120.2]}
-                zoom={9}
-                style={{ height: "100%", width: "100%" }}
-                scrollWheelZoom={false}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                />
-                {/* Route line for all attractions */}
-                {(() => {
-                  const positions = uniqueAttractions.map(name => {
-                    const attr = ALL_ATTRACTIONS.find(a => a.name === name);
-                    return attr ? [attr.lat, attr.lng] as [number, number] : null;
-                  }).filter(Boolean) as [number, number][];
-                  return positions.length > 1 ? (
-                    <Polyline
-                      positions={positions}
-                      pathOptions={{ color: '#ef4444', weight: 4, opacity: 0.8 }}
-                    />
-                  ) : null;
-                })()}
-                {/* Numbered markers */}
-                {uniqueAttractions.map((name, idx) => {
-                  const attraction = ALL_ATTRACTIONS.find(a => a.name === name);
-                  if (!attraction) return undefined;
-                  return (
-                    <Marker
-                      key={`route-${name}-${idx}`}
-                      position={[attraction.lat, attraction.lng]}
-                      icon={createRouteMarker(idx + 1)}
-                    />
-                  );
-                })}
-              </MapContainer>
+              <ErrorBoundary name="路線地圖">
+                <MapContainer
+                  key={leafletId}
+                  center={[30.4, 120.2]}
+                  zoom={9}
+                  style={{ height: "100%", width: "100%" }}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  {/* Route line for all attractions */}
+                  {(() => {
+                    const positions = uniqueAttractions.map(name => {
+                      const attr = ALL_ATTRACTIONS.find(a => a.name === name);
+                      return attr ? [attr.lat, attr.lng] as [number, number] : null;
+                    }).filter(Boolean) as [number, number][];
+                    return positions.length > 1 ? (
+                      <Polyline
+                        positions={positions}
+                        pathOptions={{ color: '#ef4444', weight: 4, opacity: 0.8 }}
+                      />
+                    ) : null;
+                  })()}
+                  {/* Numbered markers */}
+                  {uniqueAttractions.map((name, idx) => {
+                    const attraction = ALL_ATTRACTIONS.find(a => a.name === name);
+                    if (!attraction) return undefined;
+                    return (
+                      <Marker
+                        key={`route-${name}-${idx}`}
+                        position={[attraction.lat, attraction.lng]}
+                        icon={createRouteMarker(idx + 1)}
+                      />
+                    );
+                  })}
+                </MapContainer>
+              </ErrorBoundary>
             </div>
           </div>
         </div>
@@ -906,37 +909,39 @@ export default function TravelJournalPage() {
                     className={`rounded-xl overflow-hidden border border-gray-200 journal-leaflet-${leafletId.replace(/[^a-zA-Z0-9_-]/g, "_")}`}
                     style={{ height: "280px" }}
                   >
-                    <MapContainer
-                      key={leafletId}
-                      center={mapCenter}
-                      zoom={zoomLevel}
-                      style={{ height: "100%", width: "100%" }}
-                      scrollWheelZoom={false}
-                    >
-                      <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      />
-                      {/* Day route line */}
-                      {dayPositions.length > 1 && (
-                        <Polyline
-                          positions={dayPositions}
-                          pathOptions={{ color: dayColor, weight: 4, opacity: 0.8 }}
+                    <ErrorBoundary name="當日路線圖">
+                      <MapContainer
+                        key={leafletId}
+                        center={mapCenter}
+                        zoom={zoomLevel}
+                        style={{ height: "100%", width: "100%" }}
+                        scrollWheelZoom={false}
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                         />
-                      )}
-                      {/* Numbered markers with global route numbers */}
-                      {day.attractions.map((name) => {
-                        const attr = ALL_ATTRACTIONS.find(a => a.name === name);
-                        if (!attr) return undefined;
-                        return (
-                          <Marker
-                            key={`mini-${day.day}-${name}`}
-                            position={[attr.lat, attr.lng]}
-                            icon={createMiniMarker(name, dayColor)}
+                        {/* Day route line */}
+                        {dayPositions.length > 1 && (
+                          <Polyline
+                            positions={dayPositions}
+                            pathOptions={{ color: dayColor, weight: 4, opacity: 0.8 }}
                           />
-                        );
-                      })}
-                    </MapContainer>
+                        )}
+                        {/* Numbered markers with global route numbers */}
+                        {day.attractions.map((name) => {
+                          const attr = ALL_ATTRACTIONS.find(a => a.name === name);
+                          if (!attr) return undefined;
+                          return (
+                            <Marker
+                              key={`mini-${day.day}-${name}`}
+                              position={[attr.lat, attr.lng]}
+                              icon={createMiniMarker(name, dayColor)}
+                            />
+                          );
+                        })}
+                      </MapContainer>
+                    </ErrorBoundary>
                   </div>
                 </div>
               </div>
