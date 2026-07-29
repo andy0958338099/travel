@@ -17,6 +17,10 @@ import {
 import { generateDemoPhotos, DEFAULT_ALBUMS, UPLOADERS } from "./demo-data";
 import { VirtualGrid } from "./components/VirtualGrid";
 import { generateEmbedCode } from "./utils/generateEmbedCode";
+import {
+  fetchPhotosMetadata,
+  renderGallery,
+} from "./utils/renderGalleryExample";
 
 // 🆕 拖曳用自訂 MIME (避開 7-29 聖上實證 <button> source + text/plain 空字串 bug)
 const DRAG_MIME = "application/x-photo-classifier";
@@ -502,30 +506,34 @@ export default function PhotoClassifierClient() {
   const [demoPreviewHTML, setDemoPreviewHTML] = useState("");
   const handleFetchAndPreview = useCallback(async () => {
     try {
-      // 直接 fetch 公開 JSON (用同一個 origin, 證明 production 上 JSON 可讀)
-      const mod = await import("./utils/renderGalleryExample");
-      const data = await mod.fetchPhotosMetadata("/photos-metadata.json");
-      // 取第一個 album 預覽
+      console.log("[Demo] fetch start");
+      const data = await fetchPhotosMetadata("/photos-metadata.json");
+      console.log("[Demo] fetch ok, photos:", data.photos.length);
       const firstAlbum = data.albums.find((a) => a.id !== "inbox") ?? data.albums[0];
       if (!firstAlbum) {
         toast.error("JSON 內無 album");
         return;
       }
-      // 暫時建一個隱藏 div, 讓 renderGallery 注入 HTML, 我們抓 innerHTML 進 modal
+      // 🆕 7-30: 先開 modal 再 render, 確保狀態一定更新
+      setDemoPreviewOpen(true);
       const tmp = document.createElement("div");
       document.body.appendChild(tmp);
-      mod.renderGallery(data, {
-        albumId: firstAlbum.id,
-        target: tmp,
-        layout: "grid",
-        columns: 4,
-      });
-      setDemoPreviewHTML(tmp.innerHTML);
-      document.body.removeChild(tmp);
-      setDemoPreviewOpen(true);
-      toast.success(`已 fetch /photos-metadata.json + 渲染 ${data.photos.length} 張`);
+      try {
+        renderGallery(data, {
+          albumId: firstAlbum.id,
+          target: tmp,
+          layout: "grid",
+          columns: 4,
+        });
+        setDemoPreviewHTML(tmp.innerHTML);
+        toast.success(`✅ 已載入 ${data.photos.length} 張 (${firstAlbum.name})`);
+      } finally {
+        document.body.removeChild(tmp);
+      }
     } catch (e) {
-      toast.error(`fetch 失敗: ${String(e)}`);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[handleFetchAndPreview]", e);
+      toast.error(`fetch 失敗: ${msg}`);
     }
   }, []);
 
