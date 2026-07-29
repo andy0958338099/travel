@@ -302,6 +302,39 @@ export default function PhotoClassifierClient() {
     lastShiftRef.current = e.shiftKey;
     setMarqueeBox({ x: startX, y: startY, w: 0, h: 0 });
 
+    // 🆕 7-30: 拉框自動滾 (聖上實證「粗篩 100-200 張」要拉大範圍)
+    //   VirtualGrid 內部有 overflow-y-auto scrollable container,
+    //   滑鼠靠近 canvas 上下邊時 scroll, 讓新 row render 後被 marquee 涵蓋。
+    const autoScrollTimerRef = { current: 0 } as { current: number };
+    function autoScrollOnEdge(clientY: number, canvasRect: DOMRect) {
+      const EDGE = 60;
+      const topDist = clientY - canvasRect.top;
+      const bottomDist = canvasRect.bottom - clientY;
+      // 找 VirtualGrid 內的 scrollable div
+      const scroller = canvasRef.current?.querySelector<HTMLElement>(
+        ".overflow-y-auto"
+      );
+      if (!scroller) return;
+      if (autoScrollTimerRef.current) {
+        cancelAnimationFrame(autoScrollTimerRef.current);
+      }
+      const step = () => {
+        const dy =
+          topDist < EDGE
+            ? -Math.max(2, (EDGE - topDist) / 4)
+            : bottomDist < EDGE
+            ? Math.max(2, (EDGE - bottomDist) / 4)
+            : 0;
+        if (dy !== 0) {
+          scroller.scrollTop += dy;
+          autoScrollTimerRef.current = requestAnimationFrame(step);
+        }
+      };
+      if (topDist < EDGE || bottomDist < EDGE) {
+        autoScrollTimerRef.current = requestAnimationFrame(step);
+      }
+    }
+
     const onMove = (ev: MouseEvent) => {
       const r = canvasRef.current!.getBoundingClientRect();
       const sx = marqueeStartRef.current!.x;
@@ -314,12 +347,19 @@ export default function PhotoClassifierClient() {
         w: Math.abs(cx - sx),
         h: Math.abs(cy - sy),
       });
+      // 🆕 7-30 聖上實證「粗篩 100-200 張」要拉大範圍 → 自動 scroll 讓新 row 進來
+      autoScrollOnEdge(ev.clientY, r);
     };
     const onUp = () => {
       // 計算 marquee 範圍內的 photos → 加入 selection
       // 用 setMarqueeBox functional form 拿最新 state
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      // 🆕 7-30: 取消仍在進行的 auto-scroll rAF
+      if (autoScrollTimerRef.current) {
+        cancelAnimationFrame(autoScrollTimerRef.current);
+        autoScrollTimerRef.current = 0;
+      }
 
       setMarqueeBox((final) => {
         if (final && final.w > 3 && final.h > 3) {
@@ -347,7 +387,49 @@ export default function PhotoClassifierClient() {
             return new Set(idsInBox);
           });
         }
-        marqueeStartRef.current = null;
+        // 🆕 7-30: 等下一個 rAF, 讓 React 把剛 scroll 進 viewport 的新 row 渲染完
+        //   這樣 querySelectorAll 才看得到「真的進 marquee 範圍」的 cards
+        requestAnimationFrame(() => {
+          // 用 scroll position 決定再次 query (新 row 進來了)
+          const idsInBox: string[] = [];
+          const cRect = canvasRef.current!.getBoundingClientRect();
+          const final2 = document.querySelector<HTMLElement>(
+            "[data-marquee-guard] .pointer-events-none"
+          );
+          const box2 = final2
+            ? {
+                x: parseFloat(final2.style.left),
+                y: parseFloat(final2.style.top),
+                w: parseFloat(final2.style.width),
+                h: parseFloat(final2.style.height),
+              }
+            : null;
+          if (!box2 || box2.w <= 3 || box2.h <= 3) {
+            return;
+          }
+          document.querySelectorAll<HTMLElement>("[data-photo-card]").forEach((el) => {
+            const r = el.getBoundingClientRect();
+            const left = box2.x + cRect.left;
+            const top = box2.y + cRect.top;
+            const right = left + box2.w;
+            const bottom = top + box2.h;
+            const cx2 = r.left + r.width / 2;
+            const cy2 = r.top + r.height / 2;
+            if (cx2 >= left && cx2 <= right && cy2 >= top && cy2 <= bottom) {
+              idsInBox.push(el.dataset.photoId!);
+            }
+          });
+          const useShift = lastShiftRef.current;
+          setSelectedPhotoIds((prev) => {
+            if (useShift) {
+              const next = new Set(prev);
+              for (const id of idsInBox) next.add(id);
+              return next;
+            }
+            return new Set(idsInBox);
+          });
+          marqueeStartRef.current = null;
+        });
         return null;
       });
     };

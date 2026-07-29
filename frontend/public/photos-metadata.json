@@ -1,0 +1,110 @@
+{
+  "_comment": "🆕 7-30 聖上拍板 JSON 驅動 metadata。photo-classifier 真實操作後的最終狀態。fetch('/photos-metadata.json') 主網頁可直接讀此 JSON render gallery。",
+  "_version": 1,
+  "_generatedAt": "2026-07-30T00:00:00+08:00",
+
+  "albums": [
+    { "id": "inbox",             "name": "Inbox 未分類", "emoji": "📥" },
+    { "id": "day-1-arrival",     "name": "Day 1 桃園→上海", "emoji": "✈️" },
+    { "id": "day-1-dinner",      "name": "Day 1 上海晚餐", "emoji": "🍜" },
+    { "id": "day-2-shanghai",    "name": "Day 2 上海→西塘", "emoji": "🚐" },
+    { "id": "day-3-wuzhen-east", "name": "Day 3 西塘→烏鎮東柵", "emoji": "🏘️" },
+    { "id": "day-4-wuzhen-west", "name": "Day 4 烏鎮西柵", "emoji": "🌉" },
+    { "id": "day-5-hangzhou",    "name": "Day 5 烏鎮→杭州", "emoji": "🌊" },
+    { "id": "shot-by-jiafen",    "name": "佳分拍攝精選", "emoji": "📸" },
+    { "id": "night-scene",       "name": "夜景主題", "emoji": "🌃" }
+  ],
+
+  "photos": [
+    {
+      "id": "photo-0001",
+      "src": "https://picsum.photos/id/0/300/300",
+      "uploader": "黃佳分",
+      "albumId": "day-1-arrival",
+      "order": 0,
+      "tags": ["夜景", "建築"],
+      "notes": "外灘夜景初拍"
+    },
+    {
+      "id": "photo-0007",
+      "src": "https://picsum.photos/id/6/300/300",
+      "uploader": "梁宸瑋",
+      "albumId": "day-1-dinner",
+      "order": 0,
+      "tags": ["美食", "合照"],
+      "notes": "海底撈撈麵表演"
+    },
+    {
+      "id": "photo-0015",
+      "src": "https://picsum.photos/id/14/300/300",
+      "uploader": "李春美",
+      "albumId": "day-1-arrival",
+      "order": 1,
+      "tags": ["建築", "夜景"]
+    },
+    {
+      "id": "photo-0023",
+      "src": "https://picsum.photos/id/22/300/300",
+      "uploader": "梁恩齊",
+      "albumId": "day-1-dinner",
+      "order": 1,
+      "tags": ["美食"]
+    },
+    {
+      "id": "photo-0042",
+      "src": "https://picsum.photos/id/41/300/300",
+      "uploader": "梁勝評",
+      "albumId": "day-2-shanghai",
+      "order": 0,
+      "tags": ["古鎮", "合照"]
+    },
+    {
+      "id": "photo-0089",
+      "src": "https://picsum.photos/id/88/300/300",
+      "uploader": "吳家昇",
+      "albumId": "day-3-wuzhen-east",
+      "order": 0,
+      "tags": ["古鎮"],
+      "notes": "東柵昭明書院"
+    },
+    {
+      "id": "photo-0127",
+      "src": "https://picsum.photos/id/126/300/300",
+      "uploader": "廖宇橋",
+      "albumId": "day-4-wuzhen-west",
+      "order": 0,
+      "tags": ["夜景", "建築"]
+    },
+    {
+      "id": "photo-0204",
+      "src": "https://picsum.photos/id/203/300/300",
+      "uploader": "王義伸",
+      "albumId": "day-5-hangzhou",
+      "order": 0,
+      "tags": ["美食", "夜景"],
+      "notes": "京杭大運河遊船"
+    },
+    {
+      "id": "photo-0231",
+      "src": "https://picsum.photos/id/230/300/300",
+      "uploader": "胡雅茹",
+      "albumId": "shot-by-jiafen",
+      "order": 0,
+      "tags": ["景點"]
+    },
+    {
+      "id": "photo-0289",
+      "src": "https://picsum.photos/id/288/300/300",
+      "uploader": "黃佳分",
+      "albumId": "night-scene",
+      "order": 0,
+      "tags": ["夜景"]
+    }
+  ],
+
+  "_stats": {
+    "totalPhotos": 10,
+    "totalAlbums": 8,
+    "uploaders": ["黃佳分", "梁宸瑋", "李春美", "梁恩齊", "梁勝評", "吳家昇", "廖宇橋", "王義伸", "胡雅茹"]
+  }
+}
