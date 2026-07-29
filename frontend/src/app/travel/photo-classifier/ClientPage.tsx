@@ -505,14 +505,11 @@ export default function PhotoClassifierClient() {
   const [demoPreviewOpen, setDemoPreviewOpen] = useState(false);
   const [demoPreviewHTML, setDemoPreviewHTML] = useState("");
   const handleFetchAndPreview = useCallback(async () => {
-    // 🆕 7-30: console.log 偵錯 — 確認 production 上 button click 真有觸發 handler
-    console.log("[Demo] button clicked");
-    alert("button clicked! 開始 fetch JSON...");
     try {
+      // 🆕 7-30: console.log 偵錯 — 確認 production 上 button click 真有觸發 handler
       console.log("[Demo] fetch start");
       const data = await fetchPhotosMetadata("/photos-metadata.json");
       console.log("[Demo] fetch ok, photos:", data.photos.length);
-      alert(`fetch ok, ${data.photos.length} photos`);
       const firstAlbum = data.albums.find((a) => a.id !== "inbox") ?? data.albums[0];
       if (!firstAlbum) {
         toast.error("JSON 內無 album");
@@ -538,7 +535,6 @@ export default function PhotoClassifierClient() {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("[handleFetchAndPreview]", e);
       toast.error(`fetch 失敗: ${msg}`);
-      alert(`ERROR: ${msg}`);
     }
   }, []);
 
