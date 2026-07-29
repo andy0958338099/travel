@@ -36,8 +36,11 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   // 🆕 2026-07-26 聖上拍板: 刪 dining + apple-watch-s11,加 prepare + photo-album
   // sim-guide/payment-guide/toilet-tour 收進 /travel/prepare 但保留 subpage (deep link + SEO)
   // 🆕 2026-07-30 聖上拍板: 刪 photo-album (整個資料夾 + classify 子路由 + ExifMap)
+  // 🆕 2026-07-30 聖上再拍板: 補 photo-classifier nav link (刪 photo-album 後該系統無入口)
   { key: 'foodie-stops', label: '🧋 網紅名店',     href: '/travel/foodie-stops' },
   { key: 'prepare',        label: '⌚ 行前須知',     href: '/travel/prepare'        },
+  // 🆕 2026-07-30: photo-classifier 跟「旅程日誌」同類(旅程內容),放在後面
+  { key: 'photo-classifier', label: '📷 相片拖曳分類器', href: '/travel/photo-classifier' },
   // 🆕 2026-07-11 Vlog 劇本 4 選 1 — /vlog 入口（不在 /travel 子樹，共用聖上的 nav）
   { key: 'vlog',            label: '🎬 Vlog 劇本 4 選 1',  href: '/vlog' },
 ];
