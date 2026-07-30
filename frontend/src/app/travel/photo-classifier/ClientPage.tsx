@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/components/GlobalToastHost";
 import {
   type Album,
@@ -21,6 +21,7 @@ import {
   fetchPhotosMetadata,
   renderGallery,
 } from "./utils/renderGalleryExample";
+import { fetchAllPhotos } from "@/utils/travelPhotos";
 
 // 🆕 拖曳用自訂 MIME (避開 7-29 聖上實證 <button> source + text/plain 空字串 bug)
 const DRAG_MIME = "application/x-photo-classifier";
@@ -275,10 +276,57 @@ function GooglePhotosSection() {
 // ── Main ClientPage ────────────────────────────────────────────────────────
 export default function PhotoClassifierClient() {
   // ── 狀態: photos, albums, 當前 album, 多選 selection ──
-  // 🆕 7-30 §A.5 聖上拍板: photos 預設空陣列, 真實照片由聖上「從 Google 相簿下載原檔 + 拖入」流程餵入
+  // 🆕 7-30 §A.5 聖上拍板: photos 預設空陣列, 真實照片由 Supabase travel_photo_meta 餵入
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loadingRealPhotos, setLoadingRealPhotos] = useState(true);
+
+  // 🆕 7-30 §A.6 從 Supabase 拉真實 Takeout 照片, 轉成 Photo 輕量格式
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingRealPhotos(true);
+      try {
+        const realPhotos = await fetchAllPhotos();
+        if (cancelled) return;
+        const converted: Photo[] = realPhotos
+          .filter((p) => p.google_photos_thumb_url) // 跳過沒 thumb 的 (D3 缺檔 68, D4 缺檔 45)
+          .map((p) => {
+            const tags: string[] = [`D${p.day}`, `${p.hour}時`];
+            if (p.location_name) tags.push(p.location_name);
+            return {
+              id: p.id,
+              src: p.google_photos_thumb_url!, // 已過濾有 thumb_url
+              uploader: p.uploader_name ?? DEFAULT_UPLOADER,
+              albumId: `day-${p.day}`, // D1-D5 各一個 album (預設依 day 分組)
+              order: new Date(p.datetime_original).getTime(),
+              tags,
+              notes: p.caption ?? "",
+            };
+          });
+        setPhotos(converted);
+        const dayCounts = new Map<number, number>();
+        converted.forEach((p) => {
+          const day = parseInt(p.albumId.replace("day-", ""), 10);
+          dayCounts.set(day, (dayCounts.get(day) ?? 0) + 1);
+        });
+        const summary = Array.from(dayCounts.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([d, c]) => `D${d}=${c}`)
+          .join(" · ");
+        toast.success(`📸 載入 ${converted.length} 張真實照片 (${summary})`);
+      } catch (err) {
+        console.error("[photo-classifier] fetch Supabase error:", err);
+        toast.error("載入真實照片失敗 — 看 console");
+      } finally {
+        if (!cancelled) setLoadingRealPhotos(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []); // 只跑一次
   const [albums, setAlbums] = useState<Album[]>(DEFAULT_ALBUMS);
-  const [selectedAlbumId, setSelectedAlbumId] = useState<string>(INBOX_ALBUM_ID);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string>("day-1");
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
 
   // ── 拖曳中 (drag) state ──
@@ -681,7 +729,9 @@ export default function PhotoClassifierClient() {
           <h1 className="text-lg font-bold text-stone-900 font-serif">
             📂 相片分類器
             <span className="ml-2 text-xs font-normal text-stone-600">
-              13 位成員 · {photos.length} 張 · {albums.length} 個 album
+              {loadingRealPhotos
+                ? "⏳ 從 Supabase 載入真實照片..."
+                : `📸 ${photos.length} 張真實照片 · ${albums.length} 個 album`}
             </span>
           </h1>
           <div className="flex gap-2">

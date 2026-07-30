@@ -15,9 +15,13 @@ export const UPLOADERS = [
   "吳家昇", "廖宇橋", "王義伸", "胡雅茹", "吳宇淞", "黃倩", "吳宇儒",
 ];
 
-/** 預設 album — 只有 inbox 收件匣 */
+/** 預設 album — Inbox + D1-D5 (依真實 Takeout 拍攝日) */
 export const DEFAULT_ALBUMS: Album[] = [
   { id: INBOX_ALBUM_ID, name: "Inbox 未分類", emoji: "📥", createdAt: Date.now() },
+  { id: "day-1", name: "D1 — 7/17 啟程", emoji: "🛫", createdAt: Date.now() },
+  { id: "day-3", name: "D3 — 7/19 西塘", emoji: "🏮", createdAt: Date.now() },
+  { id: "day-4", name: "D4 — 7/20 烏鎮", emoji: "🌉", createdAt: Date.now() },
+  { id: "day-5", name: "D5 — 7/21 回杭州", emoji: "🏯", createdAt: Date.now() },
 ];
 
 /** 生成 3000 張 demo photo (id 前 100 全塞未知 uploader — 模擬聖上剛拉進來的「無 EXIF 不歸屬」狀態) */
