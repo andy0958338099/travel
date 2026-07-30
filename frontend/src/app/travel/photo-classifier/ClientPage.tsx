@@ -25,6 +25,13 @@ import {
 // 🆕 拖曳用自訂 MIME (避開 7-29 聖上實證 <button> source + text/plain 空字串 bug)
 const DRAG_MIME = "application/x-photo-classifier";
 
+// 🆕 2026-07-30 §A 聖上拍板: 嵌入 Google 共享相簿 iframe, 讓聖上看到真實照片
+const ALBUM_URL =
+  "https://photos.google.com/share/AF1QipNtGu6ZAce_6W_BKFOs9LOcWozrGOGIuYJcIswiZYCwosGHtK1JU-1R7eMHqzvA8w?key=eDhUSF94N3RYNE1qdURTakdTbDVKZE1wUVJQSmZn";
+const SHORT_URL = "https://photos.app.goo.gl/jPL9tjmkFsewqZGHA";
+const COVER_IMAGE =
+  "https://lh3.googleusercontent.com/pw/AP1GczOrI2KER8GzgR6_K-eaUZxzx-uMEYRiwUC0kxeMugQTtIRpc9K8J9rLR50fLbED_DmmiGoxdNLgggTVl83XVr_NeiukObeqY5UuKXog33J5dbAafIw=w1200-h630-p-k";
+
 // ── 1 張 photo 卡 ──────────────────────────────────────────────────────────
 interface PhotoCardProps {
   photo: Photo;
@@ -136,6 +143,132 @@ function AlbumRow({
         )}
       </div>
     </div>
+  );
+}
+
+// ── §A 2026-07-30 聖上拍板: Google 共享相簿 iframe section ────────────
+// 從 photo-album 7-28 commit (834c563) 完整搬過來, 加 7-28 「為何不能拖」教學 details
+function GooglePhotosSection() {
+  function copyShareLink() {
+    navigator.clipboard
+      .writeText(SHORT_URL)
+      .then(() => toast.success("已複製相簿短網址"))
+      .catch(() => toast.error("複製失敗,請手動選取"));
+  }
+  return (
+    <section className="bg-white border-b-2 border-stone-200 overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 rounded-xl overflow-hidden border-l-4 border-[var(--jn-vermilion)] shadow-sm">
+          <div className="relative aspect-video md:aspect-auto md:min-h-[180px] bg-stone-200 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={COVER_IMAGE}
+              alt="杭州共享相簿封面"
+              className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2.5 sm:p-3">
+              <div className="text-white text-xs sm:text-sm font-bold drop-shadow">
+                杭州共享相簿 · Jul 17 – 25 📸
+              </div>
+              <div className="text-white/90 text-xs mt-0.5 hidden sm:block">
+                Google Photos · 共用相簿 · 全員可上傳
+              </div>
+            </div>
+          </div>
+          <div className="p-5 sm:p-6 flex flex-col justify-center space-y-4 bg-white">
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-stone-900 mb-2">
+                📸 全員共享相簿 (Google Photos)
+              </h2>
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                這趟旅程的真實照片都在 Google 相簿, 點下方按鈕開新分頁瀏覽或下載原檔。
+              </p>
+            </div>
+            <a
+              href={ALBUM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white text-sm sm:text-base font-bold rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-lg"
+            >
+              📸 開啟 Google 相簿
+              <span className="text-xs opacity-90">(新分頁)</span>
+            </a>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={copyShareLink}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg border border-amber-200"
+              >
+                📋 複製短網址
+              </button>
+              <a
+                href={`https://line.me/R/msg/text/?${encodeURIComponent(
+                  `江南水鄉 8 日照片集 📸\n${SHORT_URL}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm bg-green-50 hover:bg-green-100 text-green-800 rounded-lg border border-green-200"
+              >
+                💬 LINE 分享
+              </a>
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(SHORT_URL)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs sm:text-sm bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg border border-blue-200"
+              >
+                📘 FB 分享
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* 🆕 7-28 教學: 為何不能直接從相簿拖 iframe */}
+        <details className="mt-3 border-2 border-amber-200 bg-amber-50/60 rounded-lg">
+          <summary className="cursor-pointer px-4 sm:px-5 py-3 text-sm font-bold text-amber-900 hover:bg-amber-100/60 transition-colors flex items-center gap-2 select-none rounded-lg">
+            <span className="text-base">📥</span>
+            <span>怎麼把 Google 相簿照片加到這?</span>
+            <span className="text-xs text-amber-700 ml-auto">(點開看 3 步驟)</span>
+          </summary>
+          <div className="px-4 sm:px-5 pb-4 pt-2 text-xs sm:text-sm text-stone-700 space-y-3 leading-relaxed">
+            <p className="text-amber-900 bg-amber-100 px-3 py-2 rounded">
+              ⚠️ <strong>不能直接從相簿拖</strong> — Google 用 iframe sandbox 鎖住,
+              右鍵另存也只拿到壓縮圖 (沒 EXIF、沒原始畫質)。必須先下載原檔。
+            </p>
+            <div className="font-bold text-stone-900 text-sm pt-1">📋 3 步驟把照片加進來:</div>
+            <div className="flex gap-3 items-start">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold">1</span>
+              <div className="flex-1 min-w-0">
+                <strong className="text-stone-900">Google 相簿下載原檔</strong>
+                <p className="mt-1">
+                  開相簿 → 右上「⋯」→ 「全選」→ 「⋯」→ 「下載」。
+                  會拿到一個 <code className="bg-stone-100 px-1 rounded">.zip</code>。
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 items-start">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold">2</span>
+              <div className="flex-1 min-w-0">
+                <strong className="text-stone-900">解壓到桌面</strong>
+                <p className="mt-1">
+                  雙擊 zip 自動解壓。建議放 <code className="bg-stone-100 px-1 rounded">~/Desktop/Takeout/Google 相簿/</code>。
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 items-start">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-red-600 text-white flex items-center justify-center text-sm font-bold">3</span>
+              <div className="flex-1 min-w-0">
+                <strong className="text-stone-900">回到本頁, 拖到下方任一 Album</strong>
+                <p className="mt-1">
+                  從 Finder 一次拖多張照片 → 放到左側 <strong>📑 自訂相簿任一列</strong>。
+                  系統自動按檔名歸類, 顯示在右側 grid。一次最多 50 張, 支援整個資料夾拖入。
+                </p>
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </section>
   );
 }
 
@@ -572,6 +705,9 @@ export default function PhotoClassifierClient() {
           </div>
         </div>
       </header>
+
+      {/* ── §A 2026-07-30 聖上拍板: 嵌入 Google 共享相簿 iframe (真實 8 天 7 夜照片) ── */}
+      <GooglePhotosSection />
 
       <div className="flex flex-1 overflow-hidden">
         {/* ─── Sidebar ─── */}
