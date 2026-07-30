@@ -143,9 +143,16 @@ const LOCATION_KEYWORDS = [
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+// 🆕 2026-07-30 §A.5 聖上拍板: 聖上看台灣時間, EXIF/Takeout 給的 photoTakenTime 是 UTC
+//   必須先轉 UTC+8 再比對 DAY_MAP (否則 7/17 凌晨台北 = 7/16 UTC, 會被推到 null)
 function inferDay(isoDate) {
   if (!isoDate) return null;
-  const datePart = isoDate.substring(0, 10);
+  const dt = new Date(isoDate);
+  if (isNaN(dt.getTime())) return null;
+  // 轉成台灣 UTC+8 datePart (YYYY-MM-DD)
+  const tpeMs = dt.getTime() + 8 * 60 * 60 * 1000;
+  const tpeDate = new Date(tpeMs);
+  const datePart = tpeDate.toISOString().substring(0, 10);
   const match = DAY_MAP.find((d) => d.date === datePart);
   return match ? match.day : null;
 }
@@ -179,28 +186,18 @@ function inferHour(isoDate) {
 }
 
 function inferUploader(jsonMeta, filename) {
-  // 🆕 2026-07-26 優先用 Takeout people[].name (不是 peopleNames)
-  if (jsonMeta?.people?.length > 0) {
-    for (const person of jsonMeta.people) {
-      const aliasKey = person.name?.trim();
-      if (aliasKey && PEOPLE_ALIAS_MAP[aliasKey]) {
-        return PEOPLE_ALIAS_MAP[aliasKey];
-      }
-      // Fallback: 模糊比對 13 位團員化名
-      const matched = TEAM_MEMBERS.find((m) => aliasKey?.includes(m));
-      if (matched) return matched;
-    }
+  // 🆕 2026-07-30 §A.5 聖上拍板: 直接用 Takeout people[0].name (iPhone 臉孔辨識 = 真實拍攝者)
+  //   不要再做模糊比對, 直接寫正式名 (黃佳分 / 梁恩齊 / 李春美...) 給 photo-classifier 13 位按鈕對應
+  //   fallback chain: people[0].name → description (聖上手寫) → filename → null
+  const peopleName = jsonMeta?.people?.[0]?.name?.trim();
+  if (peopleName) {
+    // 先試 alias map (黃佳分 → 黃阿分 同音異字統一)
+    return PEOPLE_ALIAS_MAP[peopleName] || peopleName;
   }
-  // 向後兼容 (有些 Takeout 版本可能用 peopleNames)
-  if (jsonMeta?.peopleNames?.length > 0) {
-    for (const person of jsonMeta.peopleNames) {
-      const aliasKey = person.name?.trim();
-      if (aliasKey && PEOPLE_ALIAS_MAP[aliasKey]) {
-        return PEOPLE_ALIAS_MAP[aliasKey];
-      }
-      const matched = TEAM_MEMBERS.find((m) => aliasKey?.includes(m));
-      if (matched) return matched;
-    }
+  // 向後兼容 (有些 Takeout 版本用 peopleNames)
+  const peopleNamesName = jsonMeta?.peopleNames?.[0]?.name?.trim();
+  if (peopleNamesName) {
+    return PEOPLE_ALIAS_MAP[peopleNamesName] || peopleNamesName;
   }
   // 看檔名 (例如 IMG_阿喜_xxx.jpg)
   if (filename) {
@@ -531,6 +528,36 @@ async function main() {
   console.log(`🎉 完成!`);
   console.log(`   ✅ 成功: ${inserted} 張`);
   console.log(`   ❌ 失敗: ${failed} 張`);
+
+  // 🆕 2026-07-30 §A.5 聖上拍板: 檢查 zip 是否涵蓋聖上完整 8 天 7 夜行程
+  //   列出缺拍的日期, 提醒聖上是「zip 缺資料」還是「當天真的沒拍」
+  const expectedDates = DAY_MAP.map((d) => d.date); // 7/17 - 7/24
+  const actualDates = new Set(
+    records
+      .map((r) => r.datetime_original?.substring(0, 10))
+      .filter(Boolean)
+      .map((d) => {
+        // 把 date 轉成 TPE date
+        const dt = new Date(d);
+        const tpeMs = dt.getTime() + 8 * 60 * 60 * 1000;
+        return new Date(tpeMs).toISOString().substring(0, 10);
+      })
+  );
+  const missingDates = expectedDates.filter((d) => !actualDates.has(d));
+  if (missingDates.length > 0) {
+    console.log(`\n⚠️  zip 缺拍攝日期 (${missingDates.length}/${expectedDates.length}):`);
+    for (const d of missingDates) {
+      const dayMatch = DAY_MAP.find((x) => x.date === d);
+      console.log(`   - ${d} = D${dayMatch?.day} (zip 內無此日拍攝的照片)`);
+    }
+    console.log(`\n💡 這 2 種可能:`);
+    console.log(`   (a) 聖上當天真的沒拍照 → 正常, D${missingDates.map((x) => DAY_MAP.find((y) => y.date === x)?.day).join("/")} 本就該是 0 張`);
+    console.log(`   (b) zip 沒匯到當天照片 → 重新 Takeout (到 takeout.google.com 加這些相簿)`);
+    console.log(`\n   聖上拍板前先 grep 一下 Takeout 設定: 確認「包含相簿」清單裡有涵蓋這幾天。\n`);
+  } else {
+    console.log(`\n✅ zip 涵蓋聖上完整 8 天 7 夜 (7/17 - 7/24 都有拍攝資料)`);
+  }
+
   console.log(`\n👉 打開 http://localhost:3000/travel/photo-album 看效果`);
   console.log(`═══════════════════════════════════════════════`);
 }
