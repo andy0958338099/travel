@@ -14,7 +14,7 @@ import {
   DEFAULT_UPLOADER,
   INBOX_ALBUM_ID,
 } from "./types";
-import { generateDemoPhotos, DEFAULT_ALBUMS, UPLOADERS } from "./demo-data";
+import { DEFAULT_ALBUMS, UPLOADERS } from "./demo-data";
 import { VirtualGrid } from "./components/VirtualGrid";
 import { generateEmbedCode } from "./utils/generateEmbedCode";
 import {
@@ -275,7 +275,8 @@ function GooglePhotosSection() {
 // ── Main ClientPage ────────────────────────────────────────────────────────
 export default function PhotoClassifierClient() {
   // ── 狀態: photos, albums, 當前 album, 多選 selection ──
-  const [photos, setPhotos] = useState<Photo[]>(() => generateDemoPhotos(3000));
+  // 🆕 7-30 §A.5 聖上拍板: photos 預設空陣列, 真實照片由聖上「從 Google 相簿下載原檔 + 拖入」流程餵入
+  const [photos, setPhotos] = useState<Photo[]>([]);
   const [albums, setAlbums] = useState<Album[]>(DEFAULT_ALBUMS);
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>(INBOX_ALBUM_ID);
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set());
@@ -823,7 +824,24 @@ export default function PhotoClassifierClient() {
             </div>
           </div>
 
-          {/* Virtual Grid */}
+          {/* 🆕 7-30 §A.5: 空狀態 — 沒有照片時, 引導聖上下載原檔上傳 */}
+          {currentAlbumPhotos.length === 0 ? (
+            <div className="absolute inset-0 flex items-center justify-center p-8">
+              <div className="max-w-md text-center space-y-4">
+                <div className="text-7xl">📸</div>
+                <h3 className="text-xl font-bold text-stone-900">
+                  這裡還沒有照片
+                </h3>
+                <p className="text-sm text-stone-600 leading-relaxed">
+                  從上方「Google 共享相簿」下載原檔 zip,
+                  解壓後把照片拖到左側 <strong>📑 任一 Album</strong> 就會出現在這。
+                </p>
+                <p className="text-xs text-stone-500 pt-2 border-t border-stone-200">
+                  💡 一次拖多張 / 整個資料夾都行 — 系統自動從 JSON 抽拍攝時間 + GPS + 成員標籤
+                </p>
+              </div>
+            </div>
+          ) : (
           <div className="px-4 py-3 h-[calc(100%-3rem)]" data-marquee-guard>
             <VirtualGrid
               items={currentAlbumPhotos}
@@ -845,6 +863,7 @@ export default function PhotoClassifierClient() {
               className="h-full"
             />
           </div>
+          )}
 
           {/* Marquee 拉框視覺 */}
           {marqueeBox && marqueeBox.w > 3 && marqueeBox.h > 3 && (
