@@ -74,10 +74,20 @@ export function renderVogueMarkdown(text: string): string {
       continue;
     }
     // Image: ![caption](url)
+    //   � 8-5: 加 data-photo-url 屬性給 read page client hydrate 用
+    //   (從 Supabase travel_photo_meta 拉 EXIF metadata 填進 data-exif-slot)
     const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
     if (imgMatch) {
       const [, alt, url] = imgMatch;
-      out.push(`<figure class="vd-figure"><img src="${escape(url)}" alt="${escape(alt)}" /><figcaption>${escape(alt)}</figcaption></figure>`);
+      out.push(
+        `<figure class="vd-figure" data-photo-url="${escape(url)}">` +
+          `<img src="${escape(url)}" alt="${escape(alt)}" loading="lazy" />` +
+          `<figcaption class="vd-caption">${escape(alt)}</figcaption>` +
+          `<div class="vd-exif-slot" data-pending="true">` +
+            `<span class="vd-exif-loading">載入 EXIF…</span>` +
+          `</div>` +
+        `</figure>`
+      );
       continue;
     }
     // 段落
