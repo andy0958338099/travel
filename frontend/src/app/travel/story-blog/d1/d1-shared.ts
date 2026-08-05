@@ -1,5 +1,7 @@
 // 🅒 2026-08-05 聖上拍板: 抽 renderVogueMarkdown + D1_PLACEHOLDER 成 shared module
 //   給 editor (編輯區 preview) 跟 read page (完稿閱讀) 共用
+//   8-5 加 block system: 用 <!--LOCK:id-->...<!--/LOCK--> 標記段落鎖定狀態
+//   locked = 完稿區 (不會被覆寫), editing = 編輯區 (可繼續寫/潤稿)
 
 export const D1_PLACEHOLDER = `# The Long Goodbye
 ## 桃 園 啟 程
@@ -11,35 +13,152 @@ export const D1_PLACEHOLDER = `# The Long Goodbye
 (把左邊照片拖進來會自動插入圖片)
 `;
 
-// 簡單 Markdown → HTML (Vogue 風預覽用)
-// 不用 marked/remark 等 lib (避免多裝 dep), 手寫只支援 4 種: H1, H2, P, IMG
-export function renderVogueMarkdown(text: string): string {
-  const escape = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export type BlockType = "h1" | "h2" | "p" | "quote" | "image";
+export type BlockStatus = "editing" | "locked";
 
-  const lines = text.split("\n");
-  const out: string[] = [];
-  let firstH1: string | null = null;
-  let firstH2: string | null = null;
+export interface Block {
+  id: string;          // 唯一 id (auto-gen 或 LOCK marker 內的)
+  type: BlockType;
+  raw: string;         // Markdown source
+  status: BlockStatus;
+  caption?: string;    // 圖片 caption
+  url?: string;        // 圖片 url
+  en?: string;         // H1 拆中英
+  cn?: string;
+}
 
-  // 先找第一個 H1 / H2
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!firstH1 && /^#\s+(.+)$/.test(trimmed)) {
-      firstH1 = trimmed.replace(/^#\s+/, "");
-    }
-    if (!firstH2 && /^##\s+(.+)$/.test(trimmed)) {
-      firstH2 = trimmed.replace(/^##\s+/, "");
-    }
-    if (firstH1 && firstH2) break;
+// 解析 locked markers → 拆 blocks
+//   格式: `<!--LOCK:abc123-->\n<p>...</p>\n<!--/LOCK-->\n` 或無 marker = editing
+export function parseBlocks(text: string): Block[] {
+  const blocks: Block[] = [];
+  const lockedRe = /<!--LOCK:([a-z0-9]+)-->([\s\S]*?)<!--\/LOCK-->/g;
+  let cursor = 0;
+  let m: RegExpExecArray | null;
+  let autoId = 0;
+
+  while ((m = lockedRe.exec(text)) !== null) {
+    // 收集前面未鎖的 editing 段
+    const beforeRaw = text.slice(cursor, m.index);
+    const beforeBlocks = parseRawToBlocks(beforeRaw, "editing", () => `e${++autoId}`);
+    blocks.push(...beforeBlocks);
+
+    // 收集 locked 段 (整個 LOCK marker 區塊當一個 block, 含內部子 markdown)
+    const lockedId = m[1];
+    const innerRaw = m[2].trim();
+    // locked 段內可能有多個 sub blocks — 整段視為一個 block (status: locked)
+    // 但內部仍 parse 成 sub blocks 給 render 用
+    blocks.push({
+      id: lockedId,
+      type: "p", // locked container 是 paragraph-ish (內含其他 type)
+      raw: innerRaw,
+      status: "locked",
+    });
+
+    cursor = m.index + m[0].length;
   }
 
-  // Vogue 殼頭: kicker + H1 中英 + deck
+  // 收尾 — 剩餘未鎖
+  const restRaw = text.slice(cursor);
+  const restBlocks = parseRawToBlocks(restRaw, "editing", () => `e${++autoId}`);
+  blocks.push(...restBlocks);
+
+  return blocks;
+}
+
+// 把 raw text 切成單個 markdown block
+function parseRawToBlocks(raw: string, status: BlockStatus, genId: () => string): Block[] {
+  const lines = raw.split("\n");
+  const blocks: Block[] = [];
+  let buf: string[] = [];
+
+  const flush = () => {
+    if (!buf.length) return;
+    const joined = buf.join("\n").trim();
+    if (!joined) {
+      buf = [];
+      return;
+    }
+    const trimmed = joined.trim();
+    if (/^#\s+(.+)$/.test(trimmed)) {
+      blocks.push({ id: genId(), type: "h1", raw: trimmed, status });
+    } else if (/^##\s+(.+)$/.test(trimmed)) {
+      blocks.push({ id: genId(), type: "h2", raw: trimmed, status });
+    } else if (/^>\s*(.+)$/.test(trimmed)) {
+      blocks.push({ id: genId(), type: "quote", raw: trimmed, status });
+    } else if (/^!\[([^\]]*)\]\(([^)]+)\)$/.test(trimmed)) {
+      const mm = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+      if (mm) {
+        blocks.push({
+          id: genId(),
+          type: "image",
+          raw: trimmed,
+          status,
+          caption: mm[1] || "",
+          url: mm[2] || "",
+        });
+      }
+    } else {
+      blocks.push({ id: genId(), type: "p", raw: trimmed, status });
+    }
+    buf = [];
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      flush();
+      continue;
+    }
+    // H1 / H2 / quote / image 各自獨立 (single-line)
+    if (/^#\s+/.test(trimmed) || /^##\s+/.test(trimmed) || /^>\s*/.test(trimmed) || /^!\[.*\]\(.*\)$/.test(trimmed)) {
+      flush();
+      buf.push(line);
+      flush();
+    } else {
+      buf.push(line);
+    }
+  }
+  flush();
+  return blocks;
+}
+
+// 把 blocks serialize 回 raw text (含 LOCK markers)
+export function serializeBlocks(blocks: Block[]): string {
+  const out: string[] = [];
+  for (const b of blocks) {
+    if (b.status === "locked") {
+      out.push(`<!--LOCK:${b.id}-->`);
+      out.push(b.raw);
+      out.push(`<!--/LOCK-->`);
+    } else {
+      out.push(b.raw);
+    }
+    out.push("");
+  }
+  return out.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// 過濾只留 editing blocks (給 LLM 潤稿用, 不送 locked 進去)
+export function editingBlocksOnly(blocks: Block[]): Block[] {
+  return blocks.filter((b) => b.status === "editing");
+}
+
+// 把 editing blocks 重組回 raw text
+export function editingBlocksToText(blocks: Block[]): string {
+  return blocks.map((b) => b.raw).join("\n\n");
+}
+
+// 渲染 Vogue HTML — 接受 blocks 而非 raw text
+export function renderBlocksHtml(blocks: Block[]): string {
+  const out: string[] = [];
+  // Vogue 殼頭 (用第一個 h1)
+  const firstH1 = blocks.find((b) => b.type === "h1");
   if (firstH1) {
-    const en = firstH1.replace(/[\u4e00-\u9fa5]/g, "").trim() || "The Long Goodbye";
-    const cn = firstH1.replace(/[A-Za-z\s]/g, "").trim() || "桃 園 啟 程";
+    const text = firstH1.raw.replace(/^#\s+/, "");
+    const en = text.replace(/[\u4e00-\u9fa5]/g, "").trim() || "The Long Goodbye";
+    const cn = text.replace(/[A-Za-z\s]/g, "").trim() || "桃 園 啟 程";
     out.push(`<div class="vd-kicker">Day One · Departure</div>`);
-    out.push(`<h1 class="vd-h1">${escape(en)}<span class="vd-h1-cn">${escape(cn)}</span></h1>`);
+    out.push(`<h1 class="vd-h1">${escapeHtml(en)}<span class="vd-h1-cn">${escapeHtml(cn)}</span></h1>`);
     out.push(`<div class="vd-deck">聖上口述 · 臣潤稿</div>`);
     out.push(`<hr class="vd-rule" />`);
   } else {
@@ -49,50 +168,59 @@ export function renderVogueMarkdown(text: string): string {
     out.push(`<hr class="vd-rule" />`);
   }
 
+  // 跳過第一個 h1
   let skipFirstH1 = !!firstH1;
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      out.push("");
-      continue;
-    }
-    // 跳過第一個 H1 (避免重複)
-    if (skipFirstH1 && /^#\s+(.+)$/.test(trimmed)) {
+
+  for (const b of blocks) {
+    if (skipFirstH1 && b.type === "h1") {
       skipFirstH1 = false;
       continue;
     }
-    // H2
-    if (/^##\s+(.+)$/.test(trimmed)) {
-      const t = trimmed.replace(/^##\s+/, "");
-      out.push(`<h2 class="vd-h2">${escape(t)}</h2>`);
-      continue;
-    }
-    // Blockquote
-    if (/^>\s*(.+)$/.test(trimmed)) {
-      const t = trimmed.replace(/^>\s*/, "");
-      out.push(`<blockquote class="vd-quote">${escape(t)}</blockquote>`);
-      continue;
-    }
-    // Image: ![caption](url)
-    //   � 8-5: 加 data-photo-url 屬性給 read page client hydrate 用
-    //   (從 Supabase travel_photo_meta 拉 EXIF metadata 填進 data-exif-slot)
-    const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-    if (imgMatch) {
-      const [, alt, url] = imgMatch;
-      out.push(
-        `<figure class="vd-figure" data-photo-url="${escape(url)}">` +
-          `<img src="${escape(url)}" alt="${escape(alt)}" loading="lazy" />` +
-          `<figcaption class="vd-caption">${escape(alt)}</figcaption>` +
-          `<div class="vd-exif-slot" data-pending="true">` +
-            `<span class="vd-exif-loading">載入 EXIF…</span>` +
-          `</div>` +
-        `</figure>`
-      );
-      continue;
-    }
-    // 段落
-    out.push(`<p class="vd-p">${escape(trimmed)}</p>`);
-  }
+    skipFirstH1 = false;
 
+    const blockWrap = (inner: string) => {
+      if (b.status === "locked") {
+        return `<div class="vd-block vd-block-locked" data-block-id="${b.id}" data-status="locked">${inner}</div>`;
+      }
+      return `<div class="vd-block vd-block-editing" data-block-id="${b.id}" data-status="editing">${inner}</div>`;
+    };
+
+    switch (b.type) {
+      case "h1":
+        out.push(blockWrap(`<h1 class="vd-h1">${escapeHtml(b.raw.replace(/^#\s+/, ""))}</h1>`));
+        break;
+      case "h2":
+        out.push(blockWrap(`<h2 class="vd-h2">${escapeHtml(b.raw.replace(/^##\s+/, ""))}</h2>`));
+        break;
+      case "quote":
+        out.push(blockWrap(`<blockquote class="vd-quote">${escapeHtml(b.raw.replace(/^>\s*/, ""))}</blockquote>`));
+        break;
+      case "image":
+        out.push(
+          blockWrap(
+            `<figure class="vd-figure" data-photo-url="${escapeHtml(b.url || "")}">` +
+              `<img src="${escapeHtml(b.url || "")}" alt="${escapeHtml(b.caption || "")}" loading="lazy" />` +
+              `<figcaption class="vd-caption">${escapeHtml(b.caption || "")}</figcaption>` +
+              `<div class="vd-exif-slot" data-pending="true"><span class="vd-exif-loading">載入 EXIF…</span></div>` +
+              `</figure>`
+          )
+        );
+        break;
+      case "p":
+        out.push(blockWrap(`<p class="vd-p">${escapeHtml(b.raw)}</p>`));
+        break;
+    }
+  }
   return out.join("\n");
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// 簡單 Markdown → HTML (Vogue 風預覽用) — 保留舊 API 給 editor preview
+// 不用 marked/remark 等 lib (避免多裝 dep), 手寫只支援 4 種: H1, H2, P, IMG
+export function renderVogueMarkdown(text: string): string {
+  const blocks = parseBlocks(text);
+  return renderBlocksHtml(blocks);
 }

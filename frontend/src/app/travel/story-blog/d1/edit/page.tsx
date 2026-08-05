@@ -8,6 +8,14 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { fetchAllPhotos, type TravelPhoto } from "@/utils/travelPhotos";
 import "./editor.css";
+import {
+  D1_PLACEHOLDER,
+  parseBlocks,
+  serializeBlocks,
+  editingBlocksOnly,
+  editingBlocksToText,
+  type Block,
+} from "../d1-shared";
 
 // ── 時段 chip 定義 (依 D1 真實時段粗分) ──────────────────────────────
 const TIME_SLOTS = [
@@ -28,7 +36,6 @@ const SUPABASE_TABLE = "story_blog_drafts";
 //   讓聖上一進來就能看 Vogue 渲染效果 (不必先打字)
 // 🅒 2026-08-05 聖上拍板: 抽 renderVogueMarkdown + D1_PLACEHOLDER 成 shared module
 //   給 editor (編輯區 preview) 跟 read page (完稿閱讀) 共用
-import { D1_PLACEHOLDER, renderVogueMarkdown } from "../d1-shared";
 
 interface Draft {
   text: string;
@@ -370,6 +377,34 @@ export default function D1EditorPage() {
   }, [photos]);
 
   // 🅒 8-5: 解析 draft.text 中所有 ![](url) — 給縮圖 strip 用
+  // 🅒 8-5: 解析 draft.text → blocks (locked + editing)
+  const blocks = useMemo<Block[]>(() => parseBlocks(draft.text), [draft.text]);
+  // 編輯區 textarea 只放「未鎖定」區塊的內容, 鎖定的不污染使用者繼續寫的空間
+  const editingText = useMemo(() => editingBlocksToText(editingBlocksOnly(blocks)), [blocks]);
+
+  // 操作: 鎖定第 i 個 block → status: locked (包 LOCK marker)
+  const lockBlock = (i: number) => {
+    const newBlocks = blocks.map((b, idx) =>
+      idx === i ? { ...b, status: "locked" as const, id: b.status === "editing" ? `l${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}` : b.id } : b
+    );
+    setDraft({ ...draft, text: serializeBlocks(newBlocks) });
+  };
+  // 解鎖第 i 個 block → status: editing (移除 LOCK marker)
+  const unlockBlock = (i: number) => {
+    const newBlocks = blocks.map((b, idx) =>
+      idx === i ? { ...b, status: "editing" as const, id: b.id } : b
+    );
+    setDraft({ ...draft, text: serializeBlocks(newBlocks) });
+  };
+  // 上下移動
+  const moveBlock = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= blocks.length) return;
+    const newBlocks = [...blocks];
+    [newBlocks[i], newBlocks[j]] = [newBlocks[j], newBlocks[i]];
+    setDraft({ ...draft, text: serializeBlocks(newBlocks) });
+  };
+
   const embeddedPhotos = useMemo(() => extractEmbeddedPhotos(draft.text), [draft.text]);
 
   // ── 拖曳縮圖到 textarea → 插入 ![](url) 到游標 (純圖, 不含檔名) ──────────
@@ -436,14 +471,17 @@ export default function D1EditorPage() {
   const [polishWarning, setPolishWarning] = useState<string | null>(null);
 
   const handlePolish = async () => {
-    if (!draft.text.trim()) {
-      setPolishError("textarea 是空的, 先打字才能潤稿");
+    // 🅒 8-5: 只潤「未鎖定」區塊, locked 區不送 LLM
+    const editingBlocks = editingBlocksOnly(blocks);
+    const editingRaw = editingBlocksToText(editingBlocks);
+    if (!editingRaw.trim()) {
+      setPolishError("編輯區是空的, 先打字才能潤稿 (或解鎖現有完稿區段落)");
       return;
     }
     setPolishing(true);
     setPolishError(null);
     setPolishWarning(null);
-    setOriginalDraftText(draft.text); // 保留原稿以便退回
+    setOriginalDraftText(editingRaw); // 保留原稿以便退回
     try {
       // 抓前 30 張 D1 照片 EXIF 作為 context
       const exifContext = photos.slice(0, 30).map((p) => ({
@@ -456,22 +494,28 @@ export default function D1EditorPage() {
       const res = await fetch("/api/polish-d1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ originalText: draft.text, exifContext }),
+        body: JSON.stringify({ originalText: editingRaw, exifContext }),
       });
       const data = await res.json();
+      // 🅒 8-5: 把潤稿結果 append 回 blocks (保留 locked 段)
+      const newBlocks: Block[] = [
+        ...blocks.filter((b) => b.status === "locked"),
+        ...parseBlocks(data.polishedText).map((b) => ({ ...b, status: "editing" as const })),
+      ];
+      const mergedText = serializeBlocks(newBlocks);
       if (data.fallback) {
         // 配額爆或 API 5xx → fallback 用原文 + 警告
         setPolishWarning(data.warning ?? "已 fallback 用規則式 Vogue 殼渲染");
         setPolishedText(data.polishedText);
-        // 🅒 8-5: fallback 也算完稿 (起碼原文 + Vogue 殼), 寫進 Supabase
-        savePolishedToSupabase(createClient(), data.polishedText, updatedBy);
+        // 🅒 8-5: fallback 也算完稿, 寫進 Supabase
+        savePolishedToSupabase(createClient(), mergedText, updatedBy);
       } else if (!res.ok) {
         setPolishError(data.error || `API ${res.status}`);
         setPolishedText(null);
       } else {
         setPolishedText(data.polishedText);
-        // 🅒 8-5: 潤稿成功 → 自動寫完稿到 Supabase (所有人都會看到)
-        savePolishedToSupabase(createClient(), data.polishedText, updatedBy);
+        // 🅒 8-5: 潤稿成功 → 自動寫「完整 draft 含 locked 段」到 Supabase
+        savePolishedToSupabase(createClient(), mergedText, updatedBy);
       }
     } catch (e: unknown) {
       const err = e as { message?: string };
@@ -851,6 +895,56 @@ export default function D1EditorPage() {
             onDragOver={(e) => e.preventDefault()}
             placeholder={D1_PLACEHOLDER}
           />
+
+          {/* 🅒 8-5: Block 操作面板 — 每個 block 顯示 lock/unlock + 上/下按鈕 */}
+          <div className="ed-block-controls">
+            <div className="ed-block-controls-header">
+              📚 段落管理 ({blocks.length} 段 · {blocks.filter((b) => b.status === "locked").length} 鎖定 · {blocks.filter((b) => b.status === "editing").length} 編輯中)
+            </div>
+            <div className="ed-block-controls-list">
+              {blocks.map((b, i) => (
+                <div key={b.id} className={`ed-block-row ${b.status === "locked" ? "is-locked" : "is-editing"}`}>
+                  <span className="ed-block-num">{i + 1}</span>
+                  <span className="ed-block-type">{b.type}</span>
+                  <span className="ed-block-preview">
+                    {b.raw.length > 40 ? b.raw.slice(0, 40) + "..." : b.raw}
+                  </span>
+                  <span className="ed-block-status">
+                    {b.status === "locked" ? "🔒 已鎖定" : "✏️ 編輯中"}
+                  </span>
+                  <button
+                    type="button"
+                    className="ed-block-btn"
+                    onClick={() => moveBlock(i, -1)}
+                    disabled={i === 0}
+                    title="上移"
+                  >
+                    ⬆
+                  </button>
+                  <button
+                    type="button"
+                    className="ed-block-btn"
+                    onClick={() => moveBlock(i, 1)}
+                    disabled={i === blocks.length - 1}
+                    title="下移"
+                  >
+                    ⬇
+                  </button>
+                  <button
+                    type="button"
+                    className="ed-block-btn ed-block-lock-btn"
+                    onClick={() => (b.status === "locked" ? unlockBlock(i) : lockBlock(i))}
+                    title={b.status === "locked" ? "解鎖回編輯區" : "鎖定到完稿區"}
+                  >
+                    {b.status === "locked" ? "� 解鎖" : "🔒 鎖定"}
+                  </button>
+                </div>
+              ))}
+              {blocks.length === 0 && (
+                <div className="ed-block-empty">textarea 是空的, 開始打字 → 按 🔒 鎖定段落</div>
+              )}
+            </div>
+          </div>
           <details className="ed-raw">
             <summary>查看純文字 raw (給臣潤稿用)</summary>
             <pre>{draft.text}</pre>

@@ -7,7 +7,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { renderVogueMarkdown, D1_PLACEHOLDER } from "../d1-shared";
+import { parseBlocks, renderBlocksHtml } from "../d1-shared";
 import { fetchAllPhotos, type TravelPhoto } from "@/utils/travelPhotos";
 
 // 格式化 EXIF chip HTML (聖上要數位相框樣式)
@@ -134,7 +134,8 @@ export default function D1ReadPage() {
   }
 
   // 有完稿 → Vogue 渲染
-  const html = renderVogueMarkdown(polished);
+  // 🅒 8-5: 用 block system 渲染 — locked 跟 editing 視覺區分
+  const html = renderBlocksHtml(parseBlocks(polished));
 
   return (
     <div className="vd-root">
