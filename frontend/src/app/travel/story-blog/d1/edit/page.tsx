@@ -536,6 +536,25 @@ export default function D1EditorPage() {
     }
   };
 
+  // 🅒 8-5: 送出潤稿結果到「完成區」(locked) — append 到所有 locked 段之後
+  const sendPolishedToLocked = () => {
+    if (polishedText === null) return;
+    // 把 polishedText 拆 blocks (它可能含多個 h2/p/quote/image)
+    const newLockedBlocks: Block[] = parseBlocks(polishedText).map((b, i) => ({
+      ...b,
+      id: `l${Date.now().toString(36)}${i.toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+      status: "locked" as const,
+    }));
+    // 合併: 原有 locked 段 + 新送出的 locked 段 (其餘 editing 段保留原位)
+    const currentLocked = blocks.filter((b) => b.status === "locked");
+    const merged: Block[] = [...currentLocked, ...newLockedBlocks];
+    setDraft({ ...draft, text: serializeBlocks(merged) });
+    setPolishedText(null);
+    setOriginalDraftText(null);
+    setPolishError(null);
+    setPolishWarning(null);
+  };
+
   const rejectPolished = () => {
     if (originalDraftText !== null) {
       setDraft({ ...draft, text: originalDraftText });
@@ -1024,6 +1043,13 @@ export default function D1EditorPage() {
                       style={{ flex: 1, background: "#059669", color: "white", border: "none", padding: "10px", borderRadius: 4, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                     >
                       ✓ 採用潤稿 (寫回草稿)
+                    </button>
+                    <button
+                      onClick={sendPolishedToLocked}
+                      style={{ flex: 1, background: "#c41e3a", color: "white", border: "none", padding: "12px", borderRadius: 4, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 14, boxShadow: "0 2px 8px rgba(196, 30, 58, 0.3)" }}
+                      title="把這段潤稿結果鎖定到「完成區」, 之後不會被新潤稿覆寫, append 到所有 locked 段之後"
+                    >
+                      ✓✓ 送出到完成區
                     </button>
                     <button
                       onClick={rejectPolished}
