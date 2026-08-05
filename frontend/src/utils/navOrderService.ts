@@ -41,6 +41,8 @@ export const DEFAULT_NAV_ITEMS: NavItem[] = [
   { key: 'prepare',        label: '⌚ 行前須知',     href: '/travel/prepare'        },
   // 🆕 2026-07-30: photo-classifier 跟「旅程日誌」同類(旅程內容),放在後面
   { key: 'photo-classifier', label: '📷 相片拖曳分類器', href: '/travel/photo-classifier' },
+  // 🅒 2026-08-05 聖上拍板: 故事部落格上線, D1 Supabase 共享編輯 + D2-D8 stub — 加 nav 入口
+  { key: 'story-blog',       label: '📖 故事部落格',     href: '/travel/story-blog' },
   // 🆕 2026-07-11 Vlog 劇本 4 選 1 — /vlog 入口（不在 /travel 子樹，共用聖上的 nav）
   { key: 'vlog',            label: '🎬 Vlog 劇本 4 選 1',  href: '/vlog' },
 ];
