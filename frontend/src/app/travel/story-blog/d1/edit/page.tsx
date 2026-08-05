@@ -26,21 +26,19 @@ const SUPABASE_TABLE = "story_blog_drafts";
 
 // � 2026-08-05 聖上拍板: 預覽 fallback — draft 空時用這個 placeholder,
 //   讓聖上一進來就能看 Vogue 渲染效果 (不必先打字)
-const D1_PLACEHOLDER = `# The Long Goodbye
-## 桃 園 啟 程
-
-凌晨四點, Brian 拿著點名板在大宇家樓下唱名。
-
-> 「這不是旅行, 是一次策展。」
-
-(把左邊照片拖進來會自動插入圖片)
-`;
+// 🅒 2026-08-05 聖上拍板: 抽 renderVogueMarkdown + D1_PLACEHOLDER 成 shared module
+//   給 editor (編輯區 preview) 跟 read page (完稿閱讀) 共用
+import { D1_PLACEHOLDER, renderVogueMarkdown } from "../d1-shared";
 
 interface Draft {
   text: string;
   pinnedPhotos: string[]; // filename[]
   updatedAt: string;
   updatedBy?: string;
+  // 🅒 8-5: 完稿區 — 潤稿完成後自動存這裡, 所有人都會看到
+  polishedText?: string;
+  polishedAt?: string;
+  polishedBy?: string;
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -48,6 +46,9 @@ const EMPTY_DRAFT: Draft = {
   pinnedPhotos: [],
   updatedAt: "",
   updatedBy: "",
+  polishedText: "",
+  polishedAt: "",
+  polishedBy: "",
 };
 
 // 從 Supabase 讀草稿 — 若不存在 (沒人寫過) 回傳預設空草稿
@@ -55,7 +56,7 @@ async function loadDraftFromSupabase(supabase: ReturnType<typeof createClient>):
   try {
     const { data, error } = await supabase
       .from(SUPABASE_TABLE)
-      .select("text, pinned_photos, updated_at, updated_by")
+      .select("text, pinned_photos, updated_at, updated_by, polished_text, polished_at, polished_by")
       .eq("id", DRAFT_ID)
       .maybeSingle();
     if (error) {
@@ -68,6 +69,9 @@ async function loadDraftFromSupabase(supabase: ReturnType<typeof createClient>):
       pinnedPhotos: Array.isArray(data.pinned_photos) ? data.pinned_photos : [],
       updatedAt: data.updated_at ?? "",
       updatedBy: data.updated_by ?? "",
+      polishedText: data.polished_text ?? "",
+      polishedAt: data.polished_at ?? "",
+      polishedBy: data.polished_by ?? "",
     };
   } catch (e) {
     console.warn("[story-blog] loadDraft exception:", e);
@@ -101,6 +105,27 @@ async function saveDraftToSupabase(
 // ── 簡單 Markdown → HTML (Vogue 風預覽用) ──────────────────────────────
 // 不用 marked/remark 等 lib (避免多裝 dep), 手寫只支援 4 種: H1, H2, P, IMG
 // 🅒 8/5 拍板用的 helper: 「X 秒前 / X 分前」時間格式
+// 寫 polished_text 到 Supabase (完稿 = 所有人都會看到)
+async function savePolishedToSupabase(
+  supabase: ReturnType<typeof createClient>,
+  polishedText: string,
+  polishedBy: string
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from(SUPABASE_TABLE)
+      .update({
+        polished_text: polishedText,
+        polished_at: new Date().toISOString(),
+        polished_by: polishedBy,
+      })
+      .eq("id", DRAFT_ID);
+    if (error) console.warn("[story-blog] savePolished error:", error.message);
+  } catch (e) {
+    console.warn("[story-blog] savePolished exception:", e);
+  }
+}
+
 function timeAgo(iso: string): string {
   if (!iso) return "";
   const t = new Date(iso).getTime();
@@ -116,51 +141,42 @@ function timeAgo(iso: string): string {
   return `${day} 天前`;
 }
 
-function renderVogueMarkdown(text: string): string {
-  const escape = (s: string) =>
-    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// 🅒 2026-08-05 聖上拍板: 從 draft.text parse 出已插入的照片 URL list
+//   (textarea 是純文字, 但 strip 顯示縮圖, 讓聖上寫字時眼睛看得到用了哪些照片)
+interface EmbeddedPhoto {
+  url: string;
+  caption: string;
+  index: number; // 順序
+}
 
-  const lines = text.split("\n");
-  const blocks: string[] = [];
-  let para: string[] = [];
-
-  const flushPara = () => {
-    if (para.length) {
-      blocks.push(`<p>${para.join(" ")}</p>`);
-      para = [];
-    }
-  };
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      flushPara();
-      continue;
-    }
-    if (trimmed.startsWith("# ")) {
-      flushPara();
-      blocks.push(`<h1 class="vd-h1">${escape(trimmed.slice(2))}</h1>`);
-    } else if (trimmed.startsWith("## ")) {
-      flushPara();
-      blocks.push(`<h2 class="vd-h2">${escape(trimmed.slice(3))}</h2>`);
-    } else if (trimmed.startsWith("> ")) {
-      flushPara();
-      blocks.push(`<blockquote class="vd-quote">${escape(trimmed.slice(2))}</blockquote>`);
-    } else if (trimmed.startsWith("![") && trimmed.includes("](")) {
-      flushPara();
-      // ![caption](url)
-      const m = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-      if (m) {
-        blocks.push(
-          `<figure class="vd-fig"><img src="${m[2]}" alt="${escape(m[1])}" /><figcaption>${escape(m[1])}</figcaption></figure>`
-        );
-      }
-    } else {
-      para.push(escape(trimmed));
-    }
+function extractEmbeddedPhotos(text: string): EmbeddedPhoto[] {
+  const out: EmbeddedPhoto[] = [];
+  // Markdown image: ![caption](url)
+  const re = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    out.push({ caption: m[1] || "", url: m[2], index: out.length });
   }
-  flushPara();
-  return blocks.join("\n");
+  return out;
+}
+
+// 移除第 N 個 ![](url) 從 draft.text (含前後換行)
+//   用 split + filter 避免 regex callback race condition
+function removeNthPhoto(text: string, n: number): string {
+  const re = /!\[([^\]]*)\]\(([^)]+)\)/g;
+  const parts: string[] = [];
+  let last = 0;
+  let count = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (count === n) {
+      parts.push(text.slice(last, m.index));
+      last = re.lastIndex;
+    }
+    count++;
+  }
+  parts.push(text.slice(last));
+  return parts.join("").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 // ── 潤稿機制 v1 (規則式, 保留聖上原文每一字) ──────────────────────────
@@ -298,13 +314,20 @@ export default function D1EditorPage() {
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: SUPABASE_TABLE, filter: `id=eq.${DRAFT_ID}` },
         (payload) => {
-          const row = payload.new as { text?: string; pinned_photos?: string[]; updated_at?: string; updated_by?: string };
+          const row = payload.new as { text?: string; pinned_photos?: string[]; updated_at?: string; updated_by?: string; polished_text?: string; polished_at?: string; polished_by?: string };
           setDraft({
             text: row.text ?? "",
             pinnedPhotos: Array.isArray(row.pinned_photos) ? row.pinned_photos : [],
             updatedAt: row.updated_at ?? "",
             updatedBy: row.updated_by ?? "",
+            polishedText: row.polished_text ?? "",
+            polishedAt: row.polished_at ?? "",
+            polishedBy: row.polished_by ?? "",
           });
+          // 🅒 8-5: 別人潤稿完 → 即時更新自己右側完稿區
+          if (row.polished_text) {
+            setPolishedText(row.polished_text);
+          }
         }
       )
       .subscribe();
@@ -345,6 +368,9 @@ export default function D1EditorPage() {
     photos.forEach((p) => p.uploader_name && set.add(p.uploader_name));
     return Array.from(set).sort();
   }, [photos]);
+
+  // 🅒 8-5: 解析 draft.text 中所有 ![](url) — 給縮圖 strip 用
+  const embeddedPhotos = useMemo(() => extractEmbeddedPhotos(draft.text), [draft.text]);
 
   // ── 拖曳縮圖到 textarea → 插入 ![](url) 到游標 (純圖, 不含檔名) ──────────
   const handleDragStart = (e: React.DragEvent, photo: TravelPhoto) => {
@@ -437,11 +463,15 @@ export default function D1EditorPage() {
         // 配額爆或 API 5xx → fallback 用原文 + 警告
         setPolishWarning(data.warning ?? "已 fallback 用規則式 Vogue 殼渲染");
         setPolishedText(data.polishedText);
+        // 🅒 8-5: fallback 也算完稿 (起碼原文 + Vogue 殼), 寫進 Supabase
+        savePolishedToSupabase(createClient(), data.polishedText, updatedBy);
       } else if (!res.ok) {
         setPolishError(data.error || `API ${res.status}`);
         setPolishedText(null);
       } else {
         setPolishedText(data.polishedText);
+        // 🅒 8-5: 潤稿成功 → 自動寫完稿到 Supabase (所有人都會看到)
+        savePolishedToSupabase(createClient(), data.polishedText, updatedBy);
       }
     } catch (e: unknown) {
       const err = e as { message?: string };
@@ -769,12 +799,49 @@ export default function D1EditorPage() {
         {/* ── Markdown 文字區 (中) ─────────────────────────────────────── */}
         <main className="ed-editor">
           <div className="ed-editor-header">
-            <h3>✍️ 構思文字 (Markdown)</h3>
+            <h3>📝 編輯區 (聖上原始草稿)</h3>
             <span className="ed-hint">
               支援 <code># 一級標題</code> / <code>## 二級</code> / <code>&gt; 引用</code> /
               <code>![caption](url)</code>
             </span>
           </div>
+
+          {/* � 8-5 聖上拍板: 已插入照片縮圖 strip — 寫字時眼睛看得到用了哪些 */}
+          {embeddedPhotos.length > 0 && (
+            <div className="ed-photo-strip">
+              <div className="ed-photo-strip-label">
+                📸 已插入 <strong>{embeddedPhotos.length}</strong> 張
+              </div>
+              <div className="ed-photo-strip-row">
+                {embeddedPhotos.map((p) => (
+                  <div key={p.index} className="ed-photo-strip-item">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.url}
+                      alt={p.caption || `photo ${p.index + 1}`}
+                      className="ed-photo-strip-img"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.opacity = "0.2";
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="ed-photo-strip-remove"
+                      onClick={() => setDraft({ ...draft, text: removeNthPhoto(draft.text, p.index) })}
+                      title="從 draft 移除"
+                    >
+                      ✕
+                    </button>
+                    {p.caption && (
+                      <div className="ed-photo-strip-cap">{p.caption}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             className="ed-textarea"

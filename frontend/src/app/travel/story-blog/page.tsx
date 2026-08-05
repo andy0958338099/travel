@@ -2,6 +2,7 @@
 //   8/2 原本標「不寫進 git」, 8/5 聖上拍板「所有用戶專注 D1」整套上線
 
 import Link from "next/link";
+import D1PolishedBadge from "./D1PolishedBadge";
 
 export default function StoryBlogIndexPage() {
   const days = [
@@ -161,6 +162,8 @@ export default function StoryBlogIndexPage() {
               {d.title}
             </div>
             <p style={{ fontSize: 14, color: "#2a2a2a", margin: 0 }}>{d.desc}</p>
+            {/* � 8-5: D1 卡片加完稿徽章 + 閱讀連結 */}
+            {d.n === 1 && <D1PolishedBadge />}
           </Link>
         ))}
       </section>
