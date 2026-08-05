@@ -20,7 +20,6 @@ export function renderVogueMarkdown(text: string): string {
   const lines = text.split("\n");
   const out: string[] = [];
   let firstH1: string | null = null;
-  let h1Consumed = false;
   let firstH2: string | null = null;
 
   // 先找第一個 H1 / H2
