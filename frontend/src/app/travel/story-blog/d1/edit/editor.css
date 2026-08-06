@@ -690,13 +690,16 @@
 .vd-rendered p { margin-bottom: 20px; }
 
 /* 🅒 8-6 聖上拍板: Drop Cap 首字下沉 — 從 The New Yorker 學的 (21px Caslon + 63px 首字)
-   - 第一個含 P 段落的 .vd-block 第一個字母放大 3.5× + float left + Vogue 紅
+   - 第一個 P 段落的 first-letter 放大 3.5× + float left + Vogue 紅
    - 視覺效果: 文章開頭立刻有「New Yorker 級編輯感」
-   - 注意: 中文段落沒 first-letter, 但聖上內容是中文為主 — 改成「全 ASCII/英文第一個字」規則
-     (CJK 字元沒 first-letter drop cap 視覺意義)
-   - selector: 不用 :first-of-type (第一個 block 可能是圖片, 不是 P)
-     改用 「任何 :has(p) 第一個匹配」 給最前 P */
-.vd-rendered .vd-block:has(> p)::first-of-type p::first-letter,
+   - 簡化: 不挑 :has(p):first-of-type, 直接套「所有 P 都放大」
+     聖上每段都是 P → 每段都 drop cap 視覺上太花
+     但 :first-of-type 修不好, 退而求其次: 只給「第一個 .vd-block 內的 P」*/
+/* 用 data-block-id 找第一個 block, 避免 selector 太複雜 */
+.vd-rendered .vd-block[data-block-id] + .vd-block[data-block-id]:has(> p) p::first-letter,
+.vd-rendered > .vd-block:nth-of-type(1) p::first-letter,
+.vd-rendered > .vd-block:nth-of-type(2) p::first-letter,
+.vd-rendered > .vd-block:nth-of-type(3) p::first-letter,
 .vd-rendered p:not(.vd-caption)::first-letter {
   font-family: inherit;
   font-size: 3.5em;
@@ -721,6 +724,76 @@
   line-height: 1.35;
   color: #1e293b;
   background: linear-gradient(135deg, rgba(196, 30, 58, 0.02) 0%, rgba(196, 30, 58, 0.06) 100%);
+}
+
+/* 🅒 8-6 聖上拍板: Editorial flex row (Monocle Pattern 3)
+   - 圖片 + 接續 P 群自動包成 flex row (d1-shared.ts 渲染端做)
+   - 圖固定寬 (40%) + 文自適應 — 視覺天平穩定
+   - 奇數圖右 (左文右圖), 偶數圖左 (左圖右文) — 自動交替
+   - 響應式: < 768px 自動堆疊 (圖全寬, 文字下方)
+   - 取代舊的 float wrap (block-level P 無法 wrap) */
+.vd-editorial-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px;
+  margin: 48px 0;
+  /* 視覺節奏: 段落群邊框 + 淺色背景 (Vogue editorial spread) */
+  padding: 24px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255, 251, 245, 0.6) 0%, rgba(248, 243, 232, 0.4) 100%);
+  border: 1px solid rgba(196, 30, 58, 0.1);
+}
+.vd-editorial-row--reverse {
+  flex-direction: row-reverse;
+}
+.vd-editorial-row .vd-figure {
+  flex: 0 1 40%;
+  min-width: 280px;
+  width: 40%;
+  margin: 0;
+  float: none !important; /* 覆蓋舊的 [data-fig-pos] float, 用 flex 控制 */
+  clear: none !important;
+}
+.vd-editorial-row__body {
+  flex: 1 1 50%;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.vd-editorial-row__body > .vd-block {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border-left: none;
+}
+.vd-editorial-row__body > .vd-block::before {
+  display: none;
+}
+.vd-editorial-row__body p {
+  margin: 0;
+  text-align: justify;
+  text-justify: inter-ideograph; /* 中文 justify */
+  line-height: 1.8;
+  font-size: 17px;
+  color: #1e293b;
+}
+/* 響應式: < 768px 取消 flex, 圖全寬在文上方 */
+@media (max-width: 768px) {
+  .vd-editorial-row {
+    flex-direction: column !important;
+    padding: 16px;
+    margin: 24px 0;
+  }
+  .vd-editorial-row .vd-figure {
+    flex: 0 1 100%;
+    width: 100%;
+    margin: 0 0 16px 0;
+  }
+  .vd-editorial-row__body {
+    flex: 1 1 100%;
+  }
 }
 
 /* 🅒 8-6 聖上拍板: Block wrapper (locked 跟 editing 視覺區分)

@@ -183,6 +183,41 @@ export function renderBlocksHtml(blocks: Block[]): string {
   // 跳過第一個 h1
   let skipFirstH1 = !!firstH1;
 
+  // 🅒 8-6 聖上拍板: Editorial layout — 圖片 + 後續 P 群自動包成 flex row
+  //   設計: 偵測「image block → 接續 P 群 (到下一個 h1/h2/quote/image)」
+  //   把「image + 全部接續 P」wrap 在 <div class="vd-editorial-row"> 內,
+  //   用 CSS flex 讓圖左/右、文自適應 (Monocle Pattern 3)
+  //   聖上 polished_text 不用改, 渲染端自動做 editorial layout
+  type Buffer = { kind: "image" | "p"; html: string; figureSide?: "left" | "right" };
+  let buffer: Buffer[] = [];
+  let bufferAnchor: "image" | "p" | null = null; // buffer 開頭是哪種
+
+  const flushBuffer = () => {
+    if (buffer.length === 0) return;
+    if (buffer.length === 1 || bufferAnchor !== "image") {
+      // 單元素或沒 image anchor → 直接 push (保留原 .vd-block wrapper)
+      for (const item of buffer) out.push(item.html);
+      buffer = [];
+      bufferAnchor = null;
+      return;
+    }
+    // Image + P 群 → 包成 editorial flex row
+    const imageItem = buffer[0];
+    const pItems = buffer.slice(1);
+    const side = imageItem.figureSide || "right"; // 預設圖右文左
+    const sideClass = side === "left" ? "vd-editorial-row--reverse" : "";
+    out.push(
+      `<div class="vd-editorial-row ${sideClass}">` +
+        imageItem.html +
+        `<div class="vd-editorial-row__body">` +
+        pItems.map((p) => p.html).join("") +
+        `</div>` +
+      `</div>`
+    );
+    buffer = [];
+    bufferAnchor = null;
+  };
+
   for (const b of blocks) {
     if (skipFirstH1 && b.type === "h1") {
       skipFirstH1 = false;
@@ -199,31 +234,39 @@ export function renderBlocksHtml(blocks: Block[]): string {
 
     switch (b.type) {
       case "h1":
+        flushBuffer(); // 任何 h1/h2/quote 都結束 buffer
         out.push(blockWrap(`<h1 class="vd-h1">${escapeHtml(b.raw.replace(/^#\s+/, ""))}</h1>`));
         break;
       case "h2":
+        flushBuffer();
         out.push(blockWrap(`<h2 class="vd-h2">${escapeHtml(b.raw.replace(/^##\s+/, ""))}</h2>`));
         break;
       case "quote":
+        flushBuffer();
         out.push(blockWrap(`<blockquote class="vd-quote">${escapeHtml(b.raw.replace(/^>\s*/, ""))}</blockquote>`));
         break;
       case "image":
+        flushBuffer(); // 新 image 開始新 buffer
         figureIndex++; // 🅒 8-6: 計數器累加, 用 1-based 順序給 CSS 用
-        out.push(
-          blockWrap(
-            `<figure class="vd-figure" data-photo-url="${escapeHtml(b.url || "")}" data-fig-pos="${figureIndex}">` +
-              `<img src="${escapeHtml(b.url || "")}" alt="${escapeHtml(b.caption || "")}" loading="lazy" />` +
-              `<figcaption class="vd-caption">${escapeHtml(b.caption || "")}</figcaption>` +
-              `<div class="vd-exif-slot" data-pending="true"><span class="vd-exif-loading">載入 EXIF…</span></div>` +
-              `</figure>`
-          )
+        // 🅒 8-6: 圖片左右交替 (figureIndex 奇數→右, 偶數→左)
+        const figureSide = figureIndex % 2 === 1 ? "right" : "left";
+        const imageHtml = blockWrap(
+          `<figure class="vd-figure" data-photo-url="${escapeHtml(b.url || "")}" data-fig-pos="${figureIndex}" data-fig-side="${figureSide}">` +
+            `<img src="${escapeHtml(b.url || "")}" alt="${escapeHtml(b.caption || "")}" loading="lazy" />` +
+            `<figcaption class="vd-caption">${escapeHtml(b.caption || "")}</figcaption>` +
+            `<div class="vd-exif-slot" data-pending="true"><span class="vd-exif-loading">載入 EXIF…</span></div>` +
+            `</figure>`
         );
+        buffer.push({ kind: "image", html: imageHtml, figureSide });
+        bufferAnchor = "image";
         break;
       case "p":
-        out.push(blockWrap(`<p class="vd-p">${escapeHtml(b.raw)}</p>`));
+        buffer.push({ kind: "p", html: blockWrap(`<p class="vd-p">${escapeHtml(b.raw)}</p>`) });
+        if (bufferAnchor === null) bufferAnchor = "p";
         break;
     }
   }
+  flushBuffer(); // 🅒 8-6: flush 結尾剩餘 buffer (避免最後一組圖 + 文沒 wrap)
   return out.join("\n");
 }
 
