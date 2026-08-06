@@ -547,15 +547,16 @@ export default function D1EditorPage() {
         // 配額爆或 API 5xx → fallback 用原文 + 警告
         setPolishWarning(data.warning ?? "已 fallback 用規則式 Vogue 殼渲染");
         setPolishedText(data.polishedText);
-        // 🅒 8-5: fallback 也算完稿, 寫進 Supabase
-        savePolishedToSupabase(createClient(), mergedText, updatedBy);
+        // 🅒 8-6 聖上拍板: 不在潤稿當下 auto-save polished_text
+        //   - 之前會覆寫整個 polished_text, 導致 read page 只看到最新一次潤稿
+        //   - 新策略: polished_text 只在「送出完成區」時 append, 不再 auto-save
       } else if (!res.ok) {
         setPolishError(data.error || `API ${res.status}`);
         setPolishedText(null);
       } else {
         setPolishedText(data.polishedText);
-        // 🅒 8-5: 潤稿成功 → 自動寫「完整 draft 含 locked 段」到 Supabase
-        savePolishedToSupabase(createClient(), mergedText, updatedBy);
+        // 🅒 8-6 聖上拍板: 同上 — 不在潤稿當下覆寫 polished_text
+        //   sendPolishedToLocked 才 append 累積
       }
     } catch (e: unknown) {
       const err = e as { message?: string };
@@ -567,7 +568,7 @@ export default function D1EditorPage() {
   };
 
   // 🅒 8-5: 送出潤稿結果到「完成區」(locked) — append 到所有 locked 段之後
-  const sendPolishedToLocked = () => {
+  const sendPolishedToLocked = async () => {
     if (polishedText === null) return;
     // 把 polishedText 拆 blocks (它可能含多個 h2/p/quote/image)
     const newLockedBlocks: Block[] = parseBlocks(polishedText).map((b, i) => ({
@@ -583,6 +584,26 @@ export default function D1EditorPage() {
     setOriginalDraftText(null);
     setPolishError(null);
     setPolishWarning(null);
+    // 🅒 8-6 聖上拍板: 把新送出的 Vogue 潤稿段 append 到 polished_text (累積, 不覆寫)
+    //   - 之前的邏輯: 潤稿當下就覆寫 polished_text → read page 只看到最新一次
+    //   - 新策略: 只在「送出完成區」時 append, read page 才能看到所有送出段累積
+    //   - 解析既有 polished_text blocks, append 新送出段, 再 serialize 回 polished_text
+    const existingPolished = draft.polishedText ?? "";
+    const existingPolishedBlocks = parseBlocks(existingPolished).map((b) => ({
+      ...b,
+      // 既有 polished_text 內的段視為已送出 (locked)
+      status: "locked" as const,
+    }));
+    // 合併: 既有 polished (locked) + 新送出段
+    // 注意: 新送出段的 raw 是 Vogue 風散文, parseBlocks 拆出的 blocks 已經是完整 Vogue 結構
+    const accumulatedPolishedBlocks: Block[] = [
+      ...existingPolishedBlocks,
+      ...newLockedBlocks,
+    ];
+    const accumulatedPolishedText = serializeBlocks(accumulatedPolishedBlocks);
+    await savePolishedToSupabase(createClient(), accumulatedPolishedText, updatedBy);
+    // 🅒 8-6: 更新本地 polishedText state 讓其他 client 看到
+    //   (Supabase realtime 會 broadcast, 但本地立即更新更可靠)
     // 🅒 8-6: 觸發金色 toast 通知聖上「已送出 N 段到完成區」
     showToast(`🎉 已送出 ${newLockedBlocks.length} 段到完成區 (累計 ${merged.length} 段)`, "locked");
   };
