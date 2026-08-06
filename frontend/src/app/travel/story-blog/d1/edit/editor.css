@@ -748,15 +748,16 @@
   flex-direction: row-reverse;
 }
 .vd-editorial-row .vd-figure {
-  flex: 0 1 40%;
-  min-width: 280px;
-  width: 40%;
+  flex: 0 0 auto;
+  width: 45%;
+  max-width: 520px;
+  min-width: 320px;
   margin: 0;
   float: none !important; /* 覆蓋舊的 [data-fig-pos] float, 用 flex 控制 */
   clear: none !important;
 }
 .vd-editorial-row__body {
-  flex: 1 1 50%;
+  flex: 1 1 0;
   min-width: 280px;
   display: flex;
   flex-direction: column;
