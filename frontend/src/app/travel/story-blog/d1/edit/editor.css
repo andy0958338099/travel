@@ -689,6 +689,38 @@
 
 .vd-rendered p { margin-bottom: 20px; }
 
+/* 🅒 8-6 聖上拍板: Drop Cap 首字下沉 — 從 The New Yorker 學的 (21px Caslon + 63px 首字)
+   - 第一段 p 第一個字母放大 3.5× + float left + 與正文同字體
+   - 視覺效果: 文章開頭立刻有「New Yorker 級編輯感」
+   - 注意: 中文段落沒 first-letter, 但聖上內容是中文為主 — 改成「全 ASCII/英文第一個字」規則
+     (CJK 字元沒 first-letter drop cap 視覺意義) */
+.vd-rendered > .vd-block:first-of-type > p::first-letter,
+.vd-rendered > p:first-of-type::first-letter {
+  font-family: inherit;
+  font-size: 3.5em;
+  line-height: 0.85;
+  float: left;
+  margin: 0.08em 0.12em -0.05em 0;
+  font-weight: 700;
+  color: #c41e3a; /* Vogue 紅當 drop cap 視覺錨點 */
+}
+
+/* 🅒 8-6 聖上拍板: Pull Quote 抽言 — 從 The New Yorker pullquote.bordered 學的
+   - HTML 用 <blockquote class="vd-quote"> (renderBlocksHtml 已有)
+   - 紅色粗直立線 + italic 大字 + cite — 視覺節奏強化
+   - 已有 .vd-quote CSS, 加強 border + 樣式 */
+.vd-rendered blockquote.vd-quote {
+  border-left: 4px solid #c41e3a;
+  padding: 16px 0 16px 24px;
+  margin: 48px 24px;
+  font-family: "Playfair Display", "Noto Serif TC", serif;
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1.35;
+  color: #1e293b;
+  background: linear-gradient(135deg, rgba(196, 30, 58, 0.02) 0%, rgba(196, 30, 58, 0.06) 100%);
+}
+
 /* 🅒 8-6 聖上拍板: Block wrapper (locked 跟 editing 視覺區分)
    - 大部分 block 保留 padding + border + background 視覺區分
    - 但「圖片 block」設 display: contents, 讓 figure 從 .vd-block 拉出來,
