@@ -70,10 +70,12 @@ export default async function D1ReadPage() {
       </header>
       <section className="vd-hero">
         <div className="vd-container">
-          <div className="vd-kicker">Day One · Departure · 完稿</div>
+          {/* 🅒 8-6 聖上拍板: 移除 Day One kicker (太冗) + 潤稿者 metadata */}
+          {/*   - deck 只顯示「最後潤稿時間 + 留有江南水鄉八日2026」字串 */}
           <p className="vd-deck">
-            {polishedBy && <>潤稿者 {polishedBy} · </>}
-            {polishedAt && <>{new Date(polishedAt).toLocaleString("zh-TW")}</>}
+            {polishedAt
+              ? `${new Date(polishedAt).toLocaleString("zh-TW")}  留有江南水鄉八日2026`
+              : "留有江南水鄉八日2026"}
           </p>
           <div style={{ marginTop: 16 }}>
             <Link
