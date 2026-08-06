@@ -9,6 +9,10 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { parseBlocks, renderBlocksHtml } from "../d1-shared";
+// 🅒 8-6 聖上拍板: read page 也要用 editor.css 的 Vogue 風 layout (.vd-figure, .vd-h1, .vd-h2...)
+//   - edit page 已經 import "./editor.css", read page 直接共用同一份 CSS (避免重複)
+//   - 重要: editor.css 內的 [data-fig-pos] 自由編排 rule 需要在 read page 生效
+import "../edit/editor.css";
 import ReadExifHydrator from "./ReadExifHydrator";
 
 export const dynamic = "force-dynamic"; // SSR 每次 fetch 最新 Supabase 內容
