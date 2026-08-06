@@ -777,6 +777,76 @@
   margin-top: 10px; letter-spacing: 0.5px;
   text-align: center;
 }
+
+/* 🅒 8-6 聖上拍板: read page 圖片自由編排 — 縮成約 2/3 + 自動左右交替
+   - 用 [data-fig-pos] attribute selector (renderBlocksHtml 注入的計數, 1-based 圖片序號)
+   - 圖 1: float right, 寬 60% (左文右圖)
+   - 圖 2: float left, 寬 60% (左圖右文)
+   - 圖 3: 全寬置中 (段落分隔)
+   - 圖 4: float right (回到圖 1 pattern)
+   - 圖 5: float left
+   - 圖 6+: 圖 3 全寬, 然後重複 cycle (6n+1..6 對應 圖 1..6, 7 對應 6n+1=7, 圖 1 pattern 又開始)
+   - 窄螢幕 (<700px) 自動取消 float 變全寬 (避免 overlap) */
+.vd-rendered .vd-figure {
+  position: relative; /* 保留原本數位相框 ::before position absolute 用 */
+}
+/* 圖 1, 4, 7, 10... → float right (左文右圖) */
+.vd-rendered .vd-figure[data-fig-pos="1"],
+.vd-rendered .vd-figure[data-fig-pos="4"],
+.vd-rendered .vd-figure[data-fig-pos="7"],
+.vd-rendered .vd-figure[data-fig-pos="10"] {
+  float: right;
+  width: 60%;
+  margin: 32px 0 32px 32px;
+  clear: none;
+}
+/* 圖 2, 5, 8, 11... → float left (左圖右文) */
+.vd-rendered .vd-figure[data-fig-pos="2"],
+.vd-rendered .vd-figure[data-fig-pos="5"],
+.vd-rendered .vd-figure[data-fig-pos="8"],
+.vd-rendered .vd-figure[data-fig-pos="11"] {
+  float: left;
+  width: 60%;
+  margin: 32px 32px 32px 0;
+  clear: none;
+}
+/* 圖 3, 6, 9, 12... → 全寬置中 (段落分隔) */
+.vd-rendered .vd-figure[data-fig-pos="3"],
+.vd-rendered .vd-figure[data-fig-pos="6"],
+.vd-rendered .vd-figure[data-fig-pos="9"],
+.vd-rendered .vd-figure[data-fig-pos="12"] {
+  float: none;
+  width: auto;
+  max-width: 75%;
+  margin: 48px auto;
+  clear: both;
+}
+/* 圖 N >= 13 用 nth-of-type fallback (cycle 重複 1,2,3 模式) */
+.vd-rendered .vd-figure[data-fig-pos="13"],
+.vd-rendered .vd-figure[data-fig-pos="16"] { float: right; width: 60%; margin: 32px 0 32px 32px; clear: none; }
+.vd-rendered .vd-figure[data-fig-pos="14"],
+.vd-rendered .vd-figure[data-fig-pos="17"] { float: left; width: 60%; margin: 32px 32px 32px 0; clear: none; }
+.vd-rendered .vd-figure[data-fig-pos="15"],
+.vd-rendered .vd-figure[data-fig-pos="18"] { float: none; width: auto; max-width: 75%; margin: 48px auto; clear: both; }
+
+/* 文字段落繞圖 — 預設所有 <p>/h1/h2/blockquote 都不會被 float 圖卡死 (clear: both 強制段落起新行) */
+.vd-rendered > p,
+.vd-rendered > h1,
+.vd-rendered > h2,
+.vd-rendered > blockquote,
+.vd-rendered > .vd-block {
+  clear: both;
+}
+
+/* 窄螢幕 — 取消 float, 全寬顯示 */
+@media (max-width: 700px) {
+  .vd-rendered .vd-figure {
+    float: none !important;
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 32px 0 !important;
+  }
+}
 .vd-rendered .vd-exif-slot {
   margin-top: 10px;
   border-top: 1px solid rgba(212, 197, 160, 0.6);

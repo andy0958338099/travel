@@ -157,8 +157,12 @@ export function editingBlocksToText(blocks: Block[]): string {
 }
 
 // 渲染 Vogue HTML — 接受 blocks 而非 raw text
+// 🅒 8-6 聖上拍板: 為每個 image block 加 data-fig-pos="N" 屬性 (1-based, 圖在 polished_text 內的順序)
+//   - CSS 用 [data-fig-pos] selector 做「左文右圖 / 左圖右文 / 全寬置中」交替
+//   - JS-side counting 比 nth-of-type 精準, 不會被其他 block 干擾順序
 export function renderBlocksHtml(blocks: Block[]): string {
   const out: string[] = [];
+  let figureIndex = 0; // 🅒 8-6: 計數器, image block 出現時 +1
   // Vogue 殼頭 (用第一個 h1)
   const firstH1 = blocks.find((b) => b.type === "h1");
   if (firstH1) {
@@ -204,9 +208,10 @@ export function renderBlocksHtml(blocks: Block[]): string {
         out.push(blockWrap(`<blockquote class="vd-quote">${escapeHtml(b.raw.replace(/^>\s*/, ""))}</blockquote>`));
         break;
       case "image":
+        figureIndex++; // 🅒 8-6: 計數器累加, 用 1-based 順序給 CSS 用
         out.push(
           blockWrap(
-            `<figure class="vd-figure" data-photo-url="${escapeHtml(b.url || "")}">` +
+            `<figure class="vd-figure" data-photo-url="${escapeHtml(b.url || "")}" data-fig-pos="${figureIndex}">` +
               `<img src="${escapeHtml(b.url || "")}" alt="${escapeHtml(b.caption || "")}" loading="lazy" />` +
               `<figcaption class="vd-caption">${escapeHtml(b.caption || "")}</figcaption>` +
               `<div class="vd-exif-slot" data-pending="true"><span class="vd-exif-loading">載入 EXIF…</span></div>` +
