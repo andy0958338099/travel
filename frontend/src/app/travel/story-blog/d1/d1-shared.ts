@@ -29,6 +29,10 @@ export interface Block {
 
 // 解析 locked markers → 拆 blocks
 //   格式: `<!--LOCK:abc123-->\n<p>...</p>\n<!--/LOCK-->\n` 或無 marker = editing
+// 🅒 8-6 聖上拍板: LOCK 內的 innerRaw 也要跑 parseRawToBlocks 拆 sub blocks (image/quote/h1/h2/p)
+//   - 修前: 整個 LOCK 段當 type:p → 內部 ![](url) 不會被認成 image, read page 看不到照片
+//   - 修後: LOCK 內多個 sub blocks (圖片/quote/h1/h2/p 各自獨立)
+//   - status 全部標 locked (雖然內部已 locked, 但 explicit 標記讓 render 一致)
 export function parseBlocks(text: string): Block[] {
   const blocks: Block[] = [];
   const lockedRe = /<!--LOCK:([a-z0-9]+)-->([\s\S]*?)<!--\/LOCK-->/g;
@@ -42,17 +46,13 @@ export function parseBlocks(text: string): Block[] {
     const beforeBlocks = parseRawToBlocks(beforeRaw, "editing", () => `e${++autoId}`);
     blocks.push(...beforeBlocks);
 
-    // 收集 locked 段 (整個 LOCK marker 區塊當一個 block, 含內部子 markdown)
+    // 收集 locked 段 — 把 LOCK 內部當成完整的 raw text, parse 成多個 sub blocks
+    //   全部 status = locked, 但保留各自的 type (image/quote/h1/h2/p)
     const lockedId = m[1];
     const innerRaw = m[2].trim();
-    // locked 段內可能有多個 sub blocks — 整段視為一個 block (status: locked)
-    // 但內部仍 parse 成 sub blocks 給 render 用
-    blocks.push({
-      id: lockedId,
-      type: "p", // locked container 是 paragraph-ish (內含其他 type)
-      raw: innerRaw,
-      status: "locked",
-    });
+    const lockedSubBlocks = parseRawToBlocks(innerRaw, "locked", () => `l${lockedId}-${++autoId}`);
+    // 統一標 locked (parseRawToBlocks 已標, 二次保險)
+    blocks.push(...lockedSubBlocks);
 
     cursor = m.index + m[0].length;
   }
@@ -85,16 +85,24 @@ function parseRawToBlocks(raw: string, status: BlockStatus, genId: () => string)
       blocks.push({ id: genId(), type: "h2", raw: trimmed, status });
     } else if (/^>\s*(.+)$/.test(trimmed)) {
       blocks.push({ id: genId(), type: "quote", raw: trimmed, status });
-    } else if (/^!\[([^\]]*)\]\(([^)]+)\)$/.test(trimmed)) {
-      const mm = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+    } else if (/^!\[([^\]]*)\]\(([^)]+)\)/.test(trimmed)) {
+      // 🅒 8-6 聖上拍板: 寬鬆 image regex — 允許 `![](url)` 後接 caption (同一行) 或純 image
+      //   - 修前: `^!\[...$` 要求行尾結束 → image 後接 caption 會被當 paragraph
+      //   - 修後: 行以 `![](...)` 開頭即視為 image, caption 從 image 後面擷取
+      const mm = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)(.*)$/);
       if (mm) {
+        const inlineCaption = (mm[3] || "").trim();
+        const url = mm[2];
+        const markdownCaption = mm[1] || "";
+        // 優先用 markdown alt (e.g. `![caption](url)`) → 沒有再用 inline caption (e.g. `![](url)inline`)
+        const finalCaption = markdownCaption || inlineCaption;
         blocks.push({
           id: genId(),
           type: "image",
           raw: trimmed,
           status,
-          caption: mm[1] || "",
-          url: mm[2] || "",
+          caption: finalCaption,
+          url: url,
         });
       }
     } else {
@@ -110,7 +118,7 @@ function parseRawToBlocks(raw: string, status: BlockStatus, genId: () => string)
       continue;
     }
     // H1 / H2 / quote / image 各自獨立 (single-line)
-    if (/^#\s+/.test(trimmed) || /^##\s+/.test(trimmed) || /^>\s*/.test(trimmed) || /^!\[.*\]\(.*\)$/.test(trimmed)) {
+    if (/^#\s+/.test(trimmed) || /^##\s+/.test(trimmed) || /^>\s*/.test(trimmed) || /^!\[.*\]\(.*\)/.test(trimmed)) {
       flush();
       buf.push(line);
       flush();
