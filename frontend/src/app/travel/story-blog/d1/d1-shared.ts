@@ -219,11 +219,18 @@ export function renderBlocksHtml(blocks: Block[]): string {
   };
 
   for (const b of blocks) {
+    // 🅒 8-6 修: skipFirstH1 邏輯 — 第一個 H1 已被 Vogue 殼頭用, 跳過渲染
+    //   注意: 不能用「if (skipFirstH1 && h1) continue; skipFirstH1 = false;」
+    //   因為後者在 if 區塊外無條件執行, 會把 skipFirstH1 在 image 等非 h1 block 也變 false
+    //   → 後續 H1 失去 skip 機會
+    //   正解: if (skipFirstH1 && b.type === "h1") continue; 然後 else 才設 false
     if (skipFirstH1 && b.type === "h1") {
       skipFirstH1 = false;
       continue;
+    } else if (b.type === "h1") {
+      // 第一個 H1 已被 Vogue 殼頭用, 不再渲染 (skipFirstH1 已變 false)
+      skipFirstH1 = false;
     }
-    skipFirstH1 = false;
 
     const blockWrap = (inner: string) => {
       if (b.status === "locked") {
@@ -235,12 +242,8 @@ export function renderBlocksHtml(blocks: Block[]): string {
     switch (b.type) {
       case "h1":
         flushBuffer(); // 任何 h1/h2/quote 都結束 buffer
-        // 🅒 8-6 修: skipFirstH1 邏輯 — 第一個 H1 已被 Vogue 殼頭用, 不再渲染
-        if (skipFirstH1) {
-          skipFirstH1 = false;
-          break;
-        }
-        skipFirstH1 = false;
+        // skipFirstH1 邏輯在 for-loop 開頭處理 (continue 跳過)
+        // switch case 內不再重複檢查
         out.push(blockWrap(`<h1 class="vd-h1">${escapeHtml(b.raw.replace(/^#\s+/, ""))}</h1>`));
         break;
       case "h2":

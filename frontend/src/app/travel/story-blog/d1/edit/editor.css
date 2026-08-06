@@ -753,7 +753,7 @@
 .vd-editorial-row--reverse > * {
   direction: ltr; /* 但 children 文字仍正常 LTR */
 }
-/* Grid 第一欄 (.vd-block wrapper) — 撐滿 45% (481px), 內部 figure 也 100% */
+/* Grid 第一欄 (.vd-block wrapper) — 撐滿 45%, 圖自然高度, 文字自然延伸 */
 .vd-editorial-row > .vd-block:has(> .vd-figure) {
   width: 100%;
   margin: 0;
