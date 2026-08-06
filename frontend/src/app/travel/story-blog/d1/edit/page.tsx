@@ -14,6 +14,7 @@ import {
   serializeBlocks,
   editingBlocksOnly,
   editingBlocksToText,
+  renderBlocksHtml,
   type Block,
 } from "../d1-shared";
 
@@ -650,7 +651,7 @@ export default function D1EditorPage() {
           <div className="vd-container">
             <div
               className="vd-rendered"
-              dangerouslySetInnerHTML={{ __html: renderVogueMarkdown(draft.text.trim() ? draft.text : D1_PLACEHOLDER) }}
+              dangerouslySetInnerHTML={{ __html: renderBlocksHtml(parseBlocks(draft.text.trim() ? draft.text : D1_PLACEHOLDER)) }}
             />
           </div>
         </section>
