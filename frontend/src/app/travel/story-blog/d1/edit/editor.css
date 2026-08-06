@@ -731,36 +731,40 @@
    - 圖固定寬 (40%) + 文自適應 — 視覺天平穩定
    - 奇數圖右 (左文右圖), 偶數圖左 (左圖右文) — 自動交替
    - 響應式: < 768px 自動堆疊 (圖全寬, 文字下方)
-   - 取代舊的 float wrap (block-level P 無法 wrap) */
+   - 取代舊的 float wrap (block-level P 無法 wrap)
+   - 🅒 8-6 改用 CSS Grid 取代 flex: grid-template-columns: minmax(0, 45%) 1fr
+     更精準 — Grid 計算 % 會扣 padding, flex 不會扣 */
 .vd-editorial-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, 45%) 1fr;
+  align-items: start;
   gap: 32px;
   margin: 48px 0;
-  /* 視覺節奏: 段落群邊框 + 淺色背景 (Vogue editorial spread) */
   padding: 24px;
   border-radius: 8px;
   background: linear-gradient(135deg, rgba(255, 251, 245, 0.6) 0%, rgba(248, 243, 232, 0.4) 100%);
   border: 1px solid rgba(196, 30, 58, 0.1);
 }
 .vd-editorial-row--reverse {
-  flex-direction: row-reverse;
+  direction: rtl; /* 反轉內容流向: 圖在視覺左側 (reverse direction) */
 }
-.vd-editorial-row .vd-figure {
-  flex: 0 0 45%;        /* flex-basis: 45% — 確保 width 從 flex 算 */
-  max-width: 520px;
-  min-width: 320px;
+.vd-editorial-row--reverse > * {
+  direction: ltr; /* 但 children 文字仍正常 LTR */
+}
+/* Grid 圖欄: 45% 寬, 但 clamp 到 320-520 */
+.vd-editorial-row > .vd-figure {
+  width: 100% !important; /* 填滿第一欄 (Grid 45% = 482px) */
+  max-width: none !important; /* 取消舊的 max-width 520 (Grid 已控制) */
+  min-width: 0 !important; /* 取消舊的 min-width 320 (Grid 處理) */
   margin: 0;
-  float: none !important; /* 覆蓋舊的 [data-fig-pos] float, 用 flex 控制 */
+  float: none !important;
   clear: none !important;
 }
 .vd-editorial-row__body {
-  flex: 1 1 0;
-  min-width: 280px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0; /* 讓 Grid 1fr 欄可以縮到比 content 小 (避免 P 撐爆) */
 }
 .vd-editorial-row__body > .vd-block {
   margin: 0;
@@ -779,20 +783,15 @@
   font-size: 17px;
   color: #1e293b;
 }
-/* 響應式: < 768px 取消 flex, 圖全寬在文上方 */
+/* 響應式: < 768px 取消 Grid, 圖全寬在文上方 */
 @media (max-width: 768px) {
   .vd-editorial-row {
-    flex-direction: column !important;
+    grid-template-columns: 1fr !important;
     padding: 16px;
     margin: 24px 0;
   }
-  .vd-editorial-row .vd-figure {
-    flex: 0 1 100%;
-    width: 100%;
+  .vd-editorial-row > .vd-figure {
     margin: 0 0 16px 0;
-  }
-  .vd-editorial-row__body {
-    flex: 1 1 100%;
   }
 }
 
