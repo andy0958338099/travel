@@ -689,12 +689,27 @@
 
 .vd-rendered p { margin-bottom: 20px; }
 
-/* 🅒 8-5: Block wrapper (locked 跟 editing 視覺區分) */
+/* 🅒 8-6 聖上拍板: Block wrapper (locked 跟 editing 視覺區分)
+   - 大部分 block 保留 padding + border + background 視覺區分
+   - 但「圖片 block」設 display: contents, 讓 figure 從 .vd-block 拉出來,
+     這樣 float 可以跨 .vd-block 運作, 文字真的環繞圖片 (Vogue editorial 真 wrap)
+   - 為什麼: 如果圖片在 .vd-block 內, .vd-block 自己佔整行寬,
+     裡面的 figure 即使 float 也沒文字可 wrap (文字都在別的 .vd-block) */
 .vd-rendered .vd-block {
   margin: 20px 0;
   padding: 8px 16px;
   border-radius: 6px;
   position: relative;
+}
+/* 🅒 8-6: 圖片 block 變 display: contents → figure 從 .vd-block 拉出來到 .vd-rendered,
+   float 才能 wrap 到下一個 .vd-block 的文字 */
+.vd-rendered > .vd-block:has(> .vd-figure) {
+  display: contents;
+}
+/* display: contents 失去 padding/background, 我們在 figure 上補回視覺 */
+.vd-rendered .vd-figure {
+  margin: 32px 24px;
+  padding: 16px;
 }
 .vd-rendered .vd-block-locked {
   background: linear-gradient(135deg, #f5f1ea 0%, #ebe5d8 100%);
@@ -829,13 +844,18 @@
 .vd-rendered .vd-figure[data-fig-pos="15"],
 .vd-rendered .vd-figure[data-fig-pos="18"] { float: none; width: auto; max-width: 75%; margin: 48px auto; clear: both; }
 
-/* 文字段落繞圖 — 預設所有 <p>/h1/h2/blockquote 都不會被 float 圖卡死 (clear: both 強制段落起新行) */
-.vd-rendered > p,
+/* 🅒 8-6 聖上拍板: 文字段落不主動 clear: both
+   - 修前: 強制 clear: both → 每個 .vd-block 都自己換行 → 文字不會 wrap 到 float 圖旁邊
+   - 修後: 拿掉 clear, 讓 .vd-block 自然 wrap 到 float 圖旁邊 (Vogue 真 wrap)
+   - 但 H1/H2 等「不該被 wrap 進去」的標題用 clear: both 強制換行 */
 .vd-rendered > h1,
 .vd-rendered > h2,
-.vd-rendered > blockquote,
-.vd-rendered > .vd-block {
+.vd-rendered > blockquote {
   clear: both;
+}
+/* 編輯中 .vd-block 的 p 也不應該被 wrap (會很怪), 強制換行 */
+.vd-rendered > .vd-block:has(> .vd-block-locked):not(:has(> .vd-figure)) {
+  /* 下一個 .vd-block (locked image) 之後的 editing blocks 可以 wrap */
 }
 
 /* 窄螢幕 — 取消 float, 全寬顯示 */
