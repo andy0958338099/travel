@@ -748,8 +748,7 @@
   flex-direction: row-reverse;
 }
 .vd-editorial-row .vd-figure {
-  flex: 0 0 auto;
-  width: 45%;
+  flex: 0 0 45%;        /* flex-basis: 45% — 確保 width 從 flex 算 */
   max-width: 520px;
   min-width: 320px;
   margin: 0;
