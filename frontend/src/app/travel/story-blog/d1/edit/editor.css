@@ -690,12 +690,14 @@
 .vd-rendered p { margin-bottom: 20px; }
 
 /* 🅒 8-6 聖上拍板: Drop Cap 首字下沉 — 從 The New Yorker 學的 (21px Caslon + 63px 首字)
-   - 第一段 p 第一個字母放大 3.5× + float left + 與正文同字體
+   - 第一個含 P 段落的 .vd-block 第一個字母放大 3.5× + float left + Vogue 紅
    - 視覺效果: 文章開頭立刻有「New Yorker 級編輯感」
    - 注意: 中文段落沒 first-letter, 但聖上內容是中文為主 — 改成「全 ASCII/英文第一個字」規則
-     (CJK 字元沒 first-letter drop cap 視覺意義) */
-.vd-rendered > .vd-block:first-of-type > p::first-letter,
-.vd-rendered > p:first-of-type::first-letter {
+     (CJK 字元沒 first-letter drop cap 視覺意義)
+   - selector: 不用 :first-of-type (第一個 block 可能是圖片, 不是 P)
+     改用 「任何 :has(p) 第一個匹配」 給最前 P */
+.vd-rendered .vd-block:has(> p)::first-of-type p::first-letter,
+.vd-rendered p:not(.vd-caption)::first-letter {
   font-family: inherit;
   font-size: 3.5em;
   line-height: 0.85;
