@@ -235,6 +235,12 @@ export function renderBlocksHtml(blocks: Block[]): string {
     switch (b.type) {
       case "h1":
         flushBuffer(); // 任何 h1/h2/quote 都結束 buffer
+        // 🅒 8-6 修: skipFirstH1 邏輯 — 第一個 H1 已被 Vogue 殼頭用, 不再渲染
+        if (skipFirstH1) {
+          skipFirstH1 = false;
+          break;
+        }
+        skipFirstH1 = false;
         out.push(blockWrap(`<h1 class="vd-h1">${escapeHtml(b.raw.replace(/^#\s+/, ""))}</h1>`));
         break;
       case "h2":

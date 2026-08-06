@@ -1,0 +1,45 @@
+/* 🅒 8-6 聖上拍板: read page 專用 CSS — 隱藏編輯器視覺 (鎖定/編輯中徽章)
+   - 共用 editor.css (為了解析 .vd-figure, .vd-h1 等 Vogue 風)
+   - 但 edit-only 的「🔒 完稿鎖定」「✏️ 編輯中」徽章 + dashed border 邊框
+     在 read page 應該隱藏 (讀者只看完成品, 不看 lock 狀態)
+   - 也隱藏 .vd-block 的灰底 + 虛線邊框 (read page 是純閱讀版面)
+   - 並讓 .vd-block-locked 跟 .vd-block-editing 視覺一致 (都是內容) */
+
+/* 隱藏所有 ::before 徽章 */
+.vd-rendered .vd-block::before,
+.vd-rendered .vd-block-locked::before,
+.vd-rendered .vd-block-editing::before {
+  display: none !important;
+}
+
+/* 移除 .vd-block 的灰底 + 虛線邊框 + 鎖定色塊
+   (讀者看 read page 不需要知道哪些是 locked vs editing)
+   視覺一致: 都是純文字段落 */
+.vd-rendered .vd-block,
+.vd-rendered .vd-block-locked,
+.vd-rendered .vd-block-editing {
+  background: none !important;
+  border-left: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 16px 0 !important;
+}
+
+/* 但保留 .vd-editorial-row 內的 .vd-block (flex 子元素) 的 padding/border reset */
+.vd-editorial-row > .vd-block,
+.vd-editorial-row .vd-editorial-row__body > .vd-block {
+  margin: 0 !important;
+}
+
+/* 鎖定段落的視覺強調 (金色漸層背景) 在 read page 也要拿掉
+   — 不要讓讀者看出哪些段是聖上「確定」的, 那些是「還在改」的 */
+.vd-rendered .vd-block-locked {
+  background: none !important;
+  border-left: none !important;
+}
+
+/* 編輯段落的虛線邊框在 read page 拿掉 */
+.vd-rendered .vd-block-editing {
+  background: none !important;
+  border-left: none !important;
+}
