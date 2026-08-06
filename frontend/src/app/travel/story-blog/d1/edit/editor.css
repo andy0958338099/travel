@@ -82,6 +82,87 @@
   background: #059669; color: white; padding: 12px 20px;
   border-radius: 6px; font-weight: 700; z-index: 100;
   box-shadow: 0 4px 16px rgba(5, 150, 105, 0.4);
+  animation: ed-toast-slide-in 0.3s ease-out;
+}
+
+/* 🅒 8-6 聖上拍板: toast 變體 (依 kind) — locked=金 (送出完成區), success=綠 (採用潤稿), copied=藍 (複製) */
+.ed-toast-locked {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #78350f; border: 2px solid #d97706;
+  box-shadow: 0 6px 24px rgba(245, 158, 11, 0.5);
+  font-size: 14px;
+}
+.ed-toast-success {
+  background: #059669; color: white;
+}
+.ed-toast-copied {
+  background: #2563eb; color: white;
+}
+
+@keyframes ed-toast-slide-in {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* 🅒 8-6 聖上拍板: 完稿區 (locked zones 獨立顯示在 textarea 上方)
+   視覺: 金色徽章 + 米黃背景 + 卡片式, 一眼區分「這是已送出完成區」
+   聖上一看就知道「這些段落不會被新潤稿覆寫」 */
+.ed-locked-zone {
+  margin-bottom: 16px; padding: 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b; border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.15);
+}
+.ed-locked-zone-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px; flex-wrap: wrap; gap: 8px;
+}
+.ed-locked-zone-title {
+  font-size: 14px; font-weight: 700; color: #92400e;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.ed-locked-zone-hint {
+  font-size: 11px; color: #b45309; font-weight: 500;
+}
+.ed-locked-zone-list {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.ed-locked-zone-card {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 14px; background: white;
+  border: 1px solid #fde68a; border-radius: 6px;
+  transition: all 0.2s;
+  animation: ed-locked-zone-fade-in 0.4s ease-out;
+}
+.ed-locked-zone-card:hover {
+  background: #fffbeb; border-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+}
+.ed-locked-zone-card-left {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+}
+.ed-locked-zone-icon {
+  font-size: 16px; flex-shrink: 0;
+}
+.ed-locked-zone-preview {
+  font-size: 13px; color: #1e293b;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--font-noto-serif-tc), "Noto Serif TC", serif;
+}
+.ed-locked-zone-unlock {
+  background: white; color: #92400e;
+  border: 1px solid #f59e0b; border-radius: 4px;
+  padding: 4px 10px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: all 0.2s; flex-shrink: 0; margin-left: 12px;
+}
+.ed-locked-zone-unlock:hover {
+  background: #f59e0b; color: white;
+}
+
+@keyframes ed-locked-zone-fade-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .ed-body {

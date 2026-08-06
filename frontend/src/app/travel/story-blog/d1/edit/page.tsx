@@ -281,6 +281,14 @@ export default function D1EditorPage() {
   const [originalDraftText, setOriginalDraftText] = useState<string | null>(null);
   const [polishError, setPolishError] = useState<string | null>(null);
   const [showCopied, setShowCopied] = useState(false);
+  // 🅒 8-6 聖上拍板: 統一 toast state (送出完成區 / 採用 / 退回 等 action 都會觸發)
+  //   - kind: 'locked' = 金色 (送出完成區) / 'success' = 綠 (採用潤稿) / 'copied' = 藍 (複製)
+  //   - 3 秒後自動消失
+  const [toast, setToast] = useState<{ msg: string; kind: "locked" | "success" | "copied" } | null>(null);
+  const showToast = (msg: string, kind: "locked" | "success" | "copied" = "success") => {
+    setToast({ msg, kind });
+    setTimeout(() => setToast(null), 3000);
+  };
   const [slotKey, setSlotKey] = useState("all");
   const [uploaderFilter, setUploaderFilter] = useState<string>("all");
   const [modalPhoto, setModalPhoto] = useState<TravelPhoto | null>(null);
@@ -381,6 +389,30 @@ export default function D1EditorPage() {
   const blocks = useMemo<Block[]>(() => parseBlocks(draft.text), [draft.text]);
   // 編輯區 textarea 只放「未鎖定」區塊的內容, 鎖定的不污染使用者繼續寫的空間
   const editingText = useMemo(() => editingBlocksToText(editingBlocksOnly(blocks)), [blocks]);
+  // 完稿區 — 只 locked blocks (新獨立顯示)
+  const lockedBlocks = useMemo(() => blocks.filter((b) => b.status === "locked"), [blocks]);
+
+  // 🅒 8-6 聖上拍板: 從「新的 editing text」重建 draft.text — preserve locked 段位置
+  //   策略: 解析 newEditingText → 新 editing blocks, 然後跟既有 locked blocks 按原始位置交錯
+  //   目前簡化策略: 把新 editing blocks append 在所有 locked blocks 之後 (locked 段都集中在前面)
+  //   之後 Stage 2 Story Outline 階段會升級成「按原始位置交錯」
+  const rebuildDraftFromEditing = (newEditingText: string) => {
+    const newEditingBlocks = parseBlocks(newEditingText).map((b, i) => ({
+      ...b,
+      status: "editing" as const,
+      // 編輯區 block 重新生成 id (避免跟 locked id 衝突)
+      id: b.id.startsWith("e") ? b.id : `e${Date.now().toString(36)}${i}${Math.random().toString(36).slice(2, 5)}`,
+    }));
+    const merged: Block[] = [...lockedBlocks, ...newEditingBlocks];
+    return serializeBlocks(merged);
+  };
+
+  // 聖上在編輯區打字 → 觸發重建 (locked 段不動, 只替換 editing 部分)
+  const handleEditingTextChange = (newEditingText: string) => {
+    // 🅒 8-6: 即時計算 embedded photos — 從 newEditingText 抽, 避免閃爍
+    const newText = rebuildDraftFromEditing(newEditingText);
+    setDraft({ ...draft, text: newText });
+  };
 
   // 操作: 鎖定第 i 個 block → status: locked (包 LOCK marker)
   const lockBlock = (i: number) => {
@@ -420,12 +452,16 @@ export default function D1EditorPage() {
     const md = e.dataTransfer.getData("text/plain");
     const ta = textareaRef.current;
     if (!ta || !md) return;
+    // 🅒 8-6: cursor 位置是 editingText 內, 要對應到 draft.text 內的位置
+    //   策略: locked 段先序列化 → editingText 從後面開始; cursor 位置直接 append 到 editingText 末尾
+    //   簡化: 拖到 cursor 位置 (editingText 範圍內)
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const before = draft.text.slice(0, start);
-    const after = draft.text.slice(end);
+    const before = editingText.slice(0, start);
+    const after = editingText.slice(end);
     const insert = (before.endsWith("\n") || before === "" ? "" : "\n") + md + "\n";
-    setDraft({ ...draft, text: before + insert + after });
+    const newEditingText = before + insert + after;
+    handleEditingTextChange(newEditingText);
     requestAnimationFrame(() => {
       ta.focus();
       ta.selectionStart = ta.selectionEnd = start + insert.length;
@@ -446,15 +482,18 @@ export default function D1EditorPage() {
     const ta = textareaRef.current;
     const md = `![](${photo.google_photos_thumb_url ?? ""})`;
     if (!ta) {
-      setDraft({ ...draft, text: draft.text + "\n" + md + "\n" });
+      // 🅒 8-6: textarea 沒 ref 時, append 到 editing text 末尾
+      const newEditingText = editingText + "\n" + md + "\n";
+      handleEditingTextChange(newEditingText);
       return;
     }
+    // 🅒 8-6: 用 editingText 的 cursor 位置 (locked 段不在 textarea 內)
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const before = draft.text.slice(0, start);
-    const after = draft.text.slice(end);
+    const before = editingText.slice(0, start);
+    const after = editingText.slice(end);
     const insert = (before.endsWith("\n") || before === "" ? "" : "\n") + md + "\n";
-    setDraft({ ...draft, text: before + insert + after });
+    handleEditingTextChange(before + insert + after);
     requestAnimationFrame(() => {
       ta.focus();
       ta.selectionStart = ta.selectionEnd = start + insert.length;
@@ -526,16 +565,6 @@ export default function D1EditorPage() {
     }
   };
 
-  const acceptPolished = () => {
-    if (polishedText !== null) {
-      setDraft({ ...draft, text: polishedText });
-      setPolishedText(null);
-      setOriginalDraftText(null);
-      setPolishError(null);
-      setPolishWarning(null);
-    }
-  };
-
   // 🅒 8-5: 送出潤稿結果到「完成區」(locked) — append 到所有 locked 段之後
   const sendPolishedToLocked = () => {
     if (polishedText === null) return;
@@ -553,6 +582,20 @@ export default function D1EditorPage() {
     setOriginalDraftText(null);
     setPolishError(null);
     setPolishWarning(null);
+    // 🅒 8-6: 觸發金色 toast 通知聖上「已送出 N 段到完成區」
+    showToast(`🎉 已送出 ${newLockedBlocks.length} 段到完成區 (累計 ${merged.length} 段)`, "locked");
+  };
+
+  const acceptPolished = () => {
+    if (polishedText !== null) {
+      setDraft({ ...draft, text: polishedText });
+      setPolishedText(null);
+      setOriginalDraftText(null);
+      setPolishError(null);
+      setPolishWarning(null);
+      // 🅒 8-6: 採用潤稿 → 綠色 toast
+      showToast("✓ 已採用潤稿, 寫回草稿", "success");
+    }
   };
 
   const rejectPolished = () => {
@@ -693,6 +736,10 @@ export default function D1EditorPage() {
       </header>
 
       {showCopied && <div className="ed-toast">✓ 已複製到剪貼簿 — 貼給臣</div>}
+      {/* 🅒 8-6: 統一 toast UI (取代分散的 showCopied 等單一用途 toast) */}
+      {toast && (
+        <div className={`ed-toast ed-toast-${toast.kind}`}>{toast.msg}</div>
+      )}
 
       {/* ── Hover 大圖浮層 (滑鼠跟著游標) ───────────────────────────── */}
       {hoverPhoto && (
@@ -905,14 +952,57 @@ export default function D1EditorPage() {
             </div>
           )}
 
+          {/* 🅒 8-6 聖上拍板: 完稿區 — 獨立顯示已送出到完成區的段 (locked blocks)
+              只在有 locked 段時顯示; 顯示 Vogue 渲染 + 解鎖按鈕
+              聖上一眼看到「這些段落已經送出, 不會被新潤稿覆寫」 */}
+          {lockedBlocks.length > 0 && (
+            <div className="ed-locked-zone">
+              <div className="ed-locked-zone-header">
+                <span className="ed-locked-zone-title">🏆 完成區 ({lockedBlocks.length} 段已送出)</span>
+                <span className="ed-locked-zone-hint">
+                  已送出的段落不會被新潤稿覆寫 · 點 ⏏ 解鎖可回編輯區繼續改
+                </span>
+              </div>
+              <div className="ed-locked-zone-list">
+                {lockedBlocks.map((b) => {
+                  // 簡化: locked block 的 raw 可能是 markdown 多行, 抽第一行當 preview
+                  const previewLines = b.raw.split("\n").filter((l) => l.trim());
+                  const preview = previewLines[0]?.slice(0, 80) || "(空段)";
+                  const isImage = b.type === "image" || b.raw.startsWith("![");
+                  return (
+                    <div key={b.id} className="ed-locked-zone-card">
+                      <div className="ed-locked-zone-card-left">
+                        {isImage && <span className="ed-locked-zone-icon">📷</span>}
+                        {!isImage && <span className="ed-locked-zone-icon">✍️</span>}
+                        <span className="ed-locked-zone-preview">{preview}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="ed-locked-zone-unlock"
+                        onClick={() => unlockBlock(blocks.indexOf(b))}
+                        title="解鎖回編輯區, 允許再次潤稿"
+                      >
+                        ⏏ 解鎖
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             className="ed-textarea"
-            value={draft.text}
-            onChange={(e) => setDraft({ ...draft, text: e.target.value })}
+            value={editingText}
+            onChange={(e) => handleEditingTextChange(e.target.value)}
             onDrop={handleTextareaDrop}
             onDragOver={(e) => e.preventDefault()}
-            placeholder={D1_PLACEHOLDER}
+            placeholder={
+              lockedBlocks.length > 0
+                ? `繼續寫編輯區段落 (${lockedBlocks.length} 段已送出完成區)\n\n支援 # 一級標題 / ## 二級 / > 引用 / ![caption](url)`
+                : D1_PLACEHOLDER
+            }
           />
 
           {/* 🅒 8-5: Block 操作面板 — 每個 block 顯示 lock/unlock + 上/下按鈕 */}
