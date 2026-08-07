@@ -35,7 +35,12 @@ export interface Block {
 //   - status 全部標 locked (雖然內部已 locked, 但 explicit 標記讓 render 一致)
 export function parseBlocks(text: string): Block[] {
   const blocks: Block[] = [];
-  const lockedRe = /<!--LOCK:([a-z0-9]+)-->([\s\S]*?)<!--\/LOCK-->/g;
+    // 🅒 8-6 聖上拍板: LOCK id 允許包含 `-` (date.now() base36 可能含 `-`)
+  //   修前: `([a-z0-9]+)` 限制只 alphanumeric → 遇到 `llmshfaiwv7bj3-1` 這種 id 整段 regex fail
+  //   → 整個 LOCK 段被當 text, parseRawToBlocks 把 `<!--LOCK:...-->` 當 P 段
+  //   → editingText 內含 LOCK marker (污染聖上 textarea)
+  //   修後: 允許 `[a-z0-9-]+`
+  const lockedRe = /<!--LOCK:([a-z0-9-]+)-->([\s\S]*?)<!--\/LOCK-->/g;
   let cursor = 0;
   let m: RegExpExecArray | null;
   let autoId = 0;
@@ -203,7 +208,11 @@ export function renderBlocksHtml(blocks: Block[]): string {
     }
     // Image + P 群 → 包成 editorial flex row
     const imageItem = buffer[0];
-    const pItems = buffer.slice(1);
+    let pItems = buffer.slice(1);
+    // 🅒 8-6 聖上拍板: 每張照片對應的文字最多 4 段, 多的不渲染
+    if (pItems.length > 4) {
+      pItems = pItems.slice(0, 4);
+    }
     const side = imageItem.figureSide || "right"; // 預設圖右文左
     const sideClass = side === "left" ? "vd-editorial-row--reverse" : "";
     out.push(

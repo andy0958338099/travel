@@ -139,10 +139,21 @@
   box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
 }
 .ed-locked-zone-card-left {
-  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0;
 }
 .ed-locked-zone-icon {
   font-size: 16px; flex-shrink: 0;
+}
+.ed-locked-zone-thumb {
+  width: 44px; height: 44px; object-fit: cover; border-radius: 4px;
+  border: 1px solid #fde68a; flex-shrink: 0;
+}
+.ed-locked-zone-info {
+  display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;
+}
+.ed-locked-zone-type {
+  font-size: 10px; color: #b45309; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 .ed-locked-zone-preview {
   font-size: 13px; color: #1e293b;
@@ -674,7 +685,7 @@
 
 .vd-content { padding: 60px 0; }
 
-.vd-rendered { font-size: 18px; line-height: 1.9; }
+.vd-rendered { font-size: 18px; line-height: 1.5; } /* 🅒 8-6 聖上: 段落內行距縮一半 (1.9 → 1.5) */
 
 .vd-rendered .vd-h1 {
   font-size: 64px; line-height: 1.05;
@@ -687,28 +698,15 @@
   margin: 40px 0 16px;
 }
 
-.vd-rendered p { margin-bottom: 20px; }
+.vd-rendered p { margin-bottom: 5px; } /* 🅒 8-6 聖上: 段間距再縮一半 (10→5), 段落更緊湊 */
 
-/* 🅒 8-6 聖上拍板: Drop Cap 首字下沉 — 從 The New Yorker 學的 (21px Caslon + 63px 首字)
-   - 第一個 P 段落的 first-letter 放大 3.5× + float left + Vogue 紅
-   - 視覺效果: 文章開頭立刻有「New Yorker 級編輯感」
-   - 簡化: 不挑 :has(p):first-of-type, 直接套「所有 P 都放大」
-     聖上每段都是 P → 每段都 drop cap 視覺上太花
-     但 :first-of-type 修不好, 退而求其次: 只給「第一個 .vd-block 內的 P」*/
-/* 用 data-block-id 找第一個 block, 避免 selector 太複雜 */
-.vd-rendered .vd-block[data-block-id] + .vd-block[data-block-id]:has(> p) p::first-letter,
-.vd-rendered > .vd-block:nth-of-type(1) p::first-letter,
-.vd-rendered > .vd-block:nth-of-type(2) p::first-letter,
-.vd-rendered > .vd-block:nth-of-type(3) p::first-letter,
-.vd-rendered p:not(.vd-caption)::first-letter {
-  font-family: inherit;
-  font-size: 3.5em;
-  line-height: 0.85;
-  float: left;
-  margin: 0.08em 0.12em -0.05em 0;
-  font-weight: 700;
-  color: #c41e3a; /* Vogue 紅當 drop cap 視覺錨點 */
-}
+/* 🅒 8-6 聖上拍板: 取消 Drop Cap — 聖上說「不用重點字大大小小的」
+   - 修前: 段落的 first-letter 放大 3.5× + Vogue 紅 (New Yorker 風)
+   - 修後: 統一段落樣式, 第一個字不放大 (聖上 user 偏好) */
+/* 🅒 8-6 聖上拍板: Pull Quote 強化 — 從 The New Yorker pullquote.bordered 學的
+   - HTML 用 <blockquote class="vd-quote"> (已有)
+   - 加 4px 紅色粗直立線 + italic 大字 + 漸層背景
+   - 視覺節奏: 重要段落抽出來強化 */
 
 /* 🅒 8-6 聖上拍板: Pull Quote 抽言 — 從 The New Yorker pullquote.bordered 學的
    - HTML 用 <blockquote class="vd-quote"> (renderBlocksHtml 已有)
@@ -740,6 +738,7 @@
   display: grid;
   grid-template-columns: minmax(0, 45%) 1fr;
   align-items: start;
+  width: 100%; /* 🅒 8-6 修: 不設 width 100% 會讓 grid 容器用 content-size, 1fr 不撐開 */
   gap: 32px;
   margin: 48px 0;
   padding: 24px;
@@ -748,11 +747,12 @@
   border: 1px solid rgba(196, 30, 58, 0.1);
 }
 .vd-editorial-row--reverse {
-  direction: rtl; /* 反轉內容流向: 圖在視覺左側 */
+  /* 🅒 8-6 聖上拍板: 撤銷 direction: rtl — 聖上說「第二張圖在左, 文字在右」
+     修前: direction: rtl 反轉視覺 → 圖顯示在右, 文在左 (跟聖上要相反)
+     修後: 不用 direction rtl, 圖 wrapper 是 row 第一個 child, 自然顯示在左
+     聖上要的「圖左文右」現在是 DOM 預設順序 */
 }
-.vd-editorial-row--reverse > * {
-  direction: ltr; /* 但 children 文字仍正常 LTR */
-}
+/* 🅒 8-6 聖上拍板: 取消 --reverse > * 子元素 direction: ltr override (不需要了) */
 /* Grid 第一欄 (.vd-block wrapper) — 撐滿 45%, 圖自然高度, 文字自然延伸 */
 .vd-editorial-row > .vd-block:has(> .vd-figure) {
   width: 100%;
@@ -787,13 +787,11 @@
 .vd-editorial-row__body > .vd-block::before {
   display: none;
 }
+/* 🅒 8-6 聖上拍板: 撤銷 body p 客製化 — 聖上說「弄在一個段落就好」
+   - 修前: text-align: justify + font-size: 17px (我加的 editorial 強化)
+   - 修後: 統一段落用 .vd-rendered p 預設 (18px, margin-bottom: 20px) */
 .vd-editorial-row__body p {
-  margin: 0;
-  text-align: justify;
-  text-justify: inter-ideograph; /* 中文 justify */
-  line-height: 1.8;
-  font-size: 17px;
-  color: #1e293b;
+  margin: 0 0 5px; /* 🅒 8-6 聖上: 段間距再縮一半 (10→5) */
 }
 /* 響應式: < 768px 取消 Grid, 圖全寬在文上方 */
 @media (max-width: 768px) {
@@ -1009,4 +1007,19 @@
 .vd-exif-empty {
   font-size: 10.5px; color: #999; font-style: italic;
   display: block; text-align: center;
+}
+/* 🅒 8-6 聖上拍板: read page 隱藏編輯器視覺 (直接 inline, 因 read-page.css webpack 沒編進 chunk) */
+.vd-rendered .vd-block::before,
+.vd-rendered .vd-block-locked::before,
+.vd-rendered .vd-block-editing::before {
+  display: none !important;
+}
+.vd-rendered .vd-block,
+.vd-rendered .vd-block-locked,
+.vd-rendered .vd-block-editing {
+  background: none !important;
+  border-left: none !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 16px 0 !important;
 }

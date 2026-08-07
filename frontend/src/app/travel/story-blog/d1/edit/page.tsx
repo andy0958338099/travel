@@ -438,7 +438,12 @@ export default function D1EditorPage() {
     setDraft({ ...draft, text: serializeBlocks(newBlocks) });
   };
 
-  const embeddedPhotos = useMemo(() => extractEmbeddedPhotos(draft.text), [draft.text]);
+  // 🅒 8-8 聖上拍板: 「編輯時乾淨, 完工的不要干擾」— strip 只顯示 editing 段內的圖
+  //   修前: extractEmbeddedPhotos(draft.text) 從全文抽,locked 段內的圖也顯示在 strip
+  //         → 聖上看 strip 以為「這些照片還沒鎖定」實際已在完成區 (嚴重干擾)
+  //   修後: 只從 editingText 抽 — strip 是「聖上正在編輯的照片」, 已送出的不顯示
+  //   index 仍對應 editingText 內位置 (removeNthPhoto 也改吃 editingText)
+  const editingEmbeddedPhotos = useMemo(() => extractEmbeddedPhotos(editingText), [editingText]);
 
   // ── 拖曳縮圖到 textarea → 插入 ![](url) 到游標 (純圖, 不含檔名) ──────────
   const handleDragStart = (e: React.DragEvent, photo: TravelPhoto) => {
@@ -938,41 +943,43 @@ export default function D1EditorPage() {
             </span>
           </div>
 
-          {/* � 8-5 聖上拍板: 已插入照片縮圖 strip — 寫字時眼睛看得到用了哪些 */}
-          {embeddedPhotos.length > 0 && (
-            <div className="ed-photo-strip">
-              <div className="ed-photo-strip-label">
-                📸 已插入 <strong>{embeddedPhotos.length}</strong> 張
-              </div>
-              <div className="ed-photo-strip-row">
-                {embeddedPhotos.map((p) => (
-                  <div key={p.index} className="ed-photo-strip-item">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={p.url}
-                      alt={p.caption || `photo ${p.index + 1}`}
-                      className="ed-photo-strip-img"
-                      loading="lazy"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.opacity = "0.2";
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="ed-photo-strip-remove"
-                      onClick={() => setDraft({ ...draft, text: removeNthPhoto(draft.text, p.index) })}
-                      title="從 draft 移除"
-                    >
-                      ✕
-                    </button>
-                    {p.caption && (
-                      <div className="ed-photo-strip-cap">{p.caption}</div>
+          {/* 🅒 8-8 聖上拍板: 已插入照片縮圖 strip — 只顯示 editing 段內照片
+                        locked 段內的照片已在「🏆 完成區」對應段預覽, 不再在 strip 重複顯示
+                        聖上看 strip = 「我現在正在編輯的照片清單」— 完工的不來干擾 */}
+                    {editingEmbeddedPhotos.length > 0 && (
+                      <div className="ed-photo-strip">
+                        <div className="ed-photo-strip-label">
+                          📸 編輯中照片 <strong>{editingEmbeddedPhotos.length}</strong> 張 (locked 段照片不顯示)
+                        </div>
+                        <div className="ed-photo-strip-row">
+                          {editingEmbeddedPhotos.map((p) => (
+                            <div key={p.index} className="ed-photo-strip-item">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={p.url}
+                                alt={p.caption || `photo ${p.index + 1}`}
+                                className="ed-photo-strip-img"
+                                loading="lazy"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.opacity = "0.2";
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="ed-photo-strip-remove"
+                                onClick={() => handleEditingTextChange(removeNthPhoto(editingText, p.index))}
+                                title="從編輯區移除"
+                              >
+                                ✕
+                              </button>
+                              {p.caption && (
+                                <div className="ed-photo-strip-cap">{p.caption}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* 🅒 8-6 聖上拍板: 完稿區 — 獨立顯示已送出到完成區的段 (locked blocks)
               只在有 locked 段時顯示; 顯示 Vogue 渲染 + 解鎖按鈕
@@ -987,16 +994,48 @@ export default function D1EditorPage() {
               </div>
               <div className="ed-locked-zone-list">
                 {lockedBlocks.map((b) => {
-                  // 簡化: locked block 的 raw 可能是 markdown 多行, 抽第一行當 preview
-                  const previewLines = b.raw.split("\n").filter((l) => l.trim());
-                  const preview = previewLines[0]?.slice(0, 80) || "(空段)";
-                  const isImage = b.type === "image" || b.raw.startsWith("![");
+                  // 🅒 8-8 聖上拍板: 預覽強化 — 圖片段直接顯示小縮圖 (聖上看完成區就想起哪張)
+                  //   修前: 圖片段預覽顯示 `![](url)` 一行原始 markdown, 完全沒視覺感
+                  //   修後: 圖片段抽 URL → 顯示 44x44 縮圖 + type chip; H1/H2 直接顯示標題文字; 段落顯示首句
+                  //   i=0 H2 「(空段)」bug fix: 不要「找非 # 行」, 而是按 type 直接抽對應 raw
+                  const isImage = b.type === "image" || b.url || b.raw.startsWith("![");
+                  const imgUrl = b.url ?? (b.raw.match(/\(([^)]+\.(?:jpg|jpeg|png|webp|heic))\)/i)?.[1] ?? "");
+                  let preview = "";
+                  if (isImage) {
+                    preview = b.caption || "(純圖, 無 caption)";
+                  } else if (b.type === "h1" || b.type === "h2") {
+                    // 標題型 → raw 去掉 # 前綴就是文字
+                    preview = b.raw.replace(/^#+\s*/, "").trim().slice(0, 60) || "(空標題)";
+                  } else if (b.type === "quote") {
+                    // 引用型 → 去掉 > 前綴
+                    preview = b.raw.replace(/^>\s*/gm, "").trim().slice(0, 60) || "(空引用)";
+                  } else {
+                    // 段落型 → 顯示首句
+                    preview = b.raw.trim().slice(0, 60) || "(空段)";
+                  }
                   return (
                     <div key={b.id} className="ed-locked-zone-card">
                       <div className="ed-locked-zone-card-left">
-                        {isImage && <span className="ed-locked-zone-icon">📷</span>}
+                        {isImage && imgUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={imgUrl}
+                            alt=""
+                            className="ed-locked-zone-thumb"
+                            loading="lazy"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                        )}
+                        {isImage && !imgUrl && <span className="ed-locked-zone-icon">📷</span>}
                         {!isImage && <span className="ed-locked-zone-icon">✍️</span>}
-                        <span className="ed-locked-zone-preview">{preview}</span>
+                        <div className="ed-locked-zone-info">
+                          <span className="ed-locked-zone-type">
+                            {b.type === "image" ? "圖片" : b.type === "quote" ? "引用" : b.type === "h1" ? "H1" : b.type === "h2" ? "H2" : "段落"}
+                          </span>
+                          <span className="ed-locked-zone-preview">
+                            {preview}
+                          </span>
+                        </div>
                       </div>
                       <button
                         type="button"
@@ -1027,55 +1066,61 @@ export default function D1EditorPage() {
             }
           />
 
-          {/* 🅒 8-5: Block 操作面板 — 每個 block 顯示 lock/unlock + 上/下按鈕 */}
-          <div className="ed-block-controls">
-            <div className="ed-block-controls-header">
-              📚 段落管理 ({blocks.length} 段 · {blocks.filter((b) => b.status === "locked").length} 鎖定 · {blocks.filter((b) => b.status === "editing").length} 編輯中)
+                    {/* 🅒 8-6 聖上拍板: 段落管理只顯示 editing 段 — locked 段已在「完成區」panel, 不重複
+             - 修前: blocks.map 顯示全部 4 段 (4 locked + 0 editing) — 聖上看 4 個 locked 段干擾
+             - 修後: 只 filter editing 段, 完全乾淨 (locked 段從此 panel 完全消失) */}
+          {editingBlocksOnly(blocks).length > 0 && (
+            <div className="ed-block-controls">
+              <div className="ed-block-controls-header">
+                📚 段落管理 ({editingBlocksOnly(blocks).length} 段待潤稿)
+              </div>
+              <div className="ed-block-controls-list">
+                {editingBlocksOnly(blocks).map((b) => {
+                  // 找 b 在原 blocks 陣列的 index (moveBlock 用)
+                  const originalIndex = blocks.findIndex((orig) => orig.id === b.id);
+                  return (
+                    <div key={b.id} className="ed-block-row is-editing">
+                      <span className="ed-block-num">{originalIndex + 1}</span>
+                      <span className="ed-block-type">{b.type}</span>
+                      <span className="ed-block-preview">
+                        {b.raw.length > 40 ? b.raw.slice(0, 40) + "..." : b.raw}
+                      </span>
+                      <span className="ed-block-status">✏️ 編輯中</span>
+                      <button
+                        type="button"
+                        className="ed-block-btn"
+                        onClick={() => moveBlock(originalIndex, -1)}
+                        disabled={originalIndex === 0}
+                        title="上移"
+                      >
+                        ⬆
+                      </button>
+                      <button
+                        type="button"
+                        className="ed-block-btn"
+                        onClick={() => moveBlock(originalIndex, 1)}
+                        disabled={originalIndex === blocks.length - 1}
+                        title="下移"
+                      >
+                        ⬇
+                      </button>
+                      <button
+                        type="button"
+                        className="ed-block-btn ed-block-lock-btn"
+                        onClick={() => lockBlock(originalIndex)}
+                        title="鎖定到完稿區"
+                      >
+                        🔒 鎖定
+                      </button>
+                    </div>
+                  );
+                })}
+                {editingBlocksOnly(blocks).length === 0 && (
+                  <div className="ed-block-empty">textarea 是空的, 開始打字 → 按 🔒 鎖定段落</div>
+                )}
+              </div>
             </div>
-            <div className="ed-block-controls-list">
-              {blocks.map((b, i) => (
-                <div key={b.id} className={`ed-block-row ${b.status === "locked" ? "is-locked" : "is-editing"}`}>
-                  <span className="ed-block-num">{i + 1}</span>
-                  <span className="ed-block-type">{b.type}</span>
-                  <span className="ed-block-preview">
-                    {b.raw.length > 40 ? b.raw.slice(0, 40) + "..." : b.raw}
-                  </span>
-                  <span className="ed-block-status">
-                    {b.status === "locked" ? "🔒 已鎖定" : "✏️ 編輯中"}
-                  </span>
-                  <button
-                    type="button"
-                    className="ed-block-btn"
-                    onClick={() => moveBlock(i, -1)}
-                    disabled={i === 0}
-                    title="上移"
-                  >
-                    ⬆
-                  </button>
-                  <button
-                    type="button"
-                    className="ed-block-btn"
-                    onClick={() => moveBlock(i, 1)}
-                    disabled={i === blocks.length - 1}
-                    title="下移"
-                  >
-                    ⬇
-                  </button>
-                  <button
-                    type="button"
-                    className="ed-block-btn ed-block-lock-btn"
-                    onClick={() => (b.status === "locked" ? unlockBlock(i) : lockBlock(i))}
-                    title={b.status === "locked" ? "解鎖回編輯區" : "鎖定到完稿區"}
-                  >
-                    {b.status === "locked" ? "� 解鎖" : "🔒 鎖定"}
-                  </button>
-                </div>
-              ))}
-              {blocks.length === 0 && (
-                <div className="ed-block-empty">textarea 是空的, 開始打字 → 按 🔒 鎖定段落</div>
-              )}
-            </div>
-          </div>
+          )}
           <details className="ed-raw">
             <summary>查看純文字 raw (給臣潤稿用)</summary>
             <pre>{draft.text}</pre>

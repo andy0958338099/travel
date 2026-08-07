@@ -29,7 +29,6 @@ function renderExifChip(photo: TravelPhoto): string {
   const uploader = photo.uploader_name ?? "未標";
   const loc = photo.location_name ?? "未標地點";
   return `<div class="vd-exif-bar">
-    <span class="vd-exif-filename">${photo.filename}</span>
     <span class="vd-exif-time">📅 ${time}</span>
     <span class="vd-exif-uploader">👤 ${uploader}</span>
     <span class="vd-exif-loc">📍 ${loc}</span>
