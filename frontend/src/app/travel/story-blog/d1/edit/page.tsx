@@ -568,9 +568,18 @@ export default function D1EditorPage() {
       if (insertErr) throw new Error(`insert ${insertErr.code}: ${insertErr.message}`);
 
       // Step 4: 加進 photos state (候選池立即顯示)
+      // 🅒 8-8 陛下拍板: 新加入的照片「排在最前面, 縮圖可見, 互動跟一般照片一樣」
+      //   做法: 自動加進 pinnedPhotos, 走既有 pinned-first 邏輯 (displayPhotos line 375)
       if (inserted) {
         setPhotos((prev) => [inserted, ...prev]);
-        showToast(`✅ 已加入 ${filename}`, "success");
+        // 自動精選新照片 → 排 pinned 最前 + 完整 thumbnail 渲染
+        if (!draft.pinnedPhotos.includes(filename)) {
+          setDraft({
+            ...draft,
+            pinnedPhotos: [filename, ...draft.pinnedPhotos],
+          });
+        }
+        showToast(`✅ 已加入並精選 ${filename}`, "success");
         setPhotoUrlInput("");
       }
     } catch (e: unknown) {
