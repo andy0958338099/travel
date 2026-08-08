@@ -193,9 +193,9 @@ export function renderBlocksHtml(blocks: Block[]): string {
   //   把「image + 全部接續 P」wrap 在 <div class="vd-editorial-row"> 內,
   //   用 CSS flex 讓圖左/右、文自適應 (Monocle Pattern 3)
   //   聖上 polished_text 不用改, 渲染端自動做 editorial layout
-  type Buffer = { kind: "image" | "p"; html: string; figureSide?: "left" | "right" };
+  type Buffer = { kind: "image" | "p" | "quote"; html: string; figureSide?: "left" | "right" };
   let buffer: Buffer[] = [];
-  let bufferAnchor: "image" | "p" | null = null; // buffer 開頭是哪種
+  let bufferAnchor: "image" | "p" | "quote" | null = null; // buffer 開頭是哪種
 
   const flushBuffer = () => {
     if (buffer.length === 0) return;
@@ -260,8 +260,16 @@ export function renderBlocksHtml(blocks: Block[]): string {
         out.push(blockWrap(`<h2 class="vd-h2">${escapeHtml(b.raw.replace(/^##\s+/, ""))}</h2>`));
         break;
       case "quote":
-        flushBuffer();
-        out.push(blockWrap(`<blockquote class="vd-quote">${escapeHtml(b.raw.replace(/^>\s*/, ""))}</blockquote>`));
+        // 🅒 8-8 聖上拍板: 潤稿後文字放在照片的左側或右側 (圖文並排)
+        //   - 之前 quote 會 flushBuffer (中斷 wrap), 改為 push 到 buffer 像 P 一樣
+        //   - 聖上看 read page 看到 image + quote 一起 wrap 成 vd-editorial-row
+        buffer.push({
+          kind: "quote",
+          html: blockWrap(
+            `<blockquote class="vd-quote">${escapeHtml(b.raw.replace(/^>\s*/, ""))}</blockquote>`
+          ),
+        });
+        if (bufferAnchor === null) bufferAnchor = "quote";
         break;
       case "image":
         flushBuffer(); // 新 image 開始新 buffer

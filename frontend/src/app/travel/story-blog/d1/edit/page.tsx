@@ -693,7 +693,7 @@ export default function D1EditorPage() {
               ? "載入中…"
               : `${photos.length} 張 · ${draft.pinnedPhotos.length} 精選 · ${draft.text.length} 字`}
             {draft.updatedAt && !loading && mounted && (
-              <span className="ed-saved"> · 已存 {new Date(draft.updatedAt).toLocaleTimeString()}</span>
+              <span className="ed-saved"> · 已存 {new Date(draft.updatedAt).toLocaleTimeString("zh-TW", { timeZone: "Asia/Taipei" })}</span>
             )}
           </span>
           <button
@@ -757,6 +757,7 @@ export default function D1EditorPage() {
                 ` · ${new Date(hoverPhoto.datetime_original).toLocaleTimeString("zh-TW", {
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone: "Asia/Taipei",
                 })}`}
             </div>
             {hoverPhoto.location_name && <div>📍 {hoverPhoto.location_name}</div>}
@@ -781,7 +782,7 @@ export default function D1EditorPage() {
               <h3>#{modalPhoto.filename}</h3>
               <p suppressHydrationWarning>
                 <strong>EXIF:</strong>{" "}
-                {mounted && new Date(modalPhoto.datetime_original).toLocaleString("zh-TW")}
+                {mounted && new Date(modalPhoto.datetime_original).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })}
               </p>
               <p>
                 <strong>拍攝者:</strong> {modalPhoto.uploader_name ?? "未標"}

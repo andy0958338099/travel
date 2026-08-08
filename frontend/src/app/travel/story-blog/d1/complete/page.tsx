@@ -169,7 +169,7 @@ export default async function D1CompletePage() {
             {batches.length > 0
               ? `共 ${batches.length} 個送出批次 · ${totalSubBlocks} 段 · ${
                   updatedBy ? `更新者 ${updatedBy} · ` : ""
-                }${updatedAt ? new Date(updatedAt).toLocaleString("zh-TW") : ""}`
+                }${updatedAt ? new Date(updatedAt).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) : ""}`
               : "尚未送出任何段落"}
           </p>
         </div>

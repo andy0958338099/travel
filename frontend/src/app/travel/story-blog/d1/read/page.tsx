@@ -89,7 +89,7 @@ export default async function D1ReadPage() {
         <div className="vd-container">
           <p className="vd-deck">
             {polishedAt
-              ? `${new Date(polishedAt).toLocaleString("zh-TW")}  留有江南水鄉八日2026`
+              ? `${new Date(polishedAt).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })}  留有江南水鄉八日2026`
               : "留有江南水鄉八日2026"}
           </p>
           <div style={{ marginTop: 16 }}>
