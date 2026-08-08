@@ -929,18 +929,19 @@
   border-radius: 6px;
   position: relative;
 }
-/* 🅒 8-9 聖上拍板: 取消「圖片 block 變 display: contents」(8-6 為 editorial row 設計)
-   現在每個 LOCK 獨立, 圖片 block 跟文字 block 一樣用 display: block
-   圖片自然垂直堆疊, 不再浮動 wrap 文字 */
+/* 🅒 8-9 聖上拍板改心意: 改回 Monocle Pattern 3 圖文配對 wrap
+   圖片 block + 接續 P 群 → 包成 vd-editorial-row (flex row)
+   因此圖片 block 不需要 display: block 獨立, 應該被 wrap 在 vd-editorial-row 內
+   但 8-6 的舊 code 對 vd-block:has(> .vd-figure) 設 display: contents 也錯 (那是為了 float wrap)
+   解法: 圖片 block 用預設 display: block, 但要參與 vd-editorial-row flex 計算 */
 .vd-rendered > .vd-block:has(> .vd-figure) {
   display: block;
-  margin: 24px 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+  border: none !important;
 }
-/* display: block, figure 撐滿寬度, 視覺獨立 */
-.vd-rendered .vd-figure {
-  margin: 0;
-  padding: 0;
-}
+/* display: block 但 padding/background 都拿掉, 圖片完全融入 vd-editorial-row */
 .vd-rendered .vd-block-locked {
   background: linear-gradient(135deg, #f5f1ea 0%, #ebe5d8 100%);
   border-left: 4px solid #c41e3a;
@@ -1023,56 +1024,32 @@
   text-align: center;
 }
 
-/* 🅒 8-6 聖上拍板: read page 圖片自由編排 — 縮成約 2/3 + 自動左右交替
-   - 用 [data-fig-pos] attribute selector (renderBlocksHtml 注入的計數, 1-based 圖片序號)
-   - 圖 1: float right, 寬 60% (左文右圖)
-   - 圖 2: float left, 寬 60% (左圖右文)
-   - 圖 3: 全寬置中 (段落分隔)
-   - 圖 4: float right (回到圖 1 pattern)
-   - 圖 5: float left
-   - 圖 6+: 圖 3 全寬, 然後重複 cycle (6n+1..6 對應 圖 1..6, 7 對應 6n+1=7, 圖 1 pattern 又開始)
+/* 🅒 8-9 聖上拍板改心意: 「圖左文右」統一格式 (不交替)
+   - 所有圖片統一 float: left + width: 60%
+   - 移除 8-6 的左右交替 (data-fig-pos 1,4,7 = right; 2,5,8 = left; 3,6,9 = center)
+   - 改回「圖文配對 wrap」(Monocle Pattern 3) — 圖 + 後續 P 群包成 vd-editorial-row
+   - 之前 8-9 (我改的) 拿掉 clear 是錯的, 現在讓文字 wrap 進 float 圖右
    - 窄螢幕 (<700px) 自動取消 float 變全寬 (避免 overlap) */
 .vd-rendered .vd-figure {
   position: relative; /* 保留原本數位相框 ::before position absolute 用 */
-}
-/* 圖 1, 4, 7, 10... → float right (左文右圖) */
-.vd-rendered .vd-figure[data-fig-pos="1"],
-.vd-rendered .vd-figure[data-fig-pos="4"],
-.vd-rendered .vd-figure[data-fig-pos="7"],
-.vd-rendered .vd-figure[data-fig-pos="10"] {
-  float: right;
-  width: 60%;
-  margin: 32px 0 32px 32px;
+  float: left;        /* 🅒 8-9: 統一左, 不交替 */
+  width: 60%;         /* 🅒 8-9: 統一 60% */
+  margin: 32px 32px 32px 0; /* 左浮 → margin-right, 上右下 */
   clear: none;
 }
-/* 圖 2, 5, 8, 11... → float left (左圖右文) */
-.vd-rendered .vd-figure[data-fig-pos="2"],
-.vd-rendered .vd-figure[data-fig-pos="5"],
-.vd-rendered .vd-figure[data-fig-pos="8"],
-.vd-rendered .vd-figure[data-fig-pos="11"] {
-  float: left;
-  width: 60%;
-  margin: 32px 32px 32px 0;
-  clear: none;
-}
-/* 圖 3, 6, 9, 12... → 全寬置中 (段落分隔) */
-.vd-rendered .vd-figure[data-fig-pos="3"],
-.vd-rendered .vd-figure[data-fig-pos="6"],
-.vd-rendered .vd-figure[data-fig-pos="9"],
-.vd-rendered .vd-figure[data-fig-pos="12"] {
-  float: none;
-  width: auto;
-  max-width: 75%;
-  margin: 48px auto;
+/* 🅒 8-9 移除: 8-6 的 data-fig-pos 交替規則 (1=右, 2=左, 3=中, 4=右, 5=左, 6=中, ...)
+   聖上要統一格式不交替, 所以不需要這個 cycle */
+
+/* 🅒 8-9 聖上拍板改心意: 文字段落不 clear: both (改回 wrap 進 float 圖右)
+   - 之前 8-9 我加的 clear:both 是錯的, 文字應該 wrap 到圖右形成「圖左文右」配對
+   - 但 H1/H2 等「不該被 wrap 進去」的標題用 clear: both 強制換行
+   - 圖片 LOCK 也不該被 wrap (新圖片要新一組), 用 clear: both */
+.vd-rendered > h1,
+.vd-rendered > h2,
+.vd-rendered > blockquote,
+.vd-rendered > .vd-block:has(> .vd-figure) {
   clear: both;
 }
-/* 圖 N >= 13 用 nth-of-type fallback (cycle 重複 1,2,3 模式) */
-.vd-rendered .vd-figure[data-fig-pos="13"],
-.vd-rendered .vd-figure[data-fig-pos="16"] { float: right; width: 60%; margin: 32px 0 32px 32px; clear: none; }
-.vd-rendered .vd-figure[data-fig-pos="14"],
-.vd-rendered .vd-figure[data-fig-pos="17"] { float: left; width: 60%; margin: 32px 32px 32px 0; clear: none; }
-.vd-rendered .vd-figure[data-fig-pos="15"],
-.vd-rendered .vd-figure[data-fig-pos="18"] { float: none; width: auto; max-width: 75%; margin: 48px auto; clear: both; }
 
 /* 🅒 8-6 聖上拍板: 文字段落不主動 clear: both
    - 修前: 強制 clear: both → 每個 .vd-block 都自己換行 → 文字不會 wrap 到 float 圖旁邊

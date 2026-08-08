@@ -55,13 +55,14 @@ export function parseBlocks(text: string): Block[] {
     const beforeBlocks = parseRawToBlocks(beforeRaw, "editing", () => `e${++autoId}`);
     blocks.push(...beforeBlocks);
 
-    // 🅒 8-9 聖上拍板: LOCK 整個視為 1 個 block (不再切 sub blocks)
-    //   type 由 innerRaw 內容判斷 (image / quote / h1 / h2 / p)
-    //   這樣每個 LOCK 獨立顯示, 不會「LOCK 圖 + LOCK 散文」配對成 editorial row
+    // 🅒 8-9 聖上拍板改心意: LOCK 改回拆 sub blocks (圖 + 接續 P 配對)
+    //   之前 8-9 (我改的): LOCK 整體視為 1 個 block, 不切 sub blocks
+    //   現在 (聖上要的): LOCK 內 run parseRawToBlocks 拆 image/quote/h1/h2/p
+    //                    render 時把「圖 + 接續 P」wrap 成 vd-editorial-row, 圖左文右
     const lockedId = m[1];
     const innerRaw = m[2].trim();
-    const lockedBlock = parseSingleBlock(innerRaw, "locked", () => `l${lockedId}-${++autoId}`);
-    blocks.push(lockedBlock);
+    const lockedSubBlocks = parseRawToBlocks(innerRaw, "locked", () => `l${lockedId}-${++autoId}`);
+    blocks.push(...lockedSubBlocks);
 
     cursor = m.index + m[0].length;
   }
@@ -216,19 +217,37 @@ export function renderBlocksHtml(blocks: Block[]): string {
   // 跳過第一個 h1
   let skipFirstH1 = !!firstH1;
 
-  // 🅒 8-9 聖上拍板: 「一組圖文對一組圖文」 — 取消 Monocle Pattern 3 editorial row
-  //   之前: image + 後續 P 群自動包成 flex row (圖文配對)
-  //   聖上: 「應該一組對上一組, 而不該把不同的內文放在一起」
-  //   修法: 每個 block 獨立 push, 不做 image + P 配對 wrap
-  //   圖片 vs 文字描述交給 CSS Grid + vertical-rhythm 自然堆疊
-  //   (圖片的 vd-figure 自己有 figure caption + EXIF slot, 跟下文是視覺分隔)
+  // 🅒 8-9 聖上拍板改心意: 「圖左文右」統一格式
+  //   render: 圖 + 接續 P 群包成 vd-editorial-row (Monocle Pattern 3 圖文配對)
+  //   所有圖統一 figureSide = "left" (圖左文右), 不交替
+  //   之前 8-9 改的「每個 block 獨立」撤回
   type Buffer = { kind: "image" | "p" | "quote"; html: string; figureSide?: "left" | "right" };
   let buffer: Buffer[] = [];
 
   const flushBuffer = () => {
     if (buffer.length === 0) return;
-    // 🅒 8-9 修法: 每個 block 獨立 push (不再 wrap 成 vd-editorial-row)
-    for (const item of buffer) out.push(item.html);
+    // 🅒 8-9 修法: 圖 + P 群配對 wrap 成 editorial row
+    //   聖上: 「圖左文右統一格式」 — 即使只有 1 個 image (沒接續文字), 也要 wrap
+    //   (右側空白, 但仍是 vd-editorial-row 統一格式)
+    if (buffer[0].kind !== "image") {
+      // 第一個元素不是圖 → 直接 push (不 wrap)
+      for (const item of buffer) out.push(item.html);
+      buffer = [];
+      return;
+    }
+    const imageItem = buffer[0];
+    let pItems = buffer.slice(1);
+    if (pItems.length > 4) pItems = pItems.slice(0, 4);
+    // 🅒 8-9: 統一左 (圖左文右), 不交替
+    const sideClass = "vd-editorial-row--left";
+    out.push(
+      `<div class="vd-editorial-row ${sideClass}">` +
+        imageItem.html +
+        `<div class="vd-editorial-row__body">` +
+        pItems.map((p) => p.html).join("") +
+        `</div>` +
+      `</div>`
+    );
     buffer = [];
   };
 
@@ -274,13 +293,13 @@ export function renderBlocksHtml(blocks: Block[]): string {
             `<blockquote class="vd-quote">${escapeHtml(b.raw.replace(/^>\s*/, ""))}</blockquote>`
           ),
         });
-        // 🅒 8-9: 取消 bufferAnchor (改為每 block 獨立)
+        // 🅒 8-9: 取消 editorial row wrap (改為每 block 獨立)
         break;
       case "image":
         flushBuffer(); // 新 image 結束前一個 buffer
         figureIndex++; // 🅒 8-6: 計數器累加, 用 1-based 順序給 CSS 用
-        // 🅒 8-6: 圖片左右交替 (figureIndex 奇數→右, 偶數→左)
-        const figureSide = figureIndex % 2 === 1 ? "right" : "left";
+        // 🅒 8-9 聖上拍板改心意: 「圖左文右」統一格式 (不交替)
+        const figureSide = "left"; // 統一左, 不交替 (撤掉 8-6 的 % 2 交替)
         const imageHtml = blockWrap(
           `<figure class="vd-figure" data-photo-url="${escapeHtml(b.url || "")}" data-fig-pos="${figureIndex}" data-fig-side="${figureSide}">` +
             `<img src="${escapeHtml(b.url || "")}" alt="${escapeHtml(b.caption || "")}" loading="lazy" />` +
