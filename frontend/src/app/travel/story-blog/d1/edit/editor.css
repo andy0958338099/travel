@@ -36,6 +36,24 @@
   letter-spacing: 2px; text-transform: uppercase;
 }
 
+/* 🅒 8-8 聖上拍板: 完成區 chip — 顯示已送出段數 + 點擊跳到獨立頁面
+   設計: 用 amber 色系 (跟原本完成區 panel 同色), 但縮小成 chip 形式 */
+.ed-locked-count-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b; border-radius: 6px;
+  color: #92400e; font-size: 13px; font-weight: 700;
+  padding: 4px 12px;
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.ed-locked-count-chip:hover {
+  background: linear-gradient(135deg, #fde68a 0%, #fcd34d 100%);
+  border-color: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
+
 .ed-stats { font-size: 12px; color: var(--muted); }
 .ed-saved { color: #059669; }
 
@@ -76,6 +94,31 @@
 }
 
 .ed-btn-secondary:hover { background: var(--paper); }
+
+/* 🅒 8-8 聖上拍板: 確認完成按鈕 — 整篇送出 (暖色突出, 跟單段「🔒 鎖定」明確區分)
+   設計: 暖色實心 (跟「🔒 鎖定」橙 outline 不同) — 視覺權重是頁面「主要 CTA」之一 */
+.ed-btn-confirm {
+  background: #16a34a; color: white; border: none;
+  padding: 8px 16px; border-radius: 4px; cursor: pointer;
+  font-family: inherit; font-weight: 700;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+  transition: all 0.2s;
+  animation: ed-confirm-pulse 2.5s ease-in-out infinite;
+  /* 🅒 8-8 修: 父容器 .ed-header-right 是 flex, 沒 flex-wrap + align-items: center
+     → 新增按鈕被 flex 子元素 align 規則 stretch 成 64px 高
+     → 設 align-self: center 強制垂直置中, 不被 stretch */
+  align-self: center;
+  flex-shrink: 0;
+}
+.ed-btn-confirm:hover {
+  background: #15803d;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.4);
+  transform: translateY(-1px);
+}
+@keyframes ed-confirm-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25); }
+  50% { box-shadow: 0 2px 14px rgba(22, 163, 74, 0.5); }
+}
 
 .ed-toast {
   position: fixed; top: 80px; right: 32px;

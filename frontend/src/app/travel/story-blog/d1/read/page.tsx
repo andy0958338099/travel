@@ -9,9 +9,11 @@
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/server";
 import { parseBlocks, renderBlocksHtml } from "../d1-shared";
-// 🅒 8-6 聖上拍板: read page 也要用 editor.css 的 Vogue 風 layout (.vd-figure, .vd-h1, .vd-h2...)
-//   - edit page 已經 import "./editor.css", read page 直接共用同一份 CSS (避免重複)
-//   - 重要: editor.css 內的 [data-fig-pos] 自由編排 rule 需要在 read page 生效
+// 🅒 8-8 聖上拍板: read page 改回 SSR Vogue editorial-row 渲染 (圖左文右 / 圖右文左)
+//   - 之前 edit page 的 Vogue 預覽 modal 用 renderBlocksHtml 渲染
+//   - 聖上後來要逐段編輯 (ReadBlockList), 但把 Vogue 排版破壞了
+//   - 8-8 第三次拍板: 刪除逐段編輯, 改回 SSR renderBlocksHtml (Vogue 風完整呈現)
+//   - 要改內容請回 edit page 編輯後重新 confirm
 import "./read-page.css";
 import "../edit/editor.css";
 import ReadExifHydrator from "./ReadExifHydrator";
@@ -20,18 +22,28 @@ export const dynamic = "force-dynamic"; // SSR 每次 fetch 最新 Supabase 內�
 
 export default async function D1ReadPage() {
   const supabase = await createClient();
+  // 🅒 8-8 聖上拍板: read page 讀取「聖上已 confirm 的完稿」(text 欄位的 LOCK 段)
+  //   - text 欄位: 編輯後台 [✅ Confirm 潤稿完成] 寫入的 LOCK 段 (聖上真正確認的內容)
+  //   - polished_text 欄位: 之前測試的累積垃圾 (read page 編輯可另外存)
+  //   - 之前 read page 讀 polished_text 邏輯已廢, 聖上要的是「真正 confirm 完稿」
   const { data } = await supabase
     .from("story_blog_drafts")
-    .select("polished_text, polished_at, polished_by")
+    .select("text, polished_at, polished_by")
     .eq("id", "d1")
     .maybeSingle();
 
-  const polished = data?.polished_text ?? "";
-  const polishedBy = data?.polished_by ?? "";
+  const textContent = data?.text ?? "";
   const polishedAt = data?.polished_at ?? "";
 
+  // 🅒 8-8 (三改): 用 parseBlocks → filter locked → renderBlocksHtml
+  //   - renderBlocksHtml 是 d1-shared.ts 內建的 Vogue 編輯風渲染器
+  //   - 自動處理: 圖左文右 (偶數 idx), 圖右文左 (奇數 idx)
+  //   - SSR 直接含 HTML, 不需 client-side 編輯 (聖上已撤銷逐段編輯功能)
+  const allBlocks = parseBlocks(textContent);
+  const lockedBlocks = allBlocks.filter((b) => b.status === "locked");
+
   // 沒完稿 → 顯示引導空狀態
-  if (!polished) {
+  if (lockedBlocks.length === 0) {
     return (
       <main style={{ padding: 60, maxWidth: 640, margin: "0 auto", textAlign: "center", fontFamily: "'Noto Serif TC', serif" }}>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 48, fontStyle: "italic", margin: "0 0 16px" }}>
@@ -58,8 +70,8 @@ export default async function D1ReadPage() {
     );
   }
 
-  // 有完稿 → Vogue 渲染 (SSR 直接含內容, 不用等 client fetch)
-  const html = renderBlocksHtml(parseBlocks(polished));
+  // SSR Vogue 渲染 (圖文並排 editorial-row)
+  const html = renderBlocksHtml(lockedBlocks);
 
   return (
     <div className="vd-root">
@@ -75,8 +87,6 @@ export default async function D1ReadPage() {
       </header>
       <section className="vd-hero">
         <div className="vd-container">
-          {/* 🅒 8-6 聖上拍板: 移除 Day One kicker (太冗) + 潤稿者 metadata */}
-          {/*   - deck 只顯示「最後潤稿時間 + 留有江南水鄉八日2026」字串 */}
           <p className="vd-deck">
             {polishedAt
               ? `${new Date(polishedAt).toLocaleString("zh-TW")}  留有江南水鄉八日2026`
@@ -117,7 +127,7 @@ export default async function D1ReadPage() {
       </section>
       <section className="vd-content">
         <div className="vd-container">
-          {/* 🅒 8-6: Vogue HTML 直接 SSR render, EXIF hydrate 由 client component 補 */}
+          {/* 🅒 8-8 (三改): 改回 SSR Vogue editorial-row 渲染, 移除逐段編輯 UI */}
           <div className="vd-rendered" dangerouslySetInnerHTML={{ __html: html }} />
           <ReadExifHydrator />
         </div>

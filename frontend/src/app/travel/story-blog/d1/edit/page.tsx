@@ -275,7 +275,6 @@ export default function D1EditorPage() {
   //   13 位成員打開就能填自己名字, 之後所有 sync 都帶這個名稱
   const [updatedBy, setUpdatedBy] = useState<string>("");
   const [editingName, setEditingName] = useState(false);
-  const [previewOpen, setPreviewOpen] = useState(false);
   const [polishOpen, setPolishOpen] = useState(false);
   const [polishing, setPolishing] = useState(false);
   const [polishedText, setPolishedText] = useState<string | null>(null);
@@ -635,56 +634,6 @@ export default function D1EditorPage() {
     setPolishWarning(null);
   };
 
-  // ── Vogue 風全屏預覽 ─────────────────────────────────────────────────
-  if (previewOpen) {
-    const firstHeading =
-      draft.text.split("\n").find((l) => l.trim().startsWith("# "))?.replace(/^#\s+/, "") ??
-      "桃 園 啟 程";
-    const englishTitle =
-      draft.text
-        .split("\n")
-        .find((l) => l.trim().startsWith("# "))
-        ?.replace(/^#\s+/, "")
-        .replace(/[\u4e00-\u9fa5]/g, "")
-        .trim() || "The Long Goodbye";
-
-    return (
-      <div className="vd-root">
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap"
-          rel="stylesheet"
-        />
-        <button className="vd-close" onClick={() => setPreviewOpen(false)}>
-          ✕ 關閉預覽
-        </button>
-        <header className="vd-masthead">
-          <div className="vd-container" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-            <div className="vd-logo">VOGUE</div>
-            <div className="vd-meta">江南水鄉 · 八日 · 2026</div>
-          </div>
-        </header>
-        <section className="vd-hero">
-          <div className="vd-container">
-            <div className="vd-kicker">Day One · Departure</div>
-            <h1 className="vd-h1">
-              {englishTitle || "The Long Goodbye"}
-              <span className="vd-h1-cn">{firstHeading}</span>
-            </h1>
-            <p className="vd-deck">聖上的 D1 故事草稿即時預覽</p>
-          </div>
-        </section>
-        <section className="vd-content">
-          <div className="vd-container">
-            <div
-              className="vd-rendered"
-              dangerouslySetInnerHTML={{ __html: renderBlocksHtml(parseBlocks(draft.text.trim() ? draft.text : D1_PLACEHOLDER)) }}
-            />
-          </div>
-        </section>
-      </div>
-    );
-  }
-
   // ── 主編輯 UI ────────────────────────────────────────────────────────
   return (
     <div className="editor-root">
@@ -695,6 +644,17 @@ export default function D1EditorPage() {
           </a>
           <span className="ed-title">📝 D1 桃園啟程 — 編輯後台</span>
           <span className="ed-badge">🅒 Preview · 不寫進 git</span>
+          {/* 🅒 8-8 聖上拍板: 顯示已完成段數提示 (點此跳到獨立完成區頁面)
+              從原本「🏆 完成區 panel」簡化為 chip — 完整內容另開 /d1/complete 頁面 */}
+          {lockedBlocks.length > 0 && (
+            <a
+              href="/travel/story-blog/d1/complete"
+              className="ed-locked-count-chip"
+              title="點此開新頁看完成區 (已送出的 Vogue 潤稿版)"
+            >
+              🏆 完成區 ({lockedBlocks.length} 段) →
+            </a>
+          )}
         </div>
         <div className="ed-header-right">
           {/* 🅒 8/5: 編輯者名稱 + 最後更新資訊 (realtime 共享編輯核心) */}
@@ -756,9 +716,20 @@ export default function D1EditorPage() {
           <button className="ed-btn-secondary" onClick={copyForLLM} title="複製 Markdown 給臣潤稿">
             📋 複製給臣潤稿
           </button>
-          <button className="ed-btn-primary" onClick={() => setPreviewOpen(true)}>
-            👁 Vogue 預覽
-          </button>
+          {/* 🅒 8-8 聖上拍板: 「✅ Confirm 潤稿完成」 — 整篇潤稿版送至完成區
+              流程: 聖上拉照片+寫字 → 按 [✨ 潤稿] → 右側 panel 顯示 Vogue 潤稿版
+                  → 聖上看 OK → 按本按鈕 → 潤稿版進完成區 (append 到 Supabase polished_text)
+              條件: 只有在「有潤稿結果」時才顯示 (polishedText !== null)
+              取代: 之前亂做的 confirmAllEditing (那個直接送原始版, 違背聖上「先潤稿才 confirm」流程) */}
+          {polishedText !== null && (
+            <button
+              className="ed-btn-confirm"
+              onClick={sendPolishedToLocked}
+              title="把 AI 潤稿版送出到完成區 — append 到 Supabase polished_text (讀者看的就是這版)"
+            >
+              ✅ Confirm 潤稿完成
+            </button>
+          )}
         </div>
       </header>
 
@@ -981,76 +952,9 @@ export default function D1EditorPage() {
                       </div>
                     )}
 
-          {/* 🅒 8-6 聖上拍板: 完稿區 — 獨立顯示已送出到完成區的段 (locked blocks)
-              只在有 locked 段時顯示; 顯示 Vogue 渲染 + 解鎖按鈕
-              聖上一眼看到「這些段落已經送出, 不會被新潤稿覆寫」 */}
-          {lockedBlocks.length > 0 && (
-            <div className="ed-locked-zone">
-              <div className="ed-locked-zone-header">
-                <span className="ed-locked-zone-title">🏆 完成區 ({lockedBlocks.length} 段已送出)</span>
-                <span className="ed-locked-zone-hint">
-                  已送出的段落不會被新潤稿覆寫 · 點 ⏏ 解鎖可回編輯區繼續改
-                </span>
-              </div>
-              <div className="ed-locked-zone-list">
-                {lockedBlocks.map((b) => {
-                  // 🅒 8-8 聖上拍板: 預覽強化 — 圖片段直接顯示小縮圖 (聖上看完成區就想起哪張)
-                  //   修前: 圖片段預覽顯示 `![](url)` 一行原始 markdown, 完全沒視覺感
-                  //   修後: 圖片段抽 URL → 顯示 44x44 縮圖 + type chip; H1/H2 直接顯示標題文字; 段落顯示首句
-                  //   i=0 H2 「(空段)」bug fix: 不要「找非 # 行」, 而是按 type 直接抽對應 raw
-                  const isImage = b.type === "image" || b.url || b.raw.startsWith("![");
-                  const imgUrl = b.url ?? (b.raw.match(/\(([^)]+\.(?:jpg|jpeg|png|webp|heic))\)/i)?.[1] ?? "");
-                  let preview = "";
-                  if (isImage) {
-                    preview = b.caption || "(純圖, 無 caption)";
-                  } else if (b.type === "h1" || b.type === "h2") {
-                    // 標題型 → raw 去掉 # 前綴就是文字
-                    preview = b.raw.replace(/^#+\s*/, "").trim().slice(0, 60) || "(空標題)";
-                  } else if (b.type === "quote") {
-                    // 引用型 → 去掉 > 前綴
-                    preview = b.raw.replace(/^>\s*/gm, "").trim().slice(0, 60) || "(空引用)";
-                  } else {
-                    // 段落型 → 顯示首句
-                    preview = b.raw.trim().slice(0, 60) || "(空段)";
-                  }
-                  return (
-                    <div key={b.id} className="ed-locked-zone-card">
-                      <div className="ed-locked-zone-card-left">
-                        {isImage && imgUrl && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={imgUrl}
-                            alt=""
-                            className="ed-locked-zone-thumb"
-                            loading="lazy"
-                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                          />
-                        )}
-                        {isImage && !imgUrl && <span className="ed-locked-zone-icon">📷</span>}
-                        {!isImage && <span className="ed-locked-zone-icon">✍️</span>}
-                        <div className="ed-locked-zone-info">
-                          <span className="ed-locked-zone-type">
-                            {b.type === "image" ? "圖片" : b.type === "quote" ? "引用" : b.type === "h1" ? "H1" : b.type === "h2" ? "H2" : "段落"}
-                          </span>
-                          <span className="ed-locked-zone-preview">
-                            {preview}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="ed-locked-zone-unlock"
-                        onClick={() => unlockBlock(blocks.indexOf(b))}
-                        title="解鎖回編輯區, 允許再次潤稿"
-                      >
-                        ⏏ 解鎖
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {/* 🅒 8-8 聖上拍板: 完稿區另作一頁 — 不放在編輯後台
+              此 panel 已抽出到獨立頁面 /travel/story-blog/d1/complete
+              編輯後台保留連結 + 已送出數字提示, 避免畫面過擠 */}
 
           <textarea
             ref={textareaRef}
@@ -1201,13 +1105,8 @@ export default function D1EditorPage() {
                     >
                       ✓ 採用潤稿 (寫回草稿)
                     </button>
-                    <button
-                      onClick={sendPolishedToLocked}
-                      style={{ flex: 1, background: "#c41e3a", color: "white", border: "none", padding: "12px", borderRadius: 4, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", fontSize: 14, boxShadow: "0 2px 8px rgba(196, 30, 58, 0.3)" }}
-                      title="把這段潤稿結果鎖定到「完成區」, 之後不會被新潤稿覆寫, append 到所有 locked 段之後"
-                    >
-                      ✓✓ 送出到完成區
-                    </button>
+                    {/* 🅒 8-8 聖上拍板: 「✓✓ 送出到完成區」按鈕已移除
+                        統一從頂部「✅ Confirm 潤稿完成」按鈕送完成區, 避免聖上看兩個一樣功能的按鈕 */}
                     <button
                       onClick={rejectPolished}
                       style={{ flex: 1, background: "white", color: "#1e293b", border: "1px solid #d4d4d4", padding: "10px", borderRadius: 4, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
