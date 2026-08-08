@@ -176,12 +176,10 @@ export function renderBlocksHtml(blocks: Block[]): string {
     const cn = text.replace(/[A-Za-z\s]/g, "").trim() || "桃 園 啟 程";
     out.push(`<div class="vd-kicker">Day One · Departure</div>`);
     out.push(`<h1 class="vd-h1">${escapeHtml(en)}<span class="vd-h1-cn">${escapeHtml(cn)}</span></h1>`);
-    out.push(`<div class="vd-deck">聖上口述 · 臣潤稿</div>`);
     out.push(`<hr class="vd-rule" />`);
   } else {
     out.push(`<div class="vd-kicker">Day One · Departure</div>`);
     out.push(`<h1 class="vd-h1">The Long Goodbye<span class="vd-h1-cn">桃 園 啟 程</span></h1>`);
-    out.push(`<div class="vd-deck">聖上口述 · 臣潤稿</div>`);
     out.push(`<hr class="vd-rule" />`);
   }
 

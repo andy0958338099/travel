@@ -246,7 +246,7 @@
 }
 
 .ed-polish::before {
-  content: "VOGUE POLISH MODE";
+  content: "POLISH MODE";
   position: absolute; top: -1px; left: -1px;
   background: #c41e3a; color: white;
   font-family: "Playfair Display", serif;

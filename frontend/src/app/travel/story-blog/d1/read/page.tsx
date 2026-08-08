@@ -81,7 +81,6 @@ export default async function D1ReadPage() {
       />
       <header className="vd-masthead">
         <div className="vd-container" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-          <div className="vd-logo">VOGUE</div>
           <div className="vd-meta">江南水鄉 · 八日 · 2026</div>
         </div>
       </header>

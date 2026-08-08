@@ -154,7 +154,7 @@ export default function TravelLayout({ children }: { children: React.ReactNode }
       <footer className="mt-12 border-t-2 border-amber-300/40 bg-stone-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 text-center">
           <p className="text-sm text-stone-600 font-serif">
-            🏮 江南水鄉八日之旅 · 2026 夏 · Brian & Mana 🏮
+            🏮 江南水鄉八日之旅 · 2026 夏
           </p>
         </div>
       </footer>

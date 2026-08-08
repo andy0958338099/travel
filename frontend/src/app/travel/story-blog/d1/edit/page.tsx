@@ -226,12 +226,10 @@ function polishBlocks(text: string): PolishBlock[] {
     const cn = firstH1.replace(/[A-Za-z\s]/g, "").trim() || "桃 園 啟 程";
     out.push({ type: "kicker", text: "Day One · Departure" });
     out.push({ type: "h1", en, cn });
-    out.push({ type: "deck", text: "聖上口述 · 臣潤稿" });
     out.push({ type: "rule" });
   } else {
     out.push({ type: "kicker", text: "Day One · Departure" });
     out.push({ type: "h1", en: "The Long Goodbye", cn: "桃 園 啟 程" });
-    out.push({ type: "deck", text: "聖上口述 · 臣潤稿" });
     out.push({ type: "rule" });
   }
 
@@ -1131,7 +1129,6 @@ export default function D1EditorPage() {
                     </button>
                   </div>
                   <div className="pl-masthead">
-                    <div className="pl-logo">VOGUE</div>
                     <div className="pl-meta">江南水鄉 · 八日 · 2026</div>
                   </div>
                   {polishBlocks(polishedText).map((b, i) => {

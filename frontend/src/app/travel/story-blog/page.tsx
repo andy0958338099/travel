@@ -67,9 +67,6 @@ export default function StoryBlogIndexPage() {
   return (
     <main style={{ padding: "60px 40px", maxWidth: 1200, margin: "0 auto" }}>
       <header style={{ marginBottom: 48, borderBottom: "2px solid #0a0a0a", paddingBottom: 24 }}>
-        <div style={{ fontSize: 11, letterSpacing: 6, textTransform: "uppercase", color: "#c41e3a" }}>
-          Vogue Editorial · 8 Days
-        </div>
         <h1
           style={{
             fontFamily: "'Playfair Display', serif",
@@ -82,7 +79,7 @@ export default function StoryBlogIndexPage() {
           江南水鄉八日
         </h1>
         <p style={{ fontSize: 18, color: "#8a8a8a", fontStyle: "italic" }}>
-          八個獨立完整故事 · 50-100 張精選照片 · Vogue 編輯風
+          八個獨立完整故事 · 50-100 張精選照片
         </p>
         <div
           style={{
