@@ -929,15 +929,17 @@
   border-radius: 6px;
   position: relative;
 }
-/* 🅒 8-6: 圖片 block 變 display: contents → figure 從 .vd-block 拉出來到 .vd-rendered,
-   float 才能 wrap 到下一個 .vd-block 的文字 */
+/* 🅒 8-9 聖上拍板: 取消「圖片 block 變 display: contents」(8-6 為 editorial row 設計)
+   現在每個 LOCK 獨立, 圖片 block 跟文字 block 一樣用 display: block
+   圖片自然垂直堆疊, 不再浮動 wrap 文字 */
 .vd-rendered > .vd-block:has(> .vd-figure) {
-  display: contents;
+  display: block;
+  margin: 24px 0 !important;
 }
-/* display: contents 失去 padding/background, 我們在 figure 上補回視覺 */
+/* display: block, figure 撐滿寬度, 視覺獨立 */
 .vd-rendered .vd-figure {
-  margin: 32px 24px;
-  padding: 16px;
+  margin: 0;
+  padding: 0;
 }
 .vd-rendered .vd-block-locked {
   background: linear-gradient(135deg, #f5f1ea 0%, #ebe5d8 100%);

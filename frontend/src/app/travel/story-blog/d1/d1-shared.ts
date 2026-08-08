@@ -29,10 +29,14 @@ export interface Block {
 
 // 解析 locked markers → 拆 blocks
 //   格式: `<!--LOCK:abc123-->\n<p>...</p>\n<!--/LOCK-->\n` 或無 marker = editing
-// 🅒 8-6 聖上拍板: LOCK 內的 innerRaw 也要跑 parseRawToBlocks 拆 sub blocks (image/quote/h1/h2/p)
-//   - 修前: 整個 LOCK 段當 type:p → 內部 ![](url) 不會被認成 image, read page 看不到照片
-//   - 修後: LOCK 內多個 sub blocks (圖片/quote/h1/h2/p 各自獨立)
-//   - status 全部標 locked (雖然內部已 locked, 但 explicit 標記讓 render 一致)
+// 🅒 8-9 聖上拍板: 「一組圖文對上一組圖文」 — 每個 LOCK 是獨立單位, 不再切 sub blocks
+//   - 修前 (8-6): LOCK 內 run parseRawToBlocks 拆 image/quote/h1/h2/p → render 時「圖+接續 P 群」配對 wrap 成 editorial row
+//   - 修後 (8-9): LOCK 整個視為 1 個 block, type 由內容判斷:
+//       - LOCK 內只有 ![](url) → type:image
+//       - LOCK 內只有 > 引言 → type:quote
+//       - LOCK 內只有 # / ## → type:h1/h2
+//       - 其他 (含混合) → type:p (raw 內含原始 markdown)
+//   render: 每個 LOCK 獨立 push, 不 wrap editorial row
 export function parseBlocks(text: string): Block[] {
   const blocks: Block[] = [];
     // 🅒 8-6 聖上拍板: LOCK id 允許包含 `-` (date.now() base36 可能含 `-`)
@@ -51,13 +55,13 @@ export function parseBlocks(text: string): Block[] {
     const beforeBlocks = parseRawToBlocks(beforeRaw, "editing", () => `e${++autoId}`);
     blocks.push(...beforeBlocks);
 
-    // 收集 locked 段 — 把 LOCK 內部當成完整的 raw text, parse 成多個 sub blocks
-    //   全部 status = locked, 但保留各自的 type (image/quote/h1/h2/p)
+    // 🅒 8-9 聖上拍板: LOCK 整個視為 1 個 block (不再切 sub blocks)
+    //   type 由 innerRaw 內容判斷 (image / quote / h1 / h2 / p)
+    //   這樣每個 LOCK 獨立顯示, 不會「LOCK 圖 + LOCK 散文」配對成 editorial row
     const lockedId = m[1];
     const innerRaw = m[2].trim();
-    const lockedSubBlocks = parseRawToBlocks(innerRaw, "locked", () => `l${lockedId}-${++autoId}`);
-    // 統一標 locked (parseRawToBlocks 已標, 二次保險)
-    blocks.push(...lockedSubBlocks);
+    const lockedBlock = parseSingleBlock(innerRaw, "locked", () => `l${lockedId}-${++autoId}`);
+    blocks.push(lockedBlock);
 
     cursor = m.index + m[0].length;
   }
@@ -68,6 +72,34 @@ export function parseBlocks(text: string): Block[] {
   blocks.push(...restBlocks);
 
   return blocks;
+}
+
+// 🅒 8-9 聖上拍板: parseSingleBlock — LOCK 整個視為 1 個 block
+//   優先順序: image (含 ![](url)) > quote (> 開頭) > h1 (#) > h2 (##) > p (其他含混合)
+//   raw 保留原始 markdown (render 端自行處理)
+function parseSingleBlock(raw: string, status: BlockStatus, genId: () => string): Block {
+  const trimmed = raw.trim();
+  const imgMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)]+)\)\s*$/);
+  if (imgMatch) {
+    return {
+      id: genId(),
+      type: "image",
+      raw: trimmed,
+      status,
+      caption: imgMatch[1],
+      url: imgMatch[2],
+    };
+  }
+  if (/^>\s*/.test(trimmed)) {
+    return { id: genId(), type: "quote", raw: trimmed, status };
+  }
+  if (/^#\s+(.+)$/.test(trimmed)) {
+    return { id: genId(), type: "h1", raw: trimmed, status };
+  }
+  if (/^##\s+(.+)$/.test(trimmed)) {
+    return { id: genId(), type: "h2", raw: trimmed, status };
+  }
+  return { id: genId(), type: "p", raw: trimmed, status };
 }
 
 // 把 raw text 切成單個 markdown block
@@ -184,43 +216,20 @@ export function renderBlocksHtml(blocks: Block[]): string {
   // 跳過第一個 h1
   let skipFirstH1 = !!firstH1;
 
-  // 🅒 8-6 聖上拍板: Editorial layout — 圖片 + 後續 P 群自動包成 flex row
-  //   設計: 偵測「image block → 接續 P 群 (到下一個 h1/h2/quote/image)」
-  //   把「image + 全部接續 P」wrap 在 <div class="vd-editorial-row"> 內,
-  //   用 CSS flex 讓圖左/右、文自適應 (Monocle Pattern 3)
-  //   聖上 polished_text 不用改, 渲染端自動做 editorial layout
+  // 🅒 8-9 聖上拍板: 「一組圖文對一組圖文」 — 取消 Monocle Pattern 3 editorial row
+  //   之前: image + 後續 P 群自動包成 flex row (圖文配對)
+  //   聖上: 「應該一組對上一組, 而不該把不同的內文放在一起」
+  //   修法: 每個 block 獨立 push, 不做 image + P 配對 wrap
+  //   圖片 vs 文字描述交給 CSS Grid + vertical-rhythm 自然堆疊
+  //   (圖片的 vd-figure 自己有 figure caption + EXIF slot, 跟下文是視覺分隔)
   type Buffer = { kind: "image" | "p" | "quote"; html: string; figureSide?: "left" | "right" };
   let buffer: Buffer[] = [];
-  let bufferAnchor: "image" | "p" | "quote" | null = null; // buffer 開頭是哪種
 
   const flushBuffer = () => {
     if (buffer.length === 0) return;
-    if (buffer.length === 1 || bufferAnchor !== "image") {
-      // 單元素或沒 image anchor → 直接 push (保留原 .vd-block wrapper)
-      for (const item of buffer) out.push(item.html);
-      buffer = [];
-      bufferAnchor = null;
-      return;
-    }
-    // Image + P 群 → 包成 editorial flex row
-    const imageItem = buffer[0];
-    let pItems = buffer.slice(1);
-    // 🅒 8-6 聖上拍板: 每張照片對應的文字最多 4 段, 多的不渲染
-    if (pItems.length > 4) {
-      pItems = pItems.slice(0, 4);
-    }
-    const side = imageItem.figureSide || "right"; // 預設圖右文左
-    const sideClass = side === "left" ? "vd-editorial-row--reverse" : "";
-    out.push(
-      `<div class="vd-editorial-row ${sideClass}">` +
-        imageItem.html +
-        `<div class="vd-editorial-row__body">` +
-        pItems.map((p) => p.html).join("") +
-        `</div>` +
-      `</div>`
-    );
+    // 🅒 8-9 修法: 每個 block 獨立 push (不再 wrap 成 vd-editorial-row)
+    for (const item of buffer) out.push(item.html);
     buffer = [];
-    bufferAnchor = null;
   };
 
   for (const b of blocks) {
@@ -265,10 +274,10 @@ export function renderBlocksHtml(blocks: Block[]): string {
             `<blockquote class="vd-quote">${escapeHtml(b.raw.replace(/^>\s*/, ""))}</blockquote>`
           ),
         });
-        if (bufferAnchor === null) bufferAnchor = "quote";
+        // 🅒 8-9: 取消 bufferAnchor (改為每 block 獨立)
         break;
       case "image":
-        flushBuffer(); // 新 image 開始新 buffer
+        flushBuffer(); // 新 image 結束前一個 buffer
         figureIndex++; // 🅒 8-6: 計數器累加, 用 1-based 順序給 CSS 用
         // 🅒 8-6: 圖片左右交替 (figureIndex 奇數→右, 偶數→左)
         const figureSide = figureIndex % 2 === 1 ? "right" : "left";
@@ -280,11 +289,9 @@ export function renderBlocksHtml(blocks: Block[]): string {
             `</figure>`
         );
         buffer.push({ kind: "image", html: imageHtml, figureSide });
-        bufferAnchor = "image";
         break;
       case "p":
         buffer.push({ kind: "p", html: blockWrap(`<p class="vd-p">${escapeHtml(b.raw)}</p>`) });
-        if (bufferAnchor === null) bufferAnchor = "p";
         break;
     }
   }
