@@ -56,7 +56,7 @@ function parseSubBlocks(raw: string): SubBlock[] {
       return { type: "image" as const, text: "", imageUrl: imgMatch[2] };
     }
     // 抽文字 (移除 markdown 標記)
-    let text = trimmed
+    const text = trimmed
       .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, "") // 去圖片語法
       .replace(/^#+\s*/, "")                    // 去 H1/H2 prefix
       .replace(/^>\s*/gm, "")                   // 去 > prefix
