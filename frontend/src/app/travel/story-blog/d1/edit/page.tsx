@@ -293,6 +293,8 @@ export default function D1EditorPage() {
   const [hoverPhoto, setHoverPhoto] = useState<TravelPhoto | null>(null);
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 });
   const [mounted, setMounted] = useState(false);
+  const [photoUrlInput, setPhotoUrlInput] = useState("");
+  const [addingPhoto, setAddingPhoto] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // � 8/5: 自動從 localStorage 讀上次填的名字, 避免每次開都要重打
@@ -502,6 +504,91 @@ export default function D1EditorPage() {
       ta.selectionStart = ta.selectionEnd = start + insert.length;
     });
   };
+
+  // 🅒 8-8 聖上拍板: 從 Google Photos lh3 URL 加照片進候選池
+  //   流程: client 拿 lh3 URL → POST /api/photo-proxy 取 bytes → 上傳 Supabase Storage
+  //         → 寫 travel_photo_meta row → 出現在候選池
+  //   限制: Google Photos 不開放 API 批量抓單張 URL, 需手動從 Google 相簿右鍵複製 lh3 圖片網址
+  const addPhotoByUrl = async () => {
+    const url = photoUrlInput.trim();
+    if (!url) {
+      showToast("請貼 Google Photos lh3 圖片網址", "locked");
+      return;
+    }
+    if (!url.includes("googleusercontent.com") && !url.includes("photos.google.com")) {
+      showToast("URL 必須是 lh3.googleusercontent.com 或 photos.google.com", "locked");
+      return;
+    }
+    setAddingPhoto(true);
+    try {
+      // Step 1: server-side proxy 取 bytes (避免 CORS)
+      const proxyRes = await fetch("/api/photo-proxy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!proxyRes.ok) {
+        const errBody = await proxyRes.text();
+        throw new Error(`proxy ${proxyRes.status}: ${errBody.slice(0, 100)}`);
+      }
+      const blob = await proxyRes.blob();
+      const contentType = proxyRes.headers.get("Content-Type") || "image/jpeg";
+
+      // Step 2: 上傳到 Supabase Storage (走 service_role server route)
+      const ext = contentType.includes("png") ? "png" : "jpg";
+      const filename = `lh3-${Date.now()}.${ext}`;
+      const storagePath = `day1/${filename}`;
+      const uploadRes = await fetch("/api/story-blog/upload-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: storagePath, contentType, base64: await blobToBase64(blob) }),
+      });
+      if (!uploadRes.ok) {
+        const errBody = await uploadRes.text();
+        throw new Error(`upload ${uploadRes.status}: ${errBody.slice(0, 100)}`);
+      }
+      const { publicUrl } = await uploadRes.json();
+
+      // Step 3: 寫 travel_photo_meta row
+      const sb = createClient();
+      const now = new Date().toISOString();
+      const { data: inserted, error: insertErr } = await sb
+        .from("travel_photo_meta")
+        .insert({
+          filename,
+          google_photos_thumb_url: publicUrl,
+          day: 1,
+          hour: parseInt(now.slice(11, 13), 10),
+          datetime_original: now,
+          uploader_name: updatedBy || "lh3-import",
+          caption: "從 Google Photos lh3 URL 加入",
+        })
+        .select()
+        .single();
+      if (insertErr) throw new Error(`insert ${insertErr.code}: ${insertErr.message}`);
+
+      // Step 4: 加進 photos state (候選池立即顯示)
+      if (inserted) {
+        setPhotos((prev) => [inserted, ...prev]);
+        showToast(`✅ 已加入 ${filename}`, "success");
+        setPhotoUrlInput("");
+      }
+    } catch (e: unknown) {
+      const err = e as { message?: string };
+      showToast(`❌ 加入失敗: ${err?.message ?? e}`, "locked");
+    } finally {
+      setAddingPhoto(false);
+    }
+  };
+
+  // Blob → base64 (browser 原生 FileReader)
+  const blobToBase64 = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve((reader.result as string).split(",")[1] ?? "");
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
 
   const copyForLLM = async () => {
     await navigator.clipboard.writeText(draft.text);
@@ -841,6 +928,27 @@ export default function D1EditorPage() {
             <span className="ed-pool-hint">
               點=看大圖 / 雙擊=插入文字 / ⭐=精選 / 拖到右邊=插入
             </span>
+            {/* 🅒 8-8 聖上拍板: 從 Google Photos lh3 URL 加照片進候選池 */}
+            <div className="ed-url-add">
+              <input
+                type="text"
+                className="ed-url-input"
+                placeholder="貼 lh3.googleusercontent.com URL..."
+                value={photoUrlInput}
+                onChange={(e) => setPhotoUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") addPhotoByUrl();
+                }}
+                disabled={addingPhoto}
+              />
+              <button
+                className="ed-url-btn"
+                onClick={addPhotoByUrl}
+                disabled={addingPhoto || !photoUrlInput.trim()}
+              >
+                {addingPhoto ? "⏳ 加入中..." : "➕ 加入"}
+              </button>
+            </div>
             <div className="ed-filter-row">
               <select
                 className="ed-select"

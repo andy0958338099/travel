@@ -360,6 +360,30 @@
 .ed-pool-hint { font-size: 11px; color: var(--muted); display: block; margin-bottom: 8px; }
 .ed-filter-row { display: flex; gap: 8px; }
 
+/* 🅒 8-8 聖上拍板: Google Photos lh3 URL 輸入框 */
+.ed-url-add {
+  display: flex; gap: 6px; margin-bottom: 8px;
+}
+.ed-url-input {
+  flex: 1; min-width: 0;
+  padding: 6px 10px;
+  font-size: 11px; font-family: monospace;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: #fafaf9;
+}
+.ed-url-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.ed-url-input:disabled { background: #e7e5e4; color: #999; }
+.ed-url-btn {
+  padding: 6px 12px;
+  font-size: 12px; font-weight: 600;
+  background: var(--accent); color: white;
+  border: none; border-radius: 4px;
+  cursor: pointer; white-space: nowrap;
+}
+.ed-url-btn:hover:not(:disabled) { background: #a8182f; }
+.ed-url-btn:disabled { background: #999; cursor: not-allowed; }
+
 .ed-select {
   flex: 1; padding: 6px 8px;
   border: 1px solid var(--rule); border-radius: 4px;
