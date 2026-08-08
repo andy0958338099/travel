@@ -1,8 +1,6 @@
-// 🅒 2026-08-05 聖上拍板: Story Blog 總覽 hub + D1 Supabase 共享編輯 + D2-D8 stub
-//   8/2 原本標「不寫進 git」, 8/5 聖上拍板「所有用戶專注 D1」整套上線
+// 2026-08-05 聖上拍板: Story Blog 總覽 hub + D1 Supabase 共享編輯 + D2-D8 stub
 
 import Link from "next/link";
-import D1PolishedBadge from "./D1PolishedBadge";
 
 export default function StoryBlogIndexPage() {
   const days = [
@@ -81,22 +79,6 @@ export default function StoryBlogIndexPage() {
         <p style={{ fontSize: 18, color: "#8a8a8a", fontStyle: "italic" }}>
           八個獨立完整故事 · 50-100 張精選照片
         </p>
-        <div
-          style={{
-            marginTop: 16,
-            background: "#c41e3a",
-            color: "white",
-            display: "inline-block",
-            padding: "6px 12px",
-            borderRadius: 4,
-            fontSize: 11,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            fontWeight: 700,
-          }}
-        >
-          🅒 Preview · 不寫進 git
-        </div>
       </header>
 
       <section style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 24 }}>
@@ -159,8 +141,6 @@ export default function StoryBlogIndexPage() {
               {d.title}
             </div>
             <p style={{ fontSize: 14, color: "#2a2a2a", margin: 0 }}>{d.desc}</p>
-            {/* � 8-5: D1 卡片加完稿徽章 + 閱讀連結 */}
-            {d.n === 1 && <D1PolishedBadge />}
           </Link>
         ))}
       </section>

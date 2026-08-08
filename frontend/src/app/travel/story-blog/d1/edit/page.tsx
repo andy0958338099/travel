@@ -149,6 +149,42 @@ function timeAgo(iso: string): string {
   return `${day} 天前`;
 }
 
+// 🅒 2026-08-09 聖上拍板: 「照片檔案路徑無需呈現在編輯區」
+//   textarea 顯示 ![](IMG_1300.jpg), 存進 Supabase 仍是 ![](https://...IMG_1300.jpg)
+//   - filenamefyMarkdown(text, map): URL → filename (給 textarea 看)
+//   - urlifyMarkdown(text, map): filename → URL (存進 draft.text)
+//   - 找不到對應時保留原樣 (讓聖上看到自己寫錯的檔名)
+function filenamefyMarkdown(text: string, filenameToUrl: Map<string, string>): string {
+  return text.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    (full, caption, url) => {
+      // 用 URL 末尾 basename (去副檔名) 比對 (處理 .HEIC/.jpg 副檔名差異)
+      const basenameWithExt = url.split("/").pop()?.split("?")[0] ?? url;
+      const basenameNoExt = basenameWithExt.replace(/\.[^.]+$/, "");
+      // 優先找 .HEIC 等原始副檔名, fallback 到不含副檔名版本
+      const key = filenameToUrl.has(basenameWithExt) ? basenameWithExt : basenameNoExt;
+      if (filenameToUrl.has(key)) {
+        return `![${caption}](${key})`;
+      }
+      return full;
+    }
+  );
+}
+
+function urlifyMarkdown(text: string, filenameToUrl: Map<string, string>): string {
+  return text.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)/g,
+    (full, caption, target) => {
+      // 若已是 URL (http:// 或 https://), 保留
+      if (/^https?:\/\//.test(target)) return full;
+      const url = filenameToUrl.get(target);
+      if (url) return `![${caption}](${url})`;
+      // 找不到 → 保留檔名原樣, 聖上會看到自己寫錯
+      return full;
+    }
+  );
+}
+
 // 🅒 2026-08-05 聖上拍板: 從 draft.text parse 出已插入的照片 URL list
 //   (textarea 是純文字, 但 strip 顯示縮圖, 讓聖上寫字時眼睛看得到用了哪些照片)
 interface EmbeddedPhoto {
@@ -220,17 +256,16 @@ function polishBlocks(text: string): PolishBlock[] {
     }
   }
 
-  // Vogue 殼頭: kicker + H1 中英 + deck
   if (firstH1) {
     const en = firstH1.replace(/[\u4e00-\u9fa5]/g, "").trim() || "The Long Goodbye";
     const cn = firstH1.replace(/[A-Za-z\s]/g, "").trim() || "桃 園 啟 程";
-    out.push({ type: "kicker", text: "Day One · Departure" });
+    // 🅒 8-9 聖上拍板: 拿掉 Vogue 殼 (kicker + rule) — 潤稿結果只保留聖上原文
+    //   之前的設計: 自動加 4 行 (kicker + H1 + rule) 當 Vogue 雜誌頭版
+    //   聖上: 「每次都加了這個是什麼意思」→ 刪掉, 只剩聖上寫的東西
     out.push({ type: "h1", en, cn });
-    out.push({ type: "rule" });
   } else {
-    out.push({ type: "kicker", text: "Day One · Departure" });
-    out.push({ type: "h1", en: "The Long Goodbye", cn: "桃 園 啟 程" });
-    out.push({ type: "rule" });
+    // 沒有 H1 也拿掉 Vogue 殼 — 不預設標題
+    // (聖上如果需要標題, 自己寫 `# The Long Goodbye` 在原文)
   }
 
   // 保留所有原文 (跳過第一個 H1, 避免重複)
@@ -362,7 +397,7 @@ export default function D1EditorPage() {
     return () => clearTimeout(t);
   }, [draft, loading, updatedBy]);
 
-  // 候選池: D1 全部 + 篩選 + pinned 優先排序
+  // 🅒 8-9 聖上拍板: 候選池依拍攝日期排序 + pinned 仍排最前
   const displayPhotos = useMemo(() => {
     const slot = TIME_SLOTS.find((s) => s.key === slotKey);
     const filtered = photos.filter((p) => {
@@ -373,9 +408,30 @@ export default function D1EditorPage() {
       return true;
     });
     const pinned = filtered.filter((p) => draft.pinnedPhotos.includes(p.filename));
-    const others = filtered.filter((p) => !draft.pinnedPhotos.includes(p.filename));
+    // 未 pinned 依 datetime_original 升冪 (聖上 8-9 拍板: 「依不同的照片日期做選擇挑選」)
+    const others = filtered
+      .filter((p) => !draft.pinnedPhotos.includes(p.filename))
+      .sort((a, b) =>
+        (a.datetime_original ?? "").localeCompare(b.datetime_original ?? "")
+      );
     return [...pinned, ...others];
   }, [photos, draft.pinnedPhotos, slotKey, uploaderFilter]);
+
+  // 🅒 8-9 聖上拍板: 候選池每頁 50 張 (4 欄 × 12~13 row visible, 適合長 scroll 的大池)
+  const POOL_PAGE_SIZE = 50;
+  const [poolPage, setPoolPage] = useState(1);
+  const poolTotalPages = Math.max(
+    1,
+    Math.ceil(displayPhotos.length / POOL_PAGE_SIZE)
+  );
+  // filter 一變就 reset 到第 1 頁
+  useEffect(() => {
+    setPoolPage(1);
+  }, [slotKey, uploaderFilter, photos.length]);
+  const pagedItems = useMemo(() => {
+    const start = (poolPage - 1) * POOL_PAGE_SIZE;
+    return displayPhotos.slice(start, start + POOL_PAGE_SIZE);
+  }, [displayPhotos, poolPage]);
 
   // uploader chip 列表 (從 photos 動態抽出)
   const uploaderList = useMemo(() => {
@@ -389,6 +445,28 @@ export default function D1EditorPage() {
   const blocks = useMemo<Block[]>(() => parseBlocks(draft.text), [draft.text]);
   // 編輯區 textarea 只放「未鎖定」區塊的內容, 鎖定的不污染使用者繼續寫的空間
   const editingText = useMemo(() => editingBlocksToText(editingBlocksOnly(blocks)), [blocks]);
+
+  // 🅒 8-9 聖上拍板: 編輯區不顯示完整 URL, 只顯示檔名
+  //   photoFilenameToUrl: filename → URL map (從 photos 動態派生)
+  //   - 存 filename (例: IMG_1300.HEIC) + basename-without-ext (例: IMG_1300) 都對應同 URL
+  //   - 因為 draft.text 可能是舊資料 URL 結尾是 .jpg, 而 photos.filename 是 .HEIC
+  //   displayEditingText: 把 editingText 內的 URL 換成檔名 (給 textarea 看)
+  const photoFilenameToUrl = useMemo(() => {
+    const map = new Map<string, string>();
+    photos.forEach((p) => {
+      if (p.filename && p.google_photos_thumb_url) {
+        map.set(p.filename, p.google_photos_thumb_url);
+        // 同時存不含副檔名的 basename (供 URL 結尾是 .jpg 時比對)
+        const noExt = p.filename.replace(/\.[^.]+$/, "");
+        if (noExt !== p.filename) map.set(noExt, p.google_photos_thumb_url);
+      }
+    });
+    return map;
+  }, [photos]);
+  const displayEditingText = useMemo(
+    () => filenamefyMarkdown(editingText, photoFilenameToUrl),
+    [editingText, photoFilenameToUrl]
+  );
   // 完稿區 — 只 locked blocks (新獨立顯示)
   const lockedBlocks = useMemo(() => blocks.filter((b) => b.status === "locked"), [blocks]);
 
@@ -408,9 +486,12 @@ export default function D1EditorPage() {
   };
 
   // 聖上在編輯區打字 → 觸發重建 (locked 段不動, 只替換 editing 部分)
-  const handleEditingTextChange = (newEditingText: string) => {
-    // 🅒 8-6: 即時計算 embedded photos — 從 newEditingText 抽, 避免閃爍
-    const newText = rebuildDraftFromEditing(newEditingText);
+  // 🅒 8-9: 進來的 newEditingText 是 display 文字 (含 ![] (filename)),
+  //          需先 urlify 轉回真實 URL 再丟進 rebuildDraftFromEditing
+  const handleEditingTextChange = (newDisplayEditingText: string) => {
+    // 🅒 8-6: 即時計算 embedded photos — 從 newDisplayEditingText 抽, 避免閃爍
+    const urlified = urlifyMarkdown(newDisplayEditingText, photoFilenameToUrl);
+    const newText = rebuildDraftFromEditing(urlified);
     setDraft({ ...draft, text: newText });
   };
 
@@ -444,9 +525,9 @@ export default function D1EditorPage() {
   //   index 仍對應 editingText 內位置 (removeNthPhoto 也改吃 editingText)
   const editingEmbeddedPhotos = useMemo(() => extractEmbeddedPhotos(editingText), [editingText]);
 
-  // ── 拖曳縮圖到 textarea → 插入 ![](url) 到游標 (純圖, 不含檔名) ──────────
+  // ── 拖曳縮圖到 textarea → 插入 ![](filename) 到游標 (短, 不顯示 URL) ──────────
   const handleDragStart = (e: React.DragEvent, photo: TravelPhoto) => {
-    const md = `![](${photo.google_photos_thumb_url ?? ""})`;
+    const md = `![](${photo.filename})`;
     e.dataTransfer.setData("text/plain", md);
     e.dataTransfer.setData("text/markdown", md);
     e.dataTransfer.effectAllowed = "copy";
@@ -457,16 +538,22 @@ export default function D1EditorPage() {
     const md = e.dataTransfer.getData("text/plain");
     const ta = textareaRef.current;
     if (!ta || !md) return;
+    // 🅒 8-9: drop 的 md 已用 filename (short), 但聖上可能從外部貼 url 進來,
+    //         所以額外 fallback: 若 md 是 URL, 走 urlifyMarkdown 換成 filename 顯示
+    const displayMd = md.startsWith("http")
+      ? filenamefyMarkdown(md, photoFilenameToUrl)
+      : md;
     // 🅒 8-6: cursor 位置是 editingText 內, 要對應到 draft.text 內的位置
     //   策略: locked 段先序列化 → editingText 從後面開始; cursor 位置直接 append 到 editingText 末尾
     //   簡化: 拖到 cursor 位置 (editingText 範圍內)
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const before = editingText.slice(0, start);
-    const after = editingText.slice(end);
-    const insert = (before.endsWith("\n") || before === "" ? "" : "\n") + md + "\n";
-    const newEditingText = before + insert + after;
-    handleEditingTextChange(newEditingText);
+    const before = displayEditingText.slice(0, start);
+    const after = displayEditingText.slice(end);
+    const insert = (before.endsWith("\n") || before === "" ? "" : "\n") + displayMd + "\n";
+    const newDisplayEditingText = before + insert + after;
+    // 把 display 文字轉回 URL 存進 draft.text
+    handleEditingTextChange(urlifyMarkdown(newDisplayEditingText, photoFilenameToUrl));
     requestAnimationFrame(() => {
       ta.focus();
       ta.selectionStart = ta.selectionEnd = start + insert.length;
@@ -482,23 +569,23 @@ export default function D1EditorPage() {
     }));
   };
 
-  // 雙擊插入 = 也用純圖 ![](url), 不含檔名
+  // 雙擊插入 = 也用短檔名 ![](filename), 不顯示 URL
   const insertPhotoAtCursor = (photo: TravelPhoto) => {
     const ta = textareaRef.current;
-    const md = `![](${photo.google_photos_thumb_url ?? ""})`;
+    const displayMd = `![](${photo.filename})`;
     if (!ta) {
       // 🅒 8-6: textarea 沒 ref 時, append 到 editing text 末尾
-      const newEditingText = editingText + "\n" + md + "\n";
-      handleEditingTextChange(newEditingText);
+      const newDisplayEditingText = displayEditingText + "\n" + displayMd + "\n";
+      handleEditingTextChange(urlifyMarkdown(newDisplayEditingText, photoFilenameToUrl));
       return;
     }
-    // 🅒 8-6: 用 editingText 的 cursor 位置 (locked 段不在 textarea 內)
+    // 🅒 8-6: 用 displayEditingText 的 cursor 位置 (locked 段不在 textarea 內)
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const before = editingText.slice(0, start);
-    const after = editingText.slice(end);
-    const insert = (before.endsWith("\n") || before === "" ? "" : "\n") + md + "\n";
-    handleEditingTextChange(before + insert + after);
+    const before = displayEditingText.slice(0, start);
+    const after = displayEditingText.slice(end);
+    const insert = (before.endsWith("\n") || before === "" ? "" : "\n") + displayMd + "\n";
+    handleEditingTextChange(urlifyMarkdown(before + insert + after, photoFilenameToUrl));
     requestAnimationFrame(() => {
       ta.focus();
       ta.selectionStart = ta.selectionEnd = start + insert.length;
@@ -647,7 +734,7 @@ export default function D1EditorPage() {
       const res = await fetch("/api/polish-d1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ originalText: editingRaw, exifContext }),
+        body: JSON.stringify({ originalText: editingRaw, exifContext, day: 1 }),
       });
       const data = await res.json();
       // 🅒 8-5: 把潤稿結果 append 回 blocks (保留 locked 段)
@@ -989,53 +1076,108 @@ export default function D1EditorPage() {
           ) : photos.length === 0 ? (
             <div className="ed-empty">沒有 D1 照片 — 請檢查 Supabase</div>
           ) : (
-            <div className="ed-grid">
-              {displayPhotos.map((p) => {
-                const isPinned = draft.pinnedPhotos.includes(p.filename);
-                return (
-                  <div
-                    key={p.id}
-                    className={`ed-cell ${isPinned ? "is-pinned" : ""}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, p)}
-                    onClick={() => setModalPhoto(p)}
-                    onDoubleClick={() => insertPhotoAtCursor(p)}
-                    onMouseEnter={(e) => {
-                      setHoverPhoto(p);
-                      setHoverPos({ x: e.clientX, y: e.clientY });
-                    }}
-                    onMouseMove={(e) => setHoverPos({ x: e.clientX, y: e.clientY })}
-                    onMouseLeave={() => setHoverPhoto(null)}
-                    title={`#${p.filename} · ${p.uploader_name ?? "未標"} · 點=看大圖 / 雙擊=插入 / ⭐=精選`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={p.google_photos_thumb_url ?? ""}
-                      alt={p.filename}
-                      loading="lazy"
-                      draggable={false}
-                    />
-                    <button
-                      className="ed-pin"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        togglePin(p.filename);
+            <>
+              <div className="ed-grid">
+                {pagedItems.reduce<React.ReactNode[]>((acc, p, i, arr) => {
+                  // 跨日分隔 (聖上 8-9 拍板: 「依不同照片日期做選擇挑選」)
+                  const curDate = (p.datetime_original ?? "").slice(0, 10); // YYYY-MM-DD
+                  const prevDate =
+                    i > 0
+                      ? (arr[i - 1].datetime_original ?? "").slice(0, 10)
+                      : null;
+                  if (curDate && curDate !== prevDate) {
+                    const label = new Date(p.datetime_original).toLocaleDateString(
+                      "zh-TW",
+                      {
+                        month: "numeric",
+                        day: "numeric",
+                        weekday: "short",
+                        timeZone: "Asia/Taipei",
+                      }
+                    );
+                    acc.push(
+                      <div
+                        key={`d-${curDate}-${i}`}
+                        className="ed-date-divider"
+                      >
+                        📅 {label}
+                      </div>
+                    );
+                  }
+                  const isPinned = draft.pinnedPhotos.includes(p.filename);
+                  acc.push(
+                    <div
+                      key={p.id}
+                      className={`ed-cell ${isPinned ? "is-pinned" : ""}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, p)}
+                      onClick={() => setModalPhoto(p)}
+                      onDoubleClick={() => insertPhotoAtCursor(p)}
+                      onMouseEnter={(e) => {
+                        setHoverPhoto(p);
+                        setHoverPos({ x: e.clientX, y: e.clientY });
                       }}
-                      title={isPinned ? "取消精選" : "標精選"}
+                      onMouseMove={(e) =>
+                        setHoverPos({ x: e.clientX, y: e.clientY })
+                      }
+                      onMouseLeave={() => setHoverPhoto(null)}
+                      title={`#${p.filename} · ${p.uploader_name ?? "未標"} · 點=看大圖 / 雙擊=插入 / ⭐=精選`}
                     >
-                      {isPinned ? "⭐" : "☆"}
-                    </button>
-                    <div className="ed-cell-label">
-                      #{p.filename} · {String(p.hour).padStart(2, "0")}:xx
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.google_photos_thumb_url ?? ""}
+                        alt={p.filename}
+                        loading="lazy"
+                        draggable={false}
+                      />
+                      <button
+                        className="ed-pin"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          togglePin(p.filename);
+                        }}
+                        title={isPinned ? "取消精選" : "標精選"}
+                      >
+                        {isPinned ? "⭐" : "☆"}
+                      </button>
+                      <div className="ed-cell-label">
+                        #{p.filename} · {String(p.hour).padStart(2, "0")}:xx
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                  return acc;
+                }, [])}
+              </div>
+              {poolTotalPages > 1 && (
+                <div className="ed-pool-pager">
+                  <button
+                    onClick={() => setPoolPage((p) => Math.max(1, p - 1))}
+                    disabled={poolPage === 1}
+                    aria-label="上一頁"
+                  >
+                    ←
+                  </button>
+                  <span>
+                    第 {poolPage} / {poolTotalPages} 頁 · 共 {displayPhotos.length} 張
+                  </span>
+                  <button
+                    onClick={() =>
+                      setPoolPage((p) => Math.min(poolTotalPages, p + 1))
+                    }
+                    disabled={poolPage === poolTotalPages}
+                    aria-label="下一頁"
+                  >
+                    →
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </aside>
 
         {/* ── Markdown 文字區 (中) ─────────────────────────────────────── */}
+        {/* ── 右側 (上: 編輯區 / 下: 潤稿呈現區) ───────────────────── */}
+        <div className="ed-right">
         <main className="ed-editor">
           <div className="ed-editor-header">
             <h3>📝 編輯區 (聖上原始草稿)</h3>
@@ -1090,7 +1232,7 @@ export default function D1EditorPage() {
           <textarea
             ref={textareaRef}
             className="ed-textarea"
-            value={editingText}
+            value={displayEditingText}
             onChange={(e) => handleEditingTextChange(e.target.value)}
             onDrop={handleTextareaDrop}
             onDragOver={(e) => e.preventDefault()}
@@ -1162,8 +1304,7 @@ export default function D1EditorPage() {
           </details>
         </main>
 
-        {/* ── 潤稿預覽欄 (右, polishOpen 時展開) ────────────────────── */}
-        {polishOpen && (
+        {/* ── 潤稿呈現區 (永遠顯示, 8-9 聖上拍板: 不再 toggle, layout 永遠 2 欄切上下) ── */}
           <aside className="ed-polish">
             <div className="ed-polish-header">
               <h3>✨ Vogue 風 LLM 潤稿</h3>
@@ -1278,7 +1419,7 @@ export default function D1EditorPage() {
               )}
             </div>
           </aside>
-        )}
+        </div>{/* /ed-right */}
       </div>
     </div>
   );

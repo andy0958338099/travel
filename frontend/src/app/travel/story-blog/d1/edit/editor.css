@@ -221,16 +221,23 @@
 
 .ed-body {
   display: grid;
-  grid-template-columns: 400px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 400px minmax(0, 1fr);  /* 🅒 8-9 聖上拍板: 左池 + 右 (上編輯 / 下潤稿) */
   gap: 20px;
   padding: 20px 24px;
   justify-content: start;
-  transition: grid-template-columns 0.3s;
 }
 
-.ed-body.is-polish {
-  /* 🅒 2026-08-05 聖上拍板: 潤稿時也要保留候選照片池, 三欄均分讓聖上繼續寫 + 拖照片 */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+/* 🅒 8-9 聖上拍板: 右側欄 (上: 編輯 / 下: 潤稿) — 永遠顯示, layout 固定 */
+.ed-right {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+}
+.ed-right .ed-editor,
+.ed-right .ed-polish {
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 /* (舊版: 潤稿時藏照片池 — 已改為保留) */
@@ -396,14 +403,15 @@
 .ed-grid {
   overflow-y: auto; padding: 12px;
   display: grid; grid-template-columns: repeat(4, 1fr);
-  grid-auto-rows: 110px;
+  grid-auto-rows: 130px;            /* 🅒 8-9 聖上拍板: 110 → 130 */
+  grid-auto-flow: dense;            /* 🅒 8-9 聖上拍板: 自動填補空隙 */
   gap: 8px;
   align-content: start;
 }
 
 .ed-cell {
   position: relative;
-  width: 100%; height: 110px;
+  width: 100%; height: 130px;          /* 🅒 8-9 聖上拍板: 110 → 130 */
   border-radius: 4px; overflow: hidden; cursor: grab;
   border: 2px solid transparent; transition: all 0.2s;
   flex-shrink: 0;
@@ -436,6 +444,43 @@
 
 .ed-loading, .ed-empty {
   padding: 40px; text-align: center; color: var(--muted);
+}
+
+/* 🅒 8-9 聖上拍板: 跨日分隔線 + 每頁 50 張 pagination */
+.ed-date-divider {
+  grid-column: 1 / -1;                 /* 跨所有 column */
+  font-size: 11px;
+  font-weight: 700;
+  color: #c41e3a;
+  padding: 4px 8px;
+  background: linear-gradient(180deg, #fef9e7, #fef3c7);
+  border-bottom: 1px solid #f59e0b;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.ed-pool-pager {
+  display: flex; gap: 12px; align-items: center; justify-content: center;
+  padding: 8px 12px;
+  border-top: 1px solid var(--rule);
+  background: white;
+  font-size: 12px;
+  color: var(--muted);
+}
+.ed-pool-pager button {
+  padding: 4px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+}
+.ed-pool-pager button:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.ed-pool-pager button:disabled {
+  opacity: 0.3; cursor: not-allowed;
 }
 
 .ed-editor {

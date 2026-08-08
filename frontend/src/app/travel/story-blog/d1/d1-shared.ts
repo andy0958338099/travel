@@ -169,19 +169,17 @@ export function renderBlocksHtml(blocks: Block[]): string {
   const out: string[] = [];
   let figureIndex = 0; // 🅒 8-6: 計數器, image block 出現時 +1
   // Vogue 殼頭 (用第一個 h1)
+  // 🅒 8-9 聖上拍板: 拿掉 Vogue 殼 — 不再自動加 kicker + rule
+  //   之前: 自動加 "Day One · Departure" + H1 + hr 當雜誌頭版
+  //   聖上: 「每次都加了這個是什麼意思」→ 刪掉, 只剩聖上寫的內容
   const firstH1 = blocks.find((b) => b.type === "h1");
   if (firstH1) {
     const text = firstH1.raw.replace(/^#\s+/, "");
     const en = text.replace(/[\u4e00-\u9fa5]/g, "").trim() || "The Long Goodbye";
     const cn = text.replace(/[A-Za-z\s]/g, "").trim() || "桃 園 啟 程";
-    out.push(`<div class="vd-kicker">Day One · Departure</div>`);
     out.push(`<h1 class="vd-h1">${escapeHtml(en)}<span class="vd-h1-cn">${escapeHtml(cn)}</span></h1>`);
-    out.push(`<hr class="vd-rule" />`);
-  } else {
-    out.push(`<div class="vd-kicker">Day One · Departure</div>`);
-    out.push(`<h1 class="vd-h1">The Long Goodbye<span class="vd-h1-cn">桃 園 啟 程</span></h1>`);
-    out.push(`<hr class="vd-rule" />`);
   }
+  // 沒有 H1 不預設標題 — 聖上原文有啥就 render 啥
 
   // 跳過第一個 h1
   let skipFirstH1 = !!firstH1;

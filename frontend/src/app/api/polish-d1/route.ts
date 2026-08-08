@@ -25,6 +25,8 @@ export const maxDuration = 60;
 
 interface PolishRequest {
   originalText: string;
+  /** 🅒 8-9 聖上拍板: 對應 day (1-8), 餵入行程大方向給 LLM */
+  day?: number;
   exifContext?: Array<{
     filename: string;
     hour?: number;
@@ -47,6 +49,35 @@ const SYSTEM_PROMPT = `你是「臣」 — 幫聖上 (Brian) 把江南水鄉八�
 ❌ 不准虛構人物情緒 (「沒有人笑」「眼眶泛紅」「凝重地」這種)
 ❌ 不准寫抽象文學比喻 (「夜色黏稠」「像一組即將發射的密碼」「像一層薄膜」)
 ❌ 不准用 EXIF 時間/地點/座標推測未在照片出現的場景
+❌ 🅒 8-9 聖上拍板: 不准重寫聖上原文的「語氣副詞 / 情緒詞 / 口語」
+   - 聖上寫「這可是」就保留「這可是」, 不要改成「眾人皆知」「此地正是」
+   - 聖上寫「熱鬧」就保留「熱鬧」, 不要改成「繁華」「喧囂」
+   - 聖上寫「一條街」就保留「一條街」, 不要簡寫成「大街」「這條路」
+   - 簡單說: 聖上寫什麼字就保留什麼字, LLM 只能在「原文之間」加連接散文, 不准改寫聖上語氣
+
+【絕對禁止新增標題 LOCK】(8-9 聖上拍板)
+❌ 不准自己加 # 一級標題 或 ## 二級標題
+❌ 聖上原文沒有 # / ## 時, 你的輸出也不要加
+❌ 聖上原文有 # 標題時, 完整保留, 但不准再加 ## 二級標題 (除非聖上原文已經有)
+✅ 唯一可加的: ## 二級標題 = 「聖上原文本來就有」, 否則一律不加
+
+【絕對禁止用 EXIF 地名推測常識細節】(8-9 聖上拍板, 慘案修法)
+❌ EXIF 只告訴你「這張照片是聖上在 X 地拍的」, 不代表 X 地長什麼樣、有什麼建築、發生什麼事
+❌ 即使 EXIF location_name=「外灘」, 也不准寫「外灘的時鐘樓」「萬國建築博覽群的輪廓」「黃浦江邊的風景」這種「你知道這個地名就寫」的細節
+❌ 即使 EXIF location_name=「南京東路步行街」, 也不准寫「行人擦肩而過」「招牌」「轉角的風」這種「你知道這個地名就寫」的細節
+❌ 不准寫任何「氛圍」細節 (光線/聲音/氣味/風/路人/招牌/建築外觀/天空顏色/路面材質) 除非聖上原文明確寫了
+✅ 唯一能寫的: EXIF 提供的「事實」(時間/地名/拍攝者/檔名) + 聖上原文的內容
+✅ 「事實串場」例: 「下午 02:15, Brian 在南京東路步行街拍下 IMG_2200.jpg」 — 這是事實, OK
+✅ 「氛圍描述」例: 「陽光正好落在招牌上」 — 這是 LLM 推測的氛圍, ❌ 不准寫
+✅ 簡單判斷: 「如果聖上看照片才能看到, 而聖上原文沒寫的細節」 → 一律不准寫
+
+【行程大方向對齊鐵律】(8-9 聖上拍板)
+✅ User prompt 會附「聖上原預先行程 (D{n})」的時間軸 — 你必須對齊這份事前規劃
+❌ 聖上 17:00 才去南京東路/外灘, 你不能寫「14:00 抵達外灘」(時序錯誤)
+❌ 聖上 D2 早上 05:00 才去四行倉庫, 你不能寫 D1 在四行倉庫 (跨日錯誤)
+❌ 行程表是「事前規劃」, 聖上照片 EXIF 是「實際紀錄」— 兩者衝突時, 以「實際 EXIF」為準 (聖上可能臨時改行程)
+❌ 不准寫「提前抵達」「延誤」「錯過」等行程表沒有的意外狀況 (除非聖上原文明確提)
+✅ 行程表沒列的地點/動作, 不准自己補進潤稿結果
 
 【可以做的事】
 ✅ 用散文語氣串聯聖上原文 + EXIF 時間軸
@@ -77,9 +108,23 @@ EXIF context 會附帶 datetime_local_tpe 欄位 (已預先算好 TPE), 寫散�
 - 結尾不要加「希望您喜歡」「如有需要請告訴我」這種客套話。`;
 
 function buildUserPrompt(req: PolishRequest): string {
-  const { originalText, exifContext } = req;
+  const { originalText, exifContext, day } = req;
 
   let contextSection = "";
+
+  // 🅒 8-9 聖上拍板: 餵入「行程大方向」讓 LLM 對齊時序/地點
+  //   例: D1 17:00 才去南京東路/外灘, LLM 不能寫「14:00 在外灘」
+  //   day 沒傳 = 不加行程表 (保守, 避免誤判)
+  let itinerarySection = "";
+  if (typeof day === "number" && day >= 1 && day <= 8) {
+    // 動態 import 避免 build 階段錯誤
+    // (Next.js API route 支援頂層 await import)
+    // 用 lazy require pattern
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getItineraryForDay } = require("@/data/jiangnan-itinerary");
+    itinerarySection = `\n\n【聖上原預先行程 (D${day} 大方向, 供你對齊時序/地點/合理性)】\n${getItineraryForDay(day)}\n`;
+  }
+
   if (exifContext && exifContext.length > 0) {
     // 🅒 8-8 UTC 污染修法: 優先顯示 datetime_local_tpe, raw datetime_original 括號附在後面給 LLM 對照
     contextSection = `\n\n【EXIF 真實拍攝資料 (供你潤稿時對照時間軸, 不要憑空新增場景)】\n${exifContext
@@ -91,7 +136,7 @@ function buildUserPrompt(req: PolishRequest): string {
       .join("\n")}`;
   }
 
-  return `【聖上原文 (口述 Markdown 草稿)】\n${originalText}${contextSection}\n\n請直接輸出潤稿後的完整 Markdown, 不要加任何說明。`;
+  return `【聖上原文 (口述 Markdown 草稿)】\n${originalText}${itinerarySection}${contextSection}\n\n請直接輸出潤稿後的完整 Markdown, 不要加任何說明。`;
 }
 
 export async function POST(request: NextRequest) {
