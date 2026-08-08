@@ -10,7 +10,11 @@
  *   - 移除 LOCK id 前 8 字 == groupKey 的所有範圍
  *   - 寫回 Supabase
  *
- *   注意: 用 service_role 寫 (RLS bypass), 確保刪除權限
+ *   🅒 8-8 (二改): 改用 anon key (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)
+ *     - Supabase RLS 已允許 anon key UPDATE (204 驗證過)
+ *     - 之前用 service_role 是「安全 defensive」, 但需要 Netlify env 額外設
+ *     - 改用 anon key 跟 polish-d1 API 一致, Netlify 不用額外 env
+ *     - 缺點: 任何能拿到 publishable key 的人都能刪 (但這 key 已在前端公開, 風險已存在)
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -30,12 +34,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 用 service_role 寫 (RLS bypass)
+    // 🅒 8-8 改: 用 anon key (跟 polish-d1 一致), RLS 已允許 UPDATE
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const key = process.env.SUPABASE_SERVICE_KEY!;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
     if (!key) {
       return NextResponse.json(
-        { error: "SUPABASE_SERVICE_KEY not configured" },
+        { error: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY not configured" },
         { status: 500 }
       );
     }

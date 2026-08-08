@@ -528,13 +528,28 @@ export default function D1EditorPage() {
     setOriginalDraftText(editingRaw); // 保留原稿以便退回
     try {
       // 抓前 30 張 D1 照片 EXIF 作為 context
-      const exifContext = photos.slice(0, 30).map((p) => ({
-        filename: p.filename,
-        hour: p.hour,
-        datetime_original: p.datetime_original,
-        uploader_name: p.uploader_name ?? undefined,
-        location_name: p.location_name ?? undefined,
-      }));
+      // 🅒 8-8 UTC 污染 bug 修法: 預先算好 TPE 時間字串給 LLM (避免 LLM 把 raw UTC 當 TPE 寫進內文)
+      const exifContext = photos.slice(0, 30).map((p) => {
+        const tpeStr = p.datetime_original
+          ? new Date(p.datetime_original).toLocaleString("zh-TW", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+              timeZone: "Asia/Taipei",
+            })
+          : null;
+        return {
+          filename: p.filename,
+          hour: p.hour,
+          datetime_original: p.datetime_original,
+          datetime_local_tpe: tpeStr, // 預先算好 TPE (給 LLM 用)
+          uploader_name: p.uploader_name ?? undefined,
+          location_name: p.location_name ?? undefined,
+        };
+      });
       const res = await fetch("/api/polish-d1", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

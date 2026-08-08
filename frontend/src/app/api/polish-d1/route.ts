@@ -29,6 +29,7 @@ interface PolishRequest {
     filename: string;
     hour?: number;
     datetime_original?: string;
+    datetime_local_tpe?: string | null; // 🅒 8-8 前端預先算好的 TPE (給 LLM 避免誤用 UTC)
     uploader_name?: string;
     location_name?: string;
   }>;
@@ -54,6 +55,14 @@ const SYSTEM_PROMPT = `你是「臣」 — 幫聖上 (Brian) 把江南水鄉八�
 ✅ EXIF 真實拍攝時間 (23:27, 00:25 等) 可融入敘事, 但只用在原文或聖上意圖明確的場景
 ✅ 聖上所在地區時間是 **UTC+8 (台灣/中國/香港/新加坡)**, 提到時間必須用 UTC+8, 不可用 UTC 或模糊時區
 ❌ 不准自己虛構「凌晨」「深夜」等時間詞 (要引用聖上原文或 EXIF 真實時間如 23:27、02:24, 不要 AI 自己編時間)
+【EXIF 時間解讀鐵律 — 8-8 UTC 污染 bug 修法】
+DB 存的 datetime_original 是 iPhone 原 UTC 字串, 數字部分 = UTC, 不是 TPE。
+換算: TPE = UTC + 8 小時。
+對照實例: IMG_1232 DB 存 2026-07-17T00:58:37+00:00 → TPE 換成 2026-07-17 上午 08:58:37 (台北出發集合時間)
+EXIF context 會附帶 datetime_local_tpe 欄位 (已預先算好 TPE), 寫散文時直接用 TPE 時間, 不要用 raw datetime_original
+嚴禁把 00:58:37 直接寫進內文 (這是 UTC, 寫出來會誤導讀者以為是凌晨)
+嚴禁忽略 +00:00 時區標記照抄數字
+例外: 聖上原文明確寫「凌晨」「深夜」「上午」時, 以聖上意圖為準, EXIF 僅供對照 (不要覆蓋聖上原文)
 ✅ Markdown 圖片語法 ![](url) **不要刪除、不要改寫成「IMG_xxxx」描述、絕對要完整保留原樣在 polishedText 中** — 一張都不准刪
 
 【Vogue 編輯風規則】(在「不虛構」前提下)
@@ -72,11 +81,12 @@ function buildUserPrompt(req: PolishRequest): string {
 
   let contextSection = "";
   if (exifContext && exifContext.length > 0) {
+    // 🅒 8-8 UTC 污染修法: 優先顯示 datetime_local_tpe, raw datetime_original 括號附在後面給 LLM 對照
     contextSection = `\n\n【EXIF 真實拍攝資料 (供你潤稿時對照時間軸, 不要憑空新增場景)】\n${exifContext
       .slice(0, 30)
       .map(
         (p) =>
-          `- ${p.filename} · ${p.datetime_original ?? "時間不詳"} · ${p.uploader_name ?? "未標"} · ${p.location_name ?? "未標地點"}`
+          `- ${p.filename} · TPE ${p.datetime_local_tpe ?? "(無)"} · raw UTC ${p.datetime_original ?? "(無)"} · ${p.uploader_name ?? "未標"} · ${p.location_name ?? "未標地點"}`
       )
       .join("\n")}`;
   }

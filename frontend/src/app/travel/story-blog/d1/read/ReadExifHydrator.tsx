@@ -17,6 +17,7 @@ import { fetchAllPhotos, type TravelPhoto } from "@/utils/travelPhotos";
 
 // 格式化 EXIF chip HTML (聖上要數位相框樣式)
 function renderExifChip(photo: TravelPhoto): string {
+  // 🅒 8-8 UTC 污染修法: 必須帶 timeZone: "Asia/Taipei" (datetime_original 是 iPhone 原 UTC, 預設會用瀏覽器時區錯位)
   const time = photo.datetime_original
     ? new Date(photo.datetime_original).toLocaleString("zh-TW", {
         year: "numeric",
@@ -24,7 +25,8 @@ function renderExifChip(photo: TravelPhoto): string {
         day: "2-digit",
         hour: "2-digit",
         minute: "2-digit",
-      })
+        timeZone: "Asia/Taipei",
+      }) + " TPE"
     : "時間不詳";
   const uploader = photo.uploader_name ?? "未標";
   const loc = photo.location_name ?? "未標地點";
