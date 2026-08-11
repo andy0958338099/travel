@@ -368,6 +368,17 @@ function StoryBlogPageInner() {
         post={repolishPost}
         onAdopted={handleAdoptedPolished}
         toast={(msg, kind) => { console.log(`[toast ${kind}] ${msg}`); }}
+        // 🆕 8-11 聖上拍板 🅐: 同 day 其它 post (排除自己) 供 LLM 串場
+        siblingPosts={
+          repolishPost
+            ? posts
+                .filter((p) => p.day_number === repolishPost.day_number && p.id !== repolishPost.id)
+                .map((p) => ({
+                  author: p.author_name || "親友",
+                  content: p.content,
+                }))
+            : []
+        }
       />
     </main>
   );

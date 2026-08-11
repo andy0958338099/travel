@@ -31,6 +31,8 @@ interface RepolishModalProps {
   onAdopted?: (id: string, newContent: string) => void;
   /** toast helper */
   toast?: (msg: string, kind: "success" | "error" | "info") => void;
+  /** 🆕 8-11 聖上拍板 🅐: 同 day 其它 post, 供 LLM 串場參考 */
+  siblingPosts?: Array<{ author: string; content: string }>;
 }
 
 export default function RepolishModal({
@@ -39,6 +41,7 @@ export default function RepolishModal({
   post,
   onAdopted,
   toast,
+  siblingPosts = [],
 }: RepolishModalProps) {
   const [polishedContent, setPolishedContent] = useState("");
   const [polishing, setPolishing] = useState(false);
@@ -82,6 +85,7 @@ export default function RepolishModal({
           title: post!.title || undefined,
           dayNumber: post!.day_number,
           seed,
+          siblingPosts, // 🆕 8-11
         }),
       });
       const data = await res.json();
