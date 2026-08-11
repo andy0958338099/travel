@@ -9,7 +9,7 @@
  *   - 只 render 當前 day 的 posts
  *   - TimelineStory 拿掉 article 內的 day chip
  */
-import { useState, useEffect, useMemo, useCallback, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import TimelineStory, { type PostRow } from "@/components/story/TimelineStory";
@@ -66,6 +66,25 @@ function StoryBlogPageInner() {
   const [modalDay, setModalDay] = useState(1);
   // 🆕 8-10 聖上拍板: 重新潤飾 modal state (article ⚙ 按鈕觸發)
   const [repolishPost, setRepolishPost] = useState<PostRow | null>(null);
+  // 🆕 8-11 聖上拍板: 滾動過 hero 就隱藏章節 chip 列, 回頂再顯示
+  const [heroInView, setHeroInView] = useState(true);
+  const heroRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const r = heroRef.current?.getBoundingClientRect();
+      if (!r) return;
+      // hero 底部還在 viewport 60px 以下時, 算還可見 (60px = sticky nav 高度)
+      setHeroInView(r.bottom > 60);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    onScroll(); // 初始檢查
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -208,7 +227,7 @@ function StoryBlogPageInner() {
   return (
     <main className="min-h-screen bg-jn-paper">
       {/* Hero */}
-      <header className="relative bg-gradient-to-br from-jn-vermilion via-jn-vermilion-deep to-jn-ink text-jn-paper py-16 px-4">
+      <header ref={heroRef} className="relative bg-gradient-to-br from-jn-vermilion via-jn-vermilion-deep to-jn-ink text-jn-paper py-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-jn-gold-light text-sm tracking-widest mb-2">江南水鄉 · 八日遊記</p>
           <h1 className="text-4xl md:text-6xl font-black leading-tight mb-4">
@@ -225,8 +244,13 @@ function StoryBlogPageInner() {
         </div>
       </header>
 
-      {/* 8 天章節索引 (點 chip 換 URL) */}
-      <nav className="sticky top-0 z-30 bg-jn-paper/95 backdrop-blur-sm border-b-2 border-jn-vermilion/20 py-3 px-4 shadow-sm">
+      {/* 8 天章節索引 (點 chip 換 URL) — 🆕 8-11 聖上拍板: 過 hero 後隱藏 */}
+      <nav
+        className={`sticky top-0 z-30 bg-jn-paper/95 backdrop-blur-sm border-b-2 border-jn-vermilion/20 py-3 px-4 shadow-sm transition-transform duration-300 ease-in-out ${
+          heroInView ? "translate-y-0" : "-translate-y-full"
+        }`}
+        aria-hidden={!heroInView}
+      >
         <div className="max-w-6xl mx-auto flex flex-wrap gap-2 justify-center">
           {[
             { d: 0, label: "前言" },
