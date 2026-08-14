@@ -15,6 +15,7 @@ import { createClient } from "@/utils/supabase/client";
 import TimelineStory, { type PostRow } from "@/components/story/TimelineStory";
 import AddStoryModal from "@/components/story/AddStoryModal";
 import RepolishModal from "@/components/story/RepolishModal";
+import BackgroundMusicPlayer from "@/components/story/BackgroundMusicPlayer"; // 🆕 2026-08-14 聖上拍板: 部落格背景音樂
 
 interface TripRow {
   id: string;
@@ -291,9 +292,9 @@ function StoryBlogPageInner() {
               <button
                 key={d}
                 onClick={() => setActiveDay(d)}
-                className={`px-3 py-1.5 border rounded text-sm font-medium transition-colors ${
+                className={`px-3 py-1.5 border-2 rounded text-sm transition-colors ${
                   isActive
-                    ? "bg-jn-vermilion text-white border-jn-vermilion shadow-md"
+                    ? "bg-jn-gold-light text-jn-ink border-jn-vermilion shadow-md font-bold ring-1 ring-jn-vermilion/30"
                     : "bg-jn-paper-warm hover:bg-jn-vermilion/20 border-jn-vermilion/30 text-jn-ink"
                 }`}
               >
@@ -371,14 +372,16 @@ function StoryBlogPageInner() {
         onOpenModal={openModal}
       />
 
-      {/* 浮動按鈕 */}
+      {/* 浮動按鈕 (聖上寫新故事, 改回右下角 — 音樂 widget 移到左下避讓) */}
       <button
         onClick={() => openModal(activeDay)}
-        className="fixed bottom-6 right-6 z-40 bg-jn-vermilion text-white font-bold px-5 py-3 rounded-full shadow-2xl hover:bg-jn-vermilion-deep transition-all hover:scale-105"
-        style={{ boxShadow: "0 10px 30px -5px rgba(220, 38, 38, 0.5)" }}
+        className="fixed bottom-6 right-6 z-40 bg-jn-gold-light text-jn-ink font-bold px-5 py-3 rounded-full shadow-lg hover:bg-jn-gold transition-all hover:scale-105 border-2 border-jn-vermilion"
       >
         ✍️ 補充故事
       </button>
+
+      {/* 🆕 2026-08-14 聖上拍板: 部落格背景音樂 (左下浮動, 不影響閱讀) */}
+      <BackgroundMusicPlayer />
 
       {/* Modal */}
       <AddStoryModal
