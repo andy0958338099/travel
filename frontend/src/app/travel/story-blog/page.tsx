@@ -67,7 +67,52 @@ function StoryBlogPageInner() {
   const [modalDay, setModalDay] = useState(1);
   // 🆕 8-10 聖上拍板: 重新潤飾 modal state (article ⚙ 按鈕觸發)
   const [repolishPost, setRepolishPost] = useState<PostRow | null>(null);
-  // 🆕 2026-08-14 聖上拍板: 章節 chip 列 sticky top-0 永遠顯示 (拔 8-11 heroInView 隱藏邏輯)
+  // 🆕 2026-08-14 聖上拍板: hero 自動隱藏 (滾過後 sticky 起來 + 3 秒無動作 → fade out)
+  const [heroHidden, setHeroHidden] = useState(false);
+  const heroTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    let heroEl: HTMLElement | null = null;
+    let lastY = window.scrollY;
+
+    const resetTimer = () => {
+      if (heroTimerRef.current) clearTimeout(heroTimerRef.current);
+      if (heroEl && heroHidden) setHeroHidden(false); // 任一動作 → 重現
+      // 只有 hero 被滾出 viewport (sticky 起來了) 才開始計時
+      const heroOut = heroEl ? heroEl.getBoundingClientRect().bottom < 0 : window.scrollY > 300;
+      if (heroOut) {
+        heroTimerRef.current = setTimeout(() => setHeroHidden(true), 3000);
+      }
+    };
+
+    const onScroll = () => {
+      // scroll 本身也算動作 → reset
+      lastY = window.scrollY;
+      resetTimer();
+    };
+    const onMove = () => resetTimer();
+    const onClick = () => resetTimer();
+
+    // 等 DOM 跑完用 querySelector 找 hero
+    const setupObserver = () => {
+      heroEl = document.querySelector("main header");
+      if (!heroEl) return;
+      window.addEventListener("scroll", onScroll, { passive: true });
+      window.addEventListener("mousemove", onMove, { passive: true });
+      window.addEventListener("click", onClick);
+      resetTimer();
+    };
+    // 給 100ms 等 hydration 完成
+    const t = setTimeout(setupObserver, 100);
+
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("click", onClick);
+      if (heroTimerRef.current) clearTimeout(heroTimerRef.current);
+    };
+  }, [heroHidden]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -275,9 +320,14 @@ function StoryBlogPageInner() {
         </div>
       </nav>
 
-      {/* Hero */}
-      <header className="relative bg-gradient-to-br from-jn-vermilion via-jn-vermilion-deep to-jn-ink text-jn-paper py-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+      {/* Hero — 🆕 2026-08-14 聖上拍板: 3 秒無動作自動 fade + collapse */}
+      <header
+        className={`relative bg-gradient-to-br from-jn-vermilion via-jn-vermilion-deep to-jn-ink text-jn-paper overflow-hidden transition-all duration-700 ease-in-out ${
+          heroHidden ? "max-h-0 opacity-0" : "max-h-[600px] opacity-100"
+        }`}
+        style={{ transitionProperty: "max-height, opacity" }}
+      >
+        <div className="max-w-4xl mx-auto text-center py-16 px-4">
           <p className="text-jn-gold-light text-sm tracking-widest mb-2">江南水鄉 · 八日遊記</p>
           <h1 className="text-4xl md:text-6xl font-black leading-tight mb-4">
             {trip?.title || "2026 江南 8 天 7 夜遊記"}
