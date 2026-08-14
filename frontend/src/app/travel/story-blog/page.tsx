@@ -67,25 +67,7 @@ function StoryBlogPageInner() {
   const [modalDay, setModalDay] = useState(1);
   // 🆕 8-10 聖上拍板: 重新潤飾 modal state (article ⚙ 按鈕觸發)
   const [repolishPost, setRepolishPost] = useState<PostRow | null>(null);
-  // 🆕 8-11 聖上拍板: 滾動過 hero 就隱藏章節 chip 列, 回頂再顯示
-  const [heroInView, setHeroInView] = useState(true);
-  const heroRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const r = heroRef.current?.getBoundingClientRect();
-      if (!r) return;
-      // hero 底部還在 viewport 60px 以下時, 算還可見 (60px = sticky nav 高度)
-      setHeroInView(r.bottom > 60);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-    onScroll(); // 初始檢查
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, []);
+  // 🆕 2026-08-14 聖上拍板: 章節 chip 列 sticky top-0 永遠顯示 (拔 8-11 heroInView 隱藏邏輯)
 
   useEffect(() => {
     const supabase = createClient();
@@ -255,30 +237,10 @@ function StoryBlogPageInner() {
 
   return (
     <main className="min-h-screen bg-jn-paper">
-      {/* Hero */}
-      <header ref={heroRef} className="relative bg-gradient-to-br from-jn-vermilion via-jn-vermilion-deep to-jn-ink text-jn-paper py-16 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-jn-gold-light text-sm tracking-widest mb-2">江南水鄉 · 八日遊記</p>
-          <h1 className="text-4xl md:text-6xl font-black leading-tight mb-4">
-            {trip?.title || "2026 江南 8 天 7 夜遊記"}
-          </h1>
-          {trip?.description && (
-            <p className="text-jn-paper/85 text-lg max-w-2xl mx-auto">{trip.description}</p>
-          )}
-          <div className="mt-6 flex justify-center gap-6 text-sm text-jn-paper/70">
-            <span>📍 上海 → 西塘 → 烏鎮 → 杭州</span>
-            <span>👥 13 位親友</span>
-            <span>📝 {posts.length} 個故事</span>
-          </div>
-        </div>
-      </header>
-
-      {/* 8 天章節索引 (點 chip 換 URL) — 🆕 8-11 聖上拍板: 過 hero 後隱藏 */}
+      {/* 🆕 2026-08-14 聖上拍板: 章節 chip 列 sticky top-0 永遠在最頂端 (移到 hero 前面) */}
       <nav
-        className={`sticky top-0 z-30 bg-jn-paper/95 backdrop-blur-sm border-b-2 border-jn-vermilion/20 py-3 px-4 shadow-sm transition-transform duration-300 ease-in-out ${
-          heroInView ? "translate-y-0" : "-translate-y-full"
-        }`}
-        aria-hidden={!heroInView}
+        className="sticky top-0 z-30 bg-jn-paper/95 backdrop-blur-sm border-b-2 border-jn-vermilion/20 py-3 px-4 shadow-sm"
+        aria-label="章節導覽"
       >
         <div className="max-w-6xl mx-auto flex flex-wrap gap-2 justify-center">
           {[
@@ -313,7 +275,25 @@ function StoryBlogPageInner() {
         </div>
       </nav>
 
-      {/* 🆕 當前章節導覽列 ◀ 標題 ▶ */}
+      {/* Hero */}
+      <header className="relative bg-gradient-to-br from-jn-vermilion via-jn-vermilion-deep to-jn-ink text-jn-paper py-16 px-4">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-jn-gold-light text-sm tracking-widest mb-2">江南水鄉 · 八日遊記</p>
+          <h1 className="text-4xl md:text-6xl font-black leading-tight mb-4">
+            {trip?.title || "2026 江南 8 天 7 夜遊記"}
+          </h1>
+          {trip?.description && (
+            <p className="text-jn-paper/85 text-lg max-w-2xl mx-auto">{trip.description}</p>
+          )}
+          <div className="mt-6 flex justify-center gap-6 text-sm text-jn-paper/70">
+            <span>📍 上海 → 西塘 → 烏鎮 → 杭州</span>
+            <span>👥 13 位親友</span>
+            <span>📝 {posts.length} 個故事</span>
+          </div>
+        </div>
+      </header>
+
+      {/* 當前章節導覽列 ◀ 標題 ▶ (移到 sticky top-0 之下, 之前是 top-[60px] 避讓 nav, 但 nav 已永遠顯示所以維持 60px) */}
       <div className="sticky top-[60px] z-20 bg-jn-paper-warm/95 backdrop-blur-sm border-b border-jn-ink/10 py-2 px-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
           <button
