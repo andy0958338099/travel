@@ -22,6 +22,18 @@
  */
 import PhotoFrame from "./PhotoFrame";
 
+// 🆕 2026-08-14 聖上拍板: 排版切換按鈕用的 label + emoji
+const LAYOUT_LABEL: Record<PostRow["layout_type"], string> = {
+  "left-image": "圖左 文右",
+  "right-image": "圖右 文左",
+  "top-image": "圖上 文下",
+};
+const LAYOUT_EMOJI: Record<PostRow["layout_type"], string> = {
+  "left-image": "⬅",
+  "right-image": "➡",
+  "top-image": "⬆",
+};
+
 export interface PostRow {
   id: string;
   day_number: number;
@@ -45,6 +57,8 @@ interface TimelineStoryProps {
   onMoveDown?: (id: string) => void;
   /** 🆕 8-10 聖上拍板: 重新潤飾 — 點擊開 RepolishModal 顯示原文 + LLM 潤飾版 + 採納 */
   onPolish?: (id: string) => void;
+  /** 🆕 2026-08-14 聖上拍板: 循環切換排版 (left-image → right-image → top-image → left-image) */
+  onChangeLayout?: (id: string) => void;
 }
 
 export default function TimelineStory({
@@ -56,6 +70,7 @@ export default function TimelineStory({
   onMoveUp,
   onMoveDown,
   onPolish,
+  onChangeLayout,
 }: TimelineStoryProps) {
   // 🆕 8-10 聖上拍板: 內容區不再顯示小標題 + 不再顯示 day chip + 不再顯示編輯時間
   //   (頂部章節標題已顯示, 圖片 caption 已含小標題, 時間拿掉精簡版面)
@@ -171,6 +186,18 @@ export default function TimelineStory({
             className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-gold text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-gold/60"
           >
             ⚙
+          </button>
+        )}
+        {/* 🆕 2026-08-14 聖上拍板: 循環切換排版 (圖左文右 / 圖右文左 / 圖上文下) */}
+        {onChangeLayout && (
+          <button
+            type="button"
+            onClick={() => onChangeLayout(post.id)}
+            title={`目前: ${LAYOUT_LABEL[post.layout_type]} — 點擊循環切換`}
+            aria-label="切換排版"
+            className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-ink/10 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-ink/20"
+          >
+            {LAYOUT_EMOJI[post.layout_type]}
           </button>
         )}
       </div>

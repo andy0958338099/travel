@@ -216,6 +216,34 @@ function StoryBlogPageInner() {
   const handleMoveUp = useCallback((id: string) => handleMove(id, "up"), [handleMove]);
   const handleMoveDown = useCallback((id: string) => handleMove(id, "down"), [handleMove]);
 
+  // 🆕 2026-08-14 聖上拍板: 循環切換排版 (left-image → right-image → top-image → left-image)
+  const handleChangeLayout = useCallback(async (id: string) => {
+    const supabase = createClient();
+    const target = posts.find((p) => p.id === id);
+    if (!target) return;
+    const cycle: Record<typeof target.layout_type, typeof target.layout_type> = {
+      "left-image": "right-image",
+      "right-image": "top-image",
+      "top-image": "left-image",
+    };
+    const next = cycle[target.layout_type];
+    // 樂觀更新
+    setPosts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, layout_type: next } : p))
+    );
+    const { error } = await supabase
+      .from("posts")
+      .update({ layout_type: next })
+      .eq("id", id);
+    if (error) {
+      alert(`排版切換失敗: ${error.message}`);
+      // rollback
+      setPosts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, layout_type: target.layout_type } : p))
+      );
+    }
+  }, [posts]);
+
   if (loading) {
     return (
       <main className="min-h-screen bg-jn-paper flex items-center justify-center">
@@ -339,6 +367,7 @@ function StoryBlogPageInner() {
         handleMoveUp={handleMoveUp}
         handleMoveDown={handleMoveDown}
         handleRepolish={handleRepolish}
+        handleChangeLayout={handleChangeLayout}  // 🆕 2026-08-14 聖上拍板
         onOpenModal={openModal}
       />
 
@@ -392,6 +421,7 @@ function CurrentDayContent({
   handleMoveUp,
   handleMoveDown,
   handleRepolish,
+  handleChangeLayout,  // 🆕 2026-08-14 聖上拍板
   onOpenModal,
 }: {
   activeDay: number;
@@ -401,6 +431,7 @@ function CurrentDayContent({
   handleMoveUp: (id: string) => void;
   handleMoveDown: (id: string) => void;
   handleRepolish: (id: string) => void;  // 🆕 8-10
+  handleChangeLayout: (id: string) => void;  // 🆕 2026-08-14 聖上拍板
   onOpenModal: (day: number) => void;
 }) {
   const dayPosts = posts
@@ -434,6 +465,7 @@ function CurrentDayContent({
               onMoveUp={idx > 0 ? handleMoveUp : undefined}
               onMoveDown={idx < dayPosts.length - 1 ? handleMoveDown : undefined}
               onPolish={handleRepolish}  // 🆕 8-10
+              onChangeLayout={handleChangeLayout}  // 🆕 2026-08-14 聖上拍板
             />
           ))}
         </div>

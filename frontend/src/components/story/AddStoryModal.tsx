@@ -368,7 +368,15 @@ export default function AddStoryModal({
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                const newTitle = e.target.value;
+                setTitle(newTitle);
+                // 🆕 2026-08-14 聖上拍板: 小標題打字時若內容是空, 自動用 title 當 content 預設值
+                //   聖上不喜歡可自己覆寫或按「✨ 潤飾」讓 LLM 改
+                if (content === "") {
+                  setContent(newTitle);
+                }
+              }}
               placeholder="例: 凌晨桃園的報到櫃台"
               className="w-full px-3 py-2 border border-jn-ink/20 rounded focus:outline-none focus:border-jn-vermilion"
               required
