@@ -292,12 +292,11 @@ export default function BackgroundMusicPlayer() {
 
       {/* 右下浮動 widget (z-30, 低於 modal z-50) */}
       {!enabled ? (
-        // 預設狀態: 60px 圓鈕 (左下)
+        // 預設狀態: 60px 圓鈕 (左下) — 🆕 2026-08-14 聖上拍板: 跟 mini-player 一致金底黑字朱紅邊框
         <button
           type="button"
           onClick={handleStart}
-          className="fixed bottom-6 left-6 z-30 bg-jn-vermilion text-white px-4 py-3 rounded-full shadow-lg hover:bg-jn-vermilion-deep transition-all hover:scale-105 flex items-center gap-2 text-sm font-bold"
-          style={{ boxShadow: "0 8px 24px -4px rgba(220, 38, 38, 0.4)" }}
+          className="fixed bottom-6 left-6 z-30 bg-jn-gold-light text-jn-ink px-4 py-3 rounded-full font-bold border-2 border-jn-vermilion hover:bg-jn-gold transition-all hover:scale-105 flex items-center gap-2 text-sm"
           aria-label="點擊開始背景音樂"
           title="🎵 點擊開始背景音樂 (音量 30%)"
         >
