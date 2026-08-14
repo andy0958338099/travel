@@ -162,12 +162,7 @@ function StoryBlogPageInner() {
     return () => { if (channel) supabase.removeChannel(channel); };
   }, []);
 
-  // 計算每天有幾則
-  const dayCounts = useMemo(() => {
-    const counts: Record<number, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
-    posts.forEach((p) => { counts[p.day_number] = (counts[p.day_number] ?? 0) + 1; });
-    return counts;
-  }, [posts]);
+  // 🆕 2026-08-14 聖上拍板: 章節 chip 列已換成 ◀ ▶ + select, dayCounts 不再需要
 
   // 天數對應日期
   const dayDates: Record<number, string> = useMemo(() => {
@@ -282,41 +277,60 @@ function StoryBlogPageInner() {
 
   return (
     <main className="min-h-screen bg-jn-paper">
-      {/* 🆕 2026-08-14 聖上拍板: 章節 chip 列 sticky top-0 永遠在最頂端 (移到 hero 前面) */}
+      {/* 🆕 2026-08-14 聖上拍板: 章節導覽列 (◀ 標題 ▶ + 下拉選單) sticky top-0 在 hero 上面
+          (取代原本的 10 個 chip 列, 改用 ◀ ▶ + select 跳任一天) */}
       <nav
         className="sticky top-0 z-30 bg-jn-paper/95 backdrop-blur-sm border-b-2 border-jn-vermilion/20 py-3 px-4 shadow-sm"
         aria-label="章節導覽"
       >
-        <div className="max-w-6xl mx-auto flex flex-wrap gap-2 justify-center">
-          {[
-            { d: 0, label: "前言" },
-            ...Array.from({ length: 8 }, (_, i) => ({ d: i + 1, label: `D${i + 1}` })),
-            { d: 9, label: "後記" },
-          ].map(({ d, label }) => {
-            const count = dayCounts[d] ?? 0;
-            const isActive = d === activeDay;
-            return (
-              <button
-                key={d}
-                onClick={() => setActiveDay(d)}
-                className={`px-3 py-1.5 border-2 rounded text-sm transition-colors ${
-                  isActive
-                    ? "bg-jn-gold-light text-jn-ink border-jn-vermilion shadow-md font-bold ring-1 ring-jn-vermilion/30"
-                    : "bg-jn-paper-warm hover:bg-jn-vermilion/20 border-jn-vermilion/30 text-jn-ink"
-                }`}
-              >
-                {label}
-                {dayDates[d] && <span className={`ml-1 text-xs ${isActive ? "opacity-90" : "opacity-60"}`}>{dayDates[d]}</span>}
-                {count > 0 && (
-                  <span className={`ml-1.5 inline-block text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    isActive ? "bg-jn-paper text-jn-vermilion" : "bg-jn-vermilion text-white"
-                  }`}>
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
+          <button
+            onClick={() => {
+              const prev = ALL_DAYS[ALL_DAYS.indexOf(activeDay) - 1];
+              if (prev !== undefined) setActiveDay(prev);
+            }}
+            disabled={activeDay === ALL_DAYS[0]}
+            className="text-sm bg-jn-paper hover:bg-jn-gold-light/30 border border-jn-ink/20 text-jn-ink px-3 py-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 whitespace-nowrap"
+          >
+            ◀ {(() => {
+              const prev = ALL_DAYS[ALL_DAYS.indexOf(activeDay) - 1];
+              if (prev === undefined) return "—";
+              if (prev === 0) return "前言";
+              if (prev === 9) return "後記";
+              return `D${prev}`;
+            })()}
+          </button>
+          <div className="flex-1 flex items-center justify-center gap-2">
+            {/* 下拉選單: 快速跳到任一天 */}
+            <select
+              value={activeDay}
+              onChange={(e) => setActiveDay(Number(e.target.value))}
+              className="text-sm bg-jn-gold-light border-2 border-jn-vermilion rounded px-2 py-1.5 font-bold text-jn-ink cursor-pointer hover:bg-jn-gold"
+              aria-label="跳到指定章節"
+            >
+              <option value={0}>📜 前言</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((d) => (
+                <option key={d} value={d}>D{d} · {dayDates[d] || `Day ${d}`}</option>
+              ))}
+              <option value={9}>🎁 後記</option>
+            </select>
+          </div>
+          <button
+            onClick={() => {
+              const next = ALL_DAYS[ALL_DAYS.indexOf(activeDay) + 1];
+              if (next !== undefined) setActiveDay(next);
+            }}
+            disabled={activeDay === ALL_DAYS.length - 1}
+            className="text-sm bg-jn-paper hover:bg-jn-gold-light/30 border border-jn-ink/20 text-jn-ink px-3 py-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 whitespace-nowrap"
+          >
+            {(() => {
+              const next = ALL_DAYS[ALL_DAYS.indexOf(activeDay) + 1];
+              if (next === undefined) return "—";
+              if (next === 0) return "前言";
+              if (next === 9) return "後記";
+              return `D${next}`;
+            })()} ▶
+          </button>
         </div>
       </nav>
 
@@ -343,51 +357,7 @@ function StoryBlogPageInner() {
         </div>
       </header>
 
-      {/* 當前章節導覽列 ◀ 標題 ▶ (移到 sticky top-0 之下, 之前是 top-[60px] 避讓 nav, 但 nav 已永遠顯示所以維持 60px) */}
-      <div className="sticky top-[60px] z-20 bg-jn-paper-warm/95 backdrop-blur-sm border-b border-jn-ink/10 py-2 px-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-3">
-          <button
-            onClick={() => {
-              const prev = ALL_DAYS[ALL_DAYS.indexOf(activeDay) - 1];
-              if (prev !== undefined) setActiveDay(prev);
-            }}
-            disabled={activeDay === ALL_DAYS[0]}
-            className="text-sm bg-jn-paper hover:bg-jn-gold-light/30 border border-jn-ink/20 text-jn-ink px-3 py-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            ◀ {(() => {
-              const prev = ALL_DAYS[ALL_DAYS.indexOf(activeDay) - 1];
-              if (prev === undefined) return "—";
-              if (prev === 0) return "前言";
-              if (prev === 9) return "後記";
-              return `D${prev}`;
-            })()}
-          </button>
-          <div className="text-center flex-1">
-            <h2 className="text-xl md:text-2xl font-bold text-jn-ink">
-              {activeDay === 0 ? "📜 前言" : activeDay === 9 ? "🎁 後記" : `${dayDates[activeDay] || `Day ${activeDay}`}`}
-            </h2>
-            {activeDay > 0 && activeDay < 9 && (
-              <p className="text-xs text-jn-ink/50">D{activeDay} · {dayDates[activeDay]}</p>
-            )}
-          </div>
-          <button
-            onClick={() => {
-              const next = ALL_DAYS[ALL_DAYS.indexOf(activeDay) + 1];
-              if (next !== undefined) setActiveDay(next);
-            }}
-            disabled={activeDay === ALL_DAYS[ALL_DAYS.length - 1]}
-            className="text-sm bg-jn-paper hover:bg-jn-gold-light/30 border border-jn-ink/20 text-jn-ink px-3 py-1.5 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            {(() => {
-              const next = ALL_DAYS[ALL_DAYS.indexOf(activeDay) + 1];
-              if (next === undefined) return "—";
-              if (next === 0) return "前言";
-              if (next === 9) return "後記";
-              return `D${next}`;
-            })()} ▶
-          </button>
-        </div>
-      </div>
+      {/* 🆕 2026-08-14 聖上拍板: 章節導覽列已移到 hero 上面 (sticky top-0), 不再重複渲染 */}
 
       {/* 當前 day 的 posts */}
       <CurrentDayContent
