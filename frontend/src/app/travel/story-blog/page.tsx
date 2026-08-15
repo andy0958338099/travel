@@ -16,6 +16,7 @@ import TimelineStory, { type PostRow } from "@/components/story/TimelineStory";
 import AddStoryModal from "@/components/story/AddStoryModal";
 import RepolishModal from "@/components/story/RepolishModal";
 import BackgroundMusicPlayer from "@/components/story/BackgroundMusicPlayer"; // 🆕 2026-08-14 聖上拍板: 部落格背景音樂
+import { toast } from "@/components/GlobalToastHost"; // 🆕 2026-08-15 聖上拍板 🅐: 送出後 router.refresh() + toast 接到全域 host
 
 interface TripRow {
   id: string;
@@ -180,6 +181,12 @@ function StoryBlogPageInner() {
     setModalDay(day);
     setModalOpen(true);
   }, []);
+
+  // 🆕 2026-08-15 聖上拍板 🅐: 送出成功 → router.refresh() 重新抓 SSR data,新 post 自動出現
+  // 優於 window.location.reload(): 不閃白、保留 scroll、保留 active day、不重複 pageview
+  const handleSubmitted = useCallback(() => {
+    router.refresh();
+  }, [router]);
 
   // 🆕 刪除 / 上下移動 callback
   const handleDelete = useCallback(async (id: string) => {
@@ -390,7 +397,13 @@ function StoryBlogPageInner() {
         tripId={TRIP_ID}
         existingPosts={posts}
         defaultDay={modalDay}
-        toast={(msg, kind) => { console.log(`[toast ${kind}] ${msg}`); }}
+        onSubmitted={handleSubmitted}
+        // 🆕 2026-08-15 聖上拍板 🅐: toast 接到全域 host,使用者才看得到「✨ 故事已送出」
+        toast={(msg, kind) => {
+          if (kind === "success") toast.success(msg);
+          else if (kind === "error") toast.error(msg);
+          else toast.info(msg);
+        }}
       />
 
       {/* 🆕 8-10 聖上拍板: 重新潤飾 modal (article ⚙ 按鈕觸發) */}
