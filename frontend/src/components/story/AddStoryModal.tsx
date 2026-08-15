@@ -49,7 +49,7 @@ export default function AddStoryModal({
   // ── 表單 state ──
   const [authorName, setAuthorName] = useState("");
   const [dayNumber, setDayNumber] = useState(defaultDay);
-  const [position, setPosition] = useState<"first" | "middle" | "last" | "append">("append");
+  const [position, setPosition] = useState<"first" | "middle" | "last" | "append" | "smart">("smart");
   const [layoutType, setLayoutType] = useState<"left-image" | "right-image" | "top-image">("right-image");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -89,7 +89,7 @@ export default function AddStoryModal({
   useEffect(() => {
     if (open) {
       setDayNumber(defaultDay);
-      setPosition("append");
+      setPosition("smart"); // 🆕 8-16 聖上拍板: 預設 smart 而不是 append, 自動擠中間一段
       setTitle("");
       setContent("");
       setImageUrl("");
@@ -340,6 +340,7 @@ export default function AddStoryModal({
                 onChange={(e) => setPosition(e.target.value as typeof position)}
                 className="w-full px-3 py-2 border border-jn-ink/20 rounded bg-white"
               >
+                <option value="smart">🎯 智慧自動（0/1 筆末段, ≥2 筆擠中間）</option>
                 <option value="first">⏮ 插到最前</option>
                 <option value="middle">🔀 插到中間</option>
                 <option value="last">⏭ 插到最後</option>
