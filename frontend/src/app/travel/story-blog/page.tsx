@@ -115,6 +115,19 @@ function StoryBlogPageInner() {
     };
   }, [heroHidden]);
 
+  // 🆕 2026-08-15 聖上拍板 🅐 修法: 把 fetchPosts 抽成 named callback
+  // page.tsx 是 client component + posts 從 Supabase useEffect 進 useState,
+  // router.refresh() 只重跑 RSC tree,client 的 useEffect 不會重跑,所以新 post 不會出現。
+  // 正解:送出後直接呼叫 fetchPosts 重抓,client state 直接更新。
+  const fetchPosts = useCallback(async () => {
+    const supabase = createClient();
+    const { data: postData } = await supabase
+      .from("posts").select("*").eq("trip_id", TRIP_ID)
+      .order("sort_order", { ascending: true });
+    setPosts((postData ?? []) as PostRow[]);
+  }, []);
+
+  // 初次載入 (含 trip + realtime 訂閱)
   useEffect(() => {
     const supabase = createClient();
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -123,11 +136,7 @@ function StoryBlogPageInner() {
       const { data: tripData } = await supabase
         .from("trips").select("*").eq("id", TRIP_ID).maybeSingle();
       if (tripData) setTrip(tripData as TripRow);
-
-      const { data: postData } = await supabase
-        .from("posts").select("*").eq("trip_id", TRIP_ID)
-        .order("sort_order", { ascending: true });
-      setPosts((postData ?? []) as PostRow[]);
+      await fetchPosts();
       setLoading(false);
 
       // realtime (try/catch — publishable key 沒 realtime 權限時 graceful 降級)
@@ -182,11 +191,13 @@ function StoryBlogPageInner() {
     setModalOpen(true);
   }, []);
 
-  // 🆕 2026-08-15 聖上拍板 🅐: 送出成功 → router.refresh() 重新抓 SSR data,新 post 自動出現
-  // 優於 window.location.reload(): 不閃白、保留 scroll、保留 active day、不重複 pageview
+  // 🆕 2026-08-15 聖上拍板 🅐 修法 v2:
+  // 前版用 router.refresh() 在 client-only fetch 模式下無效(只重跑 RSC tree)。
+  // 改成直接呼叫 fetchPosts 重抓 → setPosts → React 重 render → 新 post 立刻出現。
+  // 副作用為 0:不閃白、保留 scroll、保留 active day、不重複 pageview、modal 仍由 AddStoryModal onClose 處理。
   const handleSubmitted = useCallback(() => {
-    router.refresh();
-  }, [router]);
+    fetchPosts();
+  }, [fetchPosts]);
 
   // 🆕 刪除 / 上下移動 callback
   const handleDelete = useCallback(async (id: string) => {
