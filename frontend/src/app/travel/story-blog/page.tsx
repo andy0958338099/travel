@@ -299,7 +299,8 @@ function StoryBlogPageInner() {
       .update({ layout_type: next })
       .eq("id", id);
     if (error) {
-      alert(`排版切換失敗: ${error.message}`);
+      // 🆕 8-17: toast.error 取代 alert() — alert 阻塞 event loop (8-16 慘案)
+      toast.error(`排版切換失敗: ${error.message} — 請重新操作`);
       // rollback
       setPosts((prev) =>
         prev.map((p) => (p.id === id ? { ...p, layout_type: target.layout_type } : p))
@@ -339,7 +340,7 @@ function StoryBlogPageInner() {
         /* localStorage 寫入失敗不阻擋主流程 */
       }
     }
-    // DB PATCH (best-effort, 失敗不阻塞 — 用 try/catch + console.warn)
+    // DB PATCH (best-effort, 🆕 8-17 聖上拍板: 失敗時用 toast.error 取代 console.warn — 用戶看得到)
     try {
       const supabase = createClient();
       const { error } = await supabase
@@ -347,16 +348,11 @@ function StoryBlogPageInner() {
         .update({ frame_style: next })
         .eq("id", id);
       if (error) {
-        // 🆕 8-16 修法: 不要 alert() (會 modal 阻塞整個 event loop, 用戶完全卡住)
-        // console.warn 讓 DevTools 看得到, 但不影響用戶
-        console.warn(
-          "[story-blog] frame_style DB PATCH failed (column 可能未建):",
-          error.message,
-          "— localStorage 偏好仍生效"
-        );
+        // 🆕 8-17: toast.error (GlobalToastHost),不是 console.warn — 聖上看得到失敗可手動 retry
+        toast.error(`相框切換失敗: ${error.message} — 請重新操作`);
       }
     } catch (e) {
-      console.warn("[story-blog] frame_style PATCH exception:", e);
+      toast.error(`相框切換失敗: ${(e as Error).message ?? e} — 請重新操作`);
     }
   }, []);
 
