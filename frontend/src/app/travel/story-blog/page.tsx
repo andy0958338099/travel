@@ -129,24 +129,14 @@ function StoryBlogPageInner() {
       setPosts([]);
       return;
     }
-    // 🆕 2026-08-16 聖上拍板 � 修法: 雙層 fallback
-    // 1. DB frame_style 缺失 (column 還沒建) → 預設 'vermilion'
-    // 2. localStorage 個人偏好 mirror → 蓋過 DB (個人偏好立即生效, 跨 page reload 保留)
-    let lsMap: Record<string, string> = {};
-    if (typeof window !== "undefined") {
-      try {
-        lsMap = JSON.parse(localStorage.getItem("story-blog-frame-style") || "{}");
-      } catch {
-        lsMap = {};
-      }
-    }
+    // 🆕 2026-08-16 聖上拍板 🅑 修法: DB 為 source of truth, localStorage 退為 mirror
+    // - DB frame_style 缺失 (column 還沒建) → 預設 'vermilion'
+    // - DB 是最新狀態 (任何用戶最後一次切換都會同步到所有裝置)
+    // - localStorage 只用來 offline optimistic UI (切了立刻看到, 不等 PATCH 回來)
     const VALID: ReadonlyArray<string> = ["vermilion", "polaroid", "ink", "wash"];
     const normalized = postData.map((p: any) => {
-      const fromLs = lsMap[p.id];
       const fromDb = p.frame_style;
-      const candidate = (fromLs && VALID.includes(fromLs))
-        ? fromLs
-        : (fromDb && VALID.includes(fromDb) ? fromDb : "vermilion");
+      const candidate = (fromDb && VALID.includes(fromDb)) ? fromDb : "vermilion";
       return { ...p, frame_style: candidate };
     });
     setPosts(normalized as PostRow[]);
@@ -180,17 +170,10 @@ function StoryBlogPageInner() {
                 setPosts((prev) => {
                   const VALID = ["vermilion", "polaroid", "ink", "wash"];
                   const incoming = payload.new as PostRow;
-                  // 🆕 2026-08-16 聖上拍板 修法 v3: realtime payload 帶回的 frame_style
-                  //   可能因 DB column 未建而是 undefined, 套同樣 VALID fallback + 保留 localStorage 偏好
-                  let lsMap: Record<string, string> = {};
-                  if (typeof window !== "undefined") {
-                    try { lsMap = JSON.parse(localStorage.getItem("story-blog-frame-style") || "{}"); } catch {}
-                  }
-                  const fromLs = lsMap[incoming.id];
+                  // � 2026-08-16 聖上拍板 🅑 修法: DB 為 source of truth (跟 fetchPosts 一致)
+                  // realtime payload 帶回的 frame_style 可能因 DB column 未建而是 undefined
                   const fromDb = incoming.frame_style;
-                  const candidate = (fromLs && VALID.includes(fromLs))
-                    ? fromLs
-                    : (fromDb && VALID.includes(fromDb) ? fromDb : "vermilion");
+                  const candidate = (fromDb && VALID.includes(fromDb)) ? fromDb : "vermilion";
                   const normalized = { ...incoming, frame_style: candidate as FrameStyle };
                   return prev.map((p) => p.id === normalized.id ? normalized : p);
                 });
