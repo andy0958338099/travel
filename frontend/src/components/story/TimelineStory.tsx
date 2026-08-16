@@ -8,6 +8,11 @@
  *   - right-image: 桌機「圖右文左」(md+) / 手機「圖上文下」
  *   - top-image:   不論桌機手機都是「圖上文下」(適合寬幅風景)
  *
+ * � 2026-08-16 聖上拍板: 第 6 個按鈕 🖼 切換相框風格 (4 種)
+ *   - vermilion 朱紅金邊 / polaroid 純白拍立得 / ink 墨黑復古 / wash 水墨淡邊
+ *   - 跟 layout_type 一樣循環切換
+ *   - DB column `frame_style` + localStorage mirror
+ *
  * 中國風元素:
  *   - 標題寫進照片 caption (PhotoFrame 內), 粗體置中
  *   - 內文用 Noto Serif TC 襯線
@@ -15,12 +20,15 @@
  *   - 背景 jn-paper-warm 暖宣紙
  *   - 段落分隔用 金色細線 + 印章點綴
  *
- * 🆕 8-10 聖上拍板: 每個 article 右上角 hover 浮動 3 個按鈕
+ * 🆕 8-10 聖上拍板: 每個 article 右上角 hover 浮動 6 個按鈕
  *   - 🗑 刪除 (with confirm dialog by parent)
  *   - ⬆ 上下移動 (sort_order 重新分配)
+ *   - ⚙ 重新潤飾 (LLM 改寫)
+ *   - ⬅ 循環切換排版 (圖左/圖右/圖上)
+ *   - 🖼 循環切換相框風格 (🆕 8-16)
  *   - 任何人都能動 (跟 RLS 全開一致)
  */
-import PhotoFrame from "./PhotoFrame";
+import PhotoFrame, { type FrameStyle } from "./PhotoFrame";
 
 // 🆕 2026-08-14 聖上拍板: 排版切換按鈕用的 label + emoji
 const LAYOUT_LABEL: Record<PostRow["layout_type"], string> = {
@@ -29,9 +37,23 @@ const LAYOUT_LABEL: Record<PostRow["layout_type"], string> = {
   "top-image": "圖上 文下",
 };
 const LAYOUT_EMOJI: Record<PostRow["layout_type"], string> = {
-  "left-image": "⬅",
+  "left-image": "�",
   "right-image": "➡",
   "top-image": "⬆",
+};
+
+// 🆕 2026-08-16 聖上拍板: 相框切換按鈕用的 label + emoji (4 種)
+const FRAME_LABEL: Record<FrameStyle, string> = {
+  vermilion: "朱紅金邊",
+  polaroid: "純白拍立得",
+  ink: "墨黑復古",
+  wash: "水墨淡邊",
+};
+const FRAME_EMOJI: Record<FrameStyle, string> = {
+  vermilion: "�",
+  polaroid: "⬜",
+  ink: "🎞",
+  wash: "📜",
 };
 
 export interface PostRow {
@@ -42,6 +64,7 @@ export interface PostRow {
   content: string;
   image_url: string | null;
   layout_type: "left-image" | "right-image" | "top-image";
+  frame_style: FrameStyle;  // 🆕 2026-08-16 聖上拍板
   author_name: string;
   created_at: string;
 }
@@ -59,6 +82,8 @@ interface TimelineStoryProps {
   onPolish?: (id: string) => void;
   /** 🆕 2026-08-14 聖上拍板: 循環切換排版 (left-image → right-image → top-image → left-image) */
   onChangeLayout?: (id: string) => void;
+  /** 🆕 2026-08-16 聖上拍板: 循環切換相框風格 (4 種) */
+  onChangeFrame?: (id: string) => void;
 }
 
 export default function TimelineStory({
@@ -71,6 +96,7 @@ export default function TimelineStory({
   onMoveDown,
   onPolish,
   onChangeLayout,
+  onChangeFrame,
 }: TimelineStoryProps) {
   // 🆕 8-10 聖上拍板: 內容區不再顯示小標題 + 不再顯示 day chip + 不再顯示編輯時間
   //   (頂部章節標題已顯示, 圖片 caption 已含小標題, 時間拿掉精簡版面)
@@ -103,6 +129,7 @@ export default function TimelineStory({
         <PhotoFrame
           src={post.image_url}
           caption={post.title || undefined}
+          frameStyle={post.frame_style}  // 🆕 2026-08-16 聖上拍板
           alt={post.title || "旅程照片"}
           priority={isFirst}
           onClick={onPhotoClick}
@@ -188,7 +215,7 @@ export default function TimelineStory({
             ⚙
           </button>
         )}
-        {/* 🆕 2026-08-14 聖上拍板: 循環切換排版 (圖左文右 / 圖右文左 / 圖上文下) */}
+        {/* � 2026-08-14 聖上拍板: 循環切換排版 (圖左文右 / 圖右文左 / 圖上文下) */}
         {onChangeLayout && (
           <button
             type="button"
@@ -198,6 +225,18 @@ export default function TimelineStory({
             className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-ink/10 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-ink/20"
           >
             {LAYOUT_EMOJI[post.layout_type]}
+          </button>
+        )}
+        {/* � 2026-08-16 聖上拍板: 循環切換相框風格 (4 種) */}
+        {onChangeFrame && (
+          <button
+            type="button"
+            onClick={() => onChangeFrame(post.id)}
+            title={`目前相框: ${FRAME_LABEL[post.frame_style]} — 點擊循環切換`}
+            aria-label="切換相框風格"
+            className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-gold/30 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-gold/40"
+          >
+            {FRAME_EMOJI[post.frame_style]}
           </button>
         )}
       </div>

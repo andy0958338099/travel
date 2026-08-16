@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "rea
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 import TimelineStory, { type PostRow } from "@/components/story/TimelineStory";
+import type { FrameStyle } from "@/components/story/PhotoFrame";
 import AddStoryModal from "@/components/story/AddStoryModal";
 import RepolishModal from "@/components/story/RepolishModal";
 import BackgroundMusicPlayer from "@/components/story/BackgroundMusicPlayer"; // 🆕 2026-08-14 聖上拍板: 部落格背景音樂
@@ -124,7 +125,31 @@ function StoryBlogPageInner() {
     const { data: postData } = await supabase
       .from("posts").select("*").eq("trip_id", TRIP_ID)
       .order("sort_order", { ascending: true });
-    setPosts((postData ?? []) as PostRow[]);
+    if (!postData) {
+      setPosts([]);
+      return;
+    }
+    // 🆕 2026-08-16 聖上拍板 � 修法: 雙層 fallback
+    // 1. DB frame_style 缺失 (column 還沒建) → 預設 'vermilion'
+    // 2. localStorage 個人偏好 mirror → 蓋過 DB (個人偏好立即生效, 跨 page reload 保留)
+    let lsMap: Record<string, string> = {};
+    if (typeof window !== "undefined") {
+      try {
+        lsMap = JSON.parse(localStorage.getItem("story-blog-frame-style") || "{}");
+      } catch {
+        lsMap = {};
+      }
+    }
+    const VALID: ReadonlyArray<string> = ["vermilion", "polaroid", "ink", "wash"];
+    const normalized = postData.map((p: any) => {
+      const fromLs = lsMap[p.id];
+      const fromDb = p.frame_style;
+      const candidate = (fromLs && VALID.includes(fromLs))
+        ? fromLs
+        : (fromDb && VALID.includes(fromDb) ? fromDb : "vermilion");
+      return { ...p, frame_style: candidate };
+    });
+    setPosts(normalized as PostRow[]);
   }, []);
 
   // 初次載入 (含 trip + realtime 訂閱)
@@ -152,9 +177,23 @@ function StoryBlogPageInner() {
                   return [...prev, payload.new as PostRow].sort((a, b) => a.sort_order - b.sort_order);
                 });
               } else if (payload.eventType === "UPDATE") {
-                setPosts((prev) => prev.map((p) =>
-                  p.id === (payload.new as PostRow).id ? (payload.new as PostRow) : p
-                ));
+                setPosts((prev) => {
+                  const VALID = ["vermilion", "polaroid", "ink", "wash"];
+                  const incoming = payload.new as PostRow;
+                  // 🆕 2026-08-16 聖上拍板 修法 v3: realtime payload 帶回的 frame_style
+                  //   可能因 DB column 未建而是 undefined, 套同樣 VALID fallback + 保留 localStorage 偏好
+                  let lsMap: Record<string, string> = {};
+                  if (typeof window !== "undefined") {
+                    try { lsMap = JSON.parse(localStorage.getItem("story-blog-frame-style") || "{}"); } catch {}
+                  }
+                  const fromLs = lsMap[incoming.id];
+                  const fromDb = incoming.frame_style;
+                  const candidate = (fromLs && VALID.includes(fromLs))
+                    ? fromLs
+                    : (fromDb && VALID.includes(fromDb) ? fromDb : "vermilion");
+                  const normalized = { ...incoming, frame_style: candidate as FrameStyle };
+                  return prev.map((p) => p.id === normalized.id ? normalized : p);
+                });
               } else if (payload.eventType === "DELETE") {
                 setPosts((prev) => prev.filter((p) => p.id !== (payload.old as { id: string }).id));
               }
@@ -285,6 +324,59 @@ function StoryBlogPageInner() {
     }
   }, [posts]);
 
+  // 🆕 2026-08-16 聖上拍板: 循環切換相框風格 (vermilion → polaroid → ink → wash → vermilion)
+  // - localStorage 為主 (個人偏好立即生效, 跨 page reload 保留)
+  // - DB PATCH 是 best-effort (若 DB 還沒建 frame_style column, PATCH 失敗也不 rollback, 因 localStorage 才是 source of truth)
+  // - 🆕 8-16 修法: cycle lookup 加 ?? 'vermilion' 保險
+  // - 🆕 8-16 修法 v2: 連點時用 functional setPosts 讀最新 frame_style, 避免 closure stale
+  //   (同 7-30 marquee select 教訓: closure 把舊值死鎖)
+  // - 🆕 8-16 修法 v3: alert() 改 console.warn — alert 是 modal 阻塞整個 event loop, 嚴重破壞 UX
+  const handleChangeFrame = useCallback(async (id: string) => {
+    const cycle: Record<string, string> = {
+      vermilion: "polaroid",
+      polaroid: "ink",
+      ink: "wash",
+      wash: "vermilion",
+    };
+    let next: FrameStyle = "vermilion";
+    // 樂觀更新 + 讀最新 state 用 functional form
+    setPosts((prev) => {
+      const target = prev.find((p) => p.id === id);
+      const current = target?.frame_style ?? "vermilion";
+      next = (cycle[current] ?? "vermilion") as FrameStyle;
+      return prev.map((p) => (p.id === id ? { ...p, frame_style: next } : p));
+    });
+    // localStorage mirror (個人偏好立即生效, 跨 page reload 保留)
+    if (typeof window !== "undefined") {
+      try {
+        const map = JSON.parse(localStorage.getItem("story-blog-frame-style") || "{}");
+        map[id] = next;
+        localStorage.setItem("story-blog-frame-style", JSON.stringify(map));
+      } catch {
+        /* localStorage 寫入失敗不阻擋主流程 */
+      }
+    }
+    // DB PATCH (best-effort, 失敗不阻塞 — 用 try/catch + console.warn)
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("posts")
+        .update({ frame_style: next })
+        .eq("id", id);
+      if (error) {
+        // 🆕 8-16 修法: 不要 alert() (會 modal 阻塞整個 event loop, 用戶完全卡住)
+        // console.warn 讓 DevTools 看得到, 但不影響用戶
+        console.warn(
+          "[story-blog] frame_style DB PATCH failed (column 可能未建):",
+          error.message,
+          "— localStorage 偏好仍生效"
+        );
+      }
+    } catch (e) {
+      console.warn("[story-blog] frame_style PATCH exception:", e);
+    }
+  }, []);
+
   if (loading) {
     return (
       <main className="min-h-screen bg-jn-paper flex items-center justify-center">
@@ -387,6 +479,7 @@ function StoryBlogPageInner() {
         handleMoveDown={handleMoveDown}
         handleRepolish={handleRepolish}
         handleChangeLayout={handleChangeLayout}  // 🆕 2026-08-14 聖上拍板
+        handleChangeFrame={handleChangeFrame}    // 🆕 2026-08-16 聖上拍板
         onOpenModal={openModal}
       />
 
@@ -449,6 +542,7 @@ function CurrentDayContent({
   handleMoveDown,
   handleRepolish,
   handleChangeLayout,  // 🆕 2026-08-14 聖上拍板
+  handleChangeFrame,   // 🆕 2026-08-16 聖上拍板
   onOpenModal,
 }: {
   activeDay: number;
@@ -459,6 +553,7 @@ function CurrentDayContent({
   handleMoveDown: (id: string) => void;
   handleRepolish: (id: string) => void;  // 🆕 8-10
   handleChangeLayout: (id: string) => void;  // 🆕 2026-08-14 聖上拍板
+  handleChangeFrame: (id: string) => void;   // 🆕 2026-08-16 聖上拍板
   onOpenModal: (day: number) => void;
 }) {
   const dayPosts = posts
@@ -493,6 +588,7 @@ function CurrentDayContent({
               onMoveDown={idx < dayPosts.length - 1 ? handleMoveDown : undefined}
               onPolish={handleRepolish}  // 🆕 8-10
               onChangeLayout={handleChangeLayout}  // 🆕 2026-08-14 聖上拍板
+              onChangeFrame={handleChangeFrame}    // � 2026-08-16 聖上拍板
             />
           ))}
         </div>

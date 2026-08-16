@@ -205,6 +205,8 @@ create table if not exists public.posts (
   image_url   text,                                     -- 照片 URL (travel-photos bucket 或外部)
   layout_type text not null default 'left-image'
                 check (layout_type in ('left-image','right-image','top-image')),
+  frame_style text not null default 'vermilion'
+                check (frame_style in ('vermilion','polaroid','ink','wash')),  -- � 8-16 聖上拍板: 4 種相框風格
   author_name text default '匿名',                       -- 誰寫的
   created_at  timestamptz default now(),
   updated_at  timestamptz default now()
@@ -221,6 +223,7 @@ create index if not exists idx_posts_author
 comment on table public.posts is '🆕 8-10 聖上拍板: 動態插隊照片+文章, sort_order 用 float 支援中段插入';
 comment on column public.posts.sort_order is 'float: 預設 1000 為基底, 在 [a,b] 中間插入 = (a+b)/2';
 comment on column public.posts.layout_type is 'left-image / right-image / top-image — 3 種排版';
+comment on column public.posts.frame_style is '🆕 8-16 聖上拍板: vermilion 朱紅金邊 / polaroid 純白拍立得 / ink 墨黑復古 / wash 水墨淡邊 — 4 種相框風格';
 
 -- ========== RLS: 全公開協作 (跟 photo_meta / planner_activities 一致) ==========
 alter table public.trips  enable row level security;

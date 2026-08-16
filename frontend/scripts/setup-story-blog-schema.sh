@@ -46,6 +46,8 @@ create table if not exists public.posts (
   image_url   text,
   layout_type text not null default 'left-image'
                 check (layout_type in ('left-image','right-image','top-image')),
+  frame_style text not null default 'vermilion'
+                check (frame_style in ('vermilion','polaroid','ink','wash')),  -- 🆕 8-16 聖上拍板
   author_name text default '匿名',
   created_at  timestamptz default now(),
   updated_at  timestamptz default now()
