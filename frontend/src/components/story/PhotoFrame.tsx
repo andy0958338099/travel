@@ -276,58 +276,75 @@ export default function PhotoFrame({
   }
 
   // 預設: vermilion 朱紅金邊 (現狀)
+  // 🆕 2026-08-17 聖上拍板: 升級視覺強度跟 polaroid branch 劃清界線
+  // (原本 bg-white p-3 + 紅色陰影太弱,看起來跟 polaroid branch 幾乎一樣)
+  // 新版: 朱紅實色底 + 金色內框 + 厚重朱紅陰影 + 「印」chip 永遠顯示
   return (
     <figure
       className="group inline-block transition-transform duration-500 ease-out hover:scale-[1.02] hover:-rotate-1"
-      style={{ transform: `rotate(${finalRotate}deg)` }}
+      style={{ transform: `rotate(${finalRotate}deg)`, paddingTop: "8px" }}
     >
       <div
-        className="relative bg-white p-3 pb-12 shadow-2xl"
+        className="relative p-3 pb-12"
         style={{
+          backgroundColor: "#dc2626",  // 朱紅實色
           boxShadow:
-            "0 20px 50px -10px rgba(220, 38, 38, 0.25), 0 8px 20px -5px rgba(0, 0, 0, 0.15)",
+            "0 24px 60px -12px rgba(220, 38, 38, 0.55), 0 12px 30px -6px rgba(220, 38, 38, 0.35), 0 6px 14px -4px rgba(0, 0, 0, 0.18)",
         }}
       >
-        <div className="relative border-2 border-jn-gold-light/60 p-0.5 bg-jn-paper-warm">
-          {!loaded && !error && (
-            <div className="aspect-[4/3] w-full min-w-[280px] flex items-center justify-center bg-jn-paper-warm">
-              <span className="text-jn-ink/40 text-sm">載入中…</span>
-            </div>
-          )}
-          {error ? (
-            <div className="aspect-[4/3] w-full min-w-[280px] flex flex-col items-center justify-center bg-jn-paper-warm text-jn-ink/60">
-              <span className="text-2xl mb-1">📷</span>
-              <span className="text-xs">圖片載入失敗</span>
-            </div>
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={src}
-              alt={alt || caption || "旅程照片"}
-              loading={priority ? "eager" : "lazy"}
-              onLoad={() => setLoaded(true)}
-              onError={() => setError(true)}
-              onClick={onClick}
-              className={`block max-w-full h-auto ${loaded ? "opacity-100" : "opacity-0"} transition-opacity duration-300 ${onClick ? "cursor-pointer" : ""}`}
-            />
-          )}
+        {/* 金邊雙層框 (粗外金 + 細內金) */}
+        <div className="border-4 border-jn-gold p-1 bg-jn-gold/40">
+          <div className="border-2 border-jn-gold-light p-0.5 bg-jn-paper-warm">
+            {!loaded && !error && (
+              <div className="aspect-[4/3] w-full min-w-[280px] flex items-center justify-center bg-jn-paper-warm">
+                <span className="text-jn-ink/40 text-sm">載入中…</span>
+              </div>
+            )}
+            {error ? (
+              <div className="aspect-[4/3] w-full min-w-[280px] flex flex-col items-center justify-center bg-jn-paper-warm text-jn-ink/60">
+                <span className="text-2xl mb-1">📷</span>
+                <span className="text-xs">圖片載入失敗</span>
+              </div>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={src}
+                alt={alt || caption || "旅程照片"}
+                loading={priority ? "eager" : "lazy"}
+                onLoad={() => setLoaded(true)}
+                onError={() => setError(true)}
+                onClick={onClick}
+                className={`block max-w-full h-auto ${loaded ? "opacity-100" : "opacity-0"} transition-opacity duration-300 ${onClick ? "cursor-pointer" : ""}`}
+              />
+            )}
+          </div>
         </div>
 
         {caption && (
           <div className="absolute bottom-2 left-3 right-3 text-center">
-            <p className="text-base font-extrabold text-jn-ink text-center leading-tight tracking-wide">
+            <p className="text-base font-extrabold text-jn-paper text-center leading-tight tracking-wide" style={{ textShadow: "0 1px 2px rgba(0,0,0,0.3)" }}>
               {caption}
             </p>
           </div>
         )}
 
+        {/* 「印」chip 永遠顯示 (朱紅+金邊,朱紅框風格標記) */}
+        <div className="absolute -top-3 -left-3">
+          <span
+            className="inline-block bg-jn-paper text-jn-vermilion text-[11px] font-extrabold px-2 py-2 rounded-sm border-2 border-jn-gold"
+            style={{ writingMode: "vertical-rl", letterSpacing: "0.2em" }}
+          >
+            {meta.chipText}
+          </span>
+        </div>
+
         {caption && (
           <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
             <span
-              className="inline-block bg-jn-vermilion text-white text-[10px] font-bold px-2 py-1 rounded-sm"
+              className="inline-block bg-jn-gold text-jn-vermilion-deep text-[10px] font-bold px-2 py-1 rounded-sm border border-jn-vermilion"
               style={{ writingMode: "vertical-rl", letterSpacing: "0.1em" }}
             >
-              {meta.chipText}
+              朱紅
             </span>
           </div>
         )}
