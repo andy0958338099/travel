@@ -49,7 +49,7 @@ export default function AddStoryModal({
   // ── 表單 state ──
   const [authorName, setAuthorName] = useState("");
   const [dayNumber, setDayNumber] = useState(defaultDay);
-  const [position, setPosition] = useState<"first" | "middle" | "last" | "append" | "smart">("smart");
+  const [position, setPosition] = useState<"first" | "middle" | "last" | "append" | "smart">("last"); // 🆕 8-17 聖上拍板 🅑: 預設改 last (max+1000), 故事自然接續
   const [layoutType, setLayoutType] = useState<"left-image" | "right-image" | "top-image">("right-image");
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -89,7 +89,7 @@ export default function AddStoryModal({
   useEffect(() => {
     if (open) {
       setDayNumber(defaultDay);
-      setPosition("smart"); // 🆕 8-16 聖上拍板: 預設 smart 而不是 append, 自動擠中間一段
+      setPosition("last"); // 🆕 8-17 聖上拍板 🅑: 預設 last, 故事延續接在最尾段
       setTitle("");
       setContent("");
       setImageUrl("");
