@@ -296,7 +296,7 @@ export default function BackgroundMusicPlayer() {
         <button
           type="button"
           onClick={handleStart}
-          className="fixed bottom-6 left-6 z-30 bg-jn-gold-light text-jn-ink px-4 py-3 rounded-full font-bold border-2 border-jn-vermilion hover:bg-jn-gold transition-all hover:scale-105 flex items-center gap-2 text-sm"
+          className="fixed bottom-20 left-6 md:bottom-6 z-30 bg-jn-gold-light text-jn-ink px-4 py-3 rounded-full font-bold border-2 border-jn-vermilion hover:bg-jn-gold transition-all hover:scale-105 flex items-center gap-2 text-sm"
           aria-label="點擊開始背景音樂"
           title="🎵 點擊開始背景音樂 (音量 30%)"
         >
@@ -306,7 +306,7 @@ export default function BackgroundMusicPlayer() {
         // 展開狀態: 280x100 mini-player (左下) — 🆕 2026-08-14 聖上拍板 🅑
         // 宣紙色 #fde9b8 (95% 透明) + 朱印紅 1px 邊框 + 暖茶褐雙層陰影 + 內陰影紙張感
         <div
-          className="fixed bottom-6 left-6 z-30 border border-jn-vermilion/60 rounded-xl p-3 flex flex-col gap-2 backdrop-blur-sm"
+          className="fixed bottom-20 left-6 md:bottom-6 z-30 border border-jn-vermilion/60 rounded-xl p-3 flex flex-col gap-2 backdrop-blur-sm"
           style={{
             width: 280,
             backgroundColor: "rgba(253, 233, 184, 0.95)",

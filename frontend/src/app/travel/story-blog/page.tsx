@@ -225,7 +225,7 @@ function StoryBlogPageInner() {
   const handleDelete = useCallback(async (id: string) => {
     const supabase = createClient();
     const { error } = await supabase.from("posts").delete().eq("id", id);
-    if (error) { alert(`刪除失敗: ${error.message}`); return; }
+    if (error) { toast.error(`刪除失敗: ${error.message}`); return; }
     setPosts((prev) => prev.filter((p) => p.id !== id));
   }, []);
 
@@ -250,8 +250,46 @@ function StoryBlogPageInner() {
     const idx = sameDay.findIndex((p) => p.id === id);
     const swapWith = direction === "up" ? sameDay[idx - 1] : sameDay[idx + 1];
     if (!swapWith) return;
-    const a = target.sort_order;
-    const b = swapWith.sort_order;
+    let a = target.sort_order;
+    let b = swapWith.sort_order;
+
+    // 🆕 2026-08-19 聖上拍板 🅐: 若 a === b (撞到重複 sort_order),
+    //   自動 renumber 整個 day 一次,確保唯一後再 swap
+    //   原因: D1 之前有 8 對重複 sort_order,swap 等於沒換 → 「無法調整上下」
+    if (a === b) {
+      console.warn(`[handleMove] sort_order 撞到重複 (${a}), 自動 renumber day=${target.day_number}`);
+      const renumbered = sameDay.map((p, i) => ({
+        ...p,
+        sort_order: (i + 1) * 1000,
+      }));
+      const newTargetSort = renumbered[idx].sort_order;
+      const newSwapSort = direction === "up" ? renumbered[idx - 1].sort_order : renumbered[idx + 1].sort_order;
+      // 樂觀更新
+      setPosts((prev) =>
+        prev.map((p) => {
+          const r = renumbered.find((x) => x.id === p.id);
+          return r ? { ...p, sort_order: r.sort_order } : p;
+        }).sort((x, y) => x.sort_order - y.sort_order)
+      );
+      // 批量 PATCH (best-effort, 不阻塞 swap)
+      const patchPromises = renumbered.map((r) => {
+        const orig = sameDay.find((o) => o.id === r.id);
+        if (orig && orig.sort_order !== r.sort_order) {
+          return supabase.from("posts").update({ sort_order: r.sort_order }).eq("id", r.id);
+        }
+        return Promise.resolve({ error: null });
+      });
+      const results = await Promise.all(patchPromises);
+      const failed = results.find((r) => r.error);
+      if (failed?.error) {
+        toast.error(`自動 renumber 部分失敗: ${failed.error.message}`);
+      }
+      // 後續 swap 改用新的 sort_order 繼續
+      a = newTargetSort;
+      b = newSwapSort;
+    }
+
+    // 樂觀更新 swap
     setPosts((prev) =>
       prev.map((p) => {
         if (p.id === target.id) return { ...p, sort_order: b };
@@ -265,7 +303,7 @@ function StoryBlogPageInner() {
     ]);
     const failed = results.find((r) => r.error);
     if (failed?.error) {
-      alert(`移動失敗: ${failed.error.message}`);
+      toast.error(`移動失敗: ${failed.error.message}`);
       setPosts((prev) =>
         prev.map((p) => {
           if (p.id === target.id) return { ...p, sort_order: a };
@@ -430,9 +468,9 @@ function StoryBlogPageInner() {
         }`}
         style={{ transitionProperty: "max-height, opacity" }}
       >
-        <div className="max-w-4xl mx-auto text-center py-16 px-4">
+        <div className="max-w-4xl mx-auto text-center py-10 md:py-16 px-4">
           <p className="text-jn-gold-light text-sm tracking-widest mb-2">江南水鄉 · 八日遊記</p>
-          <h1 className="text-4xl md:text-6xl font-black leading-tight mb-4">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black leading-tight mb-4">
             {trip?.title || "2026 江南 8 天 7 夜遊記"}
           </h1>
           {trip?.description && (
@@ -465,7 +503,7 @@ function StoryBlogPageInner() {
       {/* 浮動按鈕 (聖上寫新故事, 改回右下角 — 音樂 widget 移到左下避讓) */}
       <button
         onClick={() => openModal(activeDay)}
-        className="fixed bottom-6 right-6 z-40 bg-jn-gold-light text-jn-ink font-bold px-5 py-3 rounded-full shadow-lg hover:bg-jn-gold transition-all hover:scale-105 border-2 border-jn-vermilion"
+        className="fixed bottom-20 right-6 md:bottom-6 z-40 bg-jn-gold-light text-jn-ink font-bold px-5 py-3 rounded-full shadow-lg hover:bg-jn-gold transition-all hover:scale-105 border-2 border-jn-vermilion"
       >
         ✍️ 補充故事
       </button>

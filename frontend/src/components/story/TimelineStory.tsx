@@ -28,6 +28,7 @@
  *   - 🖼 循環切換相框風格 (🆕 8-16)
  *   - 任何人都能動 (跟 RLS 全開一致)
  */
+import { useState, useEffect, useRef, useCallback } from "react";
 import PhotoFrame, { type FrameStyle } from "./PhotoFrame";
 
 // 🆕 2026-08-14 聖上拍板: 排版切換按鈕用的 label + emoji
@@ -98,6 +99,39 @@ export default function TimelineStory({
   onChangeLayout,
   onChangeFrame,
 }: TimelineStoryProps) {
+  // 🆕 2026-08-19 聖上拍板 🅐: 操作面板「常駐低調」+ tap toggle
+  //   - 預設 opacity-30 (符合三鐵律「不影響閱讀」)
+  //   - desktop hover 全亮 (group-hover:opacity-100)
+  //   - mobile tap 切換 (panelActive),3 秒後自動收回
+  //   - 點按鈕本身 e.stopPropagation() 避免冒泡觸發 toggle
+  const [panelActive, setPanelActive] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const articleRef = useRef<HTMLElement | null>(null);
+
+  const activatePanel = useCallback(() => {
+    setPanelActive(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setPanelActive(false), 3000);
+  }, []);
+
+  // 點外面收回 (desktop 用)
+  useEffect(() => {
+    if (!panelActive) return;
+    const handler = (e: MouseEvent) => {
+      if (articleRef.current && !articleRef.current.contains(e.target as Node)) {
+        setPanelActive(false);
+        if (timerRef.current) clearTimeout(timerRef.current);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [panelActive]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
   // 🆕 8-10 聖上拍板: 內容區不再顯示小標題 + 不再顯示 day chip + 不再顯示編輯時間
   //   (頂部章節標題已顯示, 圖片 caption 已含小標題, 時間拿掉精簡版面)
 
@@ -141,6 +175,8 @@ export default function TimelineStory({
   return (
     <article
       id={`post-${post.id}`}
+      ref={articleRef}
+      onClick={activatePanel}
       className="group relative bg-jn-paper-warm/60 backdrop-blur-sm border-l-4 border-jn-vermilion/40 rounded-r-lg shadow-sm hover:shadow-md transition-shadow p-6 md:p-8 scroll-mt-20"
     >
       {/* 🆕 8-10 聖上拍板: 拿掉 article 內的 day chip (頂部章節標題已顯示, 不重複) */}
@@ -164,15 +200,29 @@ export default function TimelineStory({
         </div>
       )}
 
-      {/* 🆕 8-10 聖上拍板: 右上角 hover 浮動操作面板 (移動 + 刪除) */}
-      <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* 🆕 2026-08-19 聖上拍板 🅐: 右上角操作面板「常駐低調 + tap toggle」
+          - 預設 opacity-30 (低調,不影響閱讀)
+          - desktop hover / mobile tap 都全亮
+          - 點按鈕 e.stopPropagation() 避免冒泡重新觸發 activatePanel */}
+      <div
+        className={`absolute top-2 right-2 flex flex-col gap-1 transition-opacity ${
+          panelActive
+            ? "opacity-100"
+            : "opacity-30 md:opacity-0 md:group-hover:opacity-100"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
         {onMoveUp && (
           <button
             type="button"
-            onClick={() => onMoveUp(post.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveUp(post.id);
+              activatePanel();
+            }}
             title="上移"
             aria-label="上移"
-            className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-gold-light text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-ink/20"
+            className="w-9 h-9 md:w-7 md:h-7 bg-jn-paper/95 hover:bg-jn-gold-light active:scale-95 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-ink/20 touch-manipulation"
           >
             ⬆
           </button>
@@ -180,10 +230,14 @@ export default function TimelineStory({
         {onMoveDown && (
           <button
             type="button"
-            onClick={() => onMoveDown(post.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onMoveDown(post.id);
+              activatePanel();
+            }}
             title="下移"
             aria-label="下移"
-            className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-gold-light text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-ink/20"
+            className="w-9 h-9 md:w-7 md:h-7 bg-jn-paper/95 hover:bg-jn-gold-light active:scale-95 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-ink/20 touch-manipulation"
           >
             ⬇
           </button>
@@ -191,14 +245,16 @@ export default function TimelineStory({
         {onDelete && (
           <button
             type="button"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (confirm(`確定要刪除「${post.title || "這篇"}」嗎?\n\n(刪了就沒了 — 沒辦法復原)`)) {
                 onDelete(post.id);
               }
+              activatePanel();
             }}
             title="刪除"
             aria-label="刪除"
-            className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-vermilion hover:text-white text-jn-vermilion rounded shadow flex items-center justify-center text-sm border border-jn-vermilion/40"
+            className="w-9 h-9 md:w-7 md:h-7 bg-jn-paper/95 hover:bg-jn-vermilion hover:text-white active:scale-95 text-jn-vermilion rounded shadow flex items-center justify-center text-sm border border-jn-vermilion/40 touch-manipulation"
           >
             🗑
           </button>
@@ -207,34 +263,46 @@ export default function TimelineStory({
         {onPolish && (
           <button
             type="button"
-            onClick={() => onPolish(post.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPolish(post.id);
+              activatePanel();
+            }}
             title="用 LLM 重新潤飾這篇"
             aria-label="重新潤飾"
-            className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-gold text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-gold/60"
+            className="w-9 h-9 md:w-7 md:h-7 bg-jn-paper/95 hover:bg-jn-gold active:scale-95 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-gold/60 touch-manipulation"
           >
             ⚙
           </button>
         )}
-        {/* � 2026-08-14 聖上拍板: 循環切換排版 (圖左文右 / 圖右文左 / 圖上文下) */}
+        {/* 🆕 2026-08-14 聖上拍板: 循環切換排版 (圖左文右 / 圖右文左 / 圖上文下) */}
         {onChangeLayout && (
           <button
             type="button"
-            onClick={() => onChangeLayout(post.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onChangeLayout(post.id);
+              activatePanel();
+            }}
             title={`目前: ${LAYOUT_LABEL[post.layout_type]} — 點擊循環切換`}
             aria-label="切換排版"
-            className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-ink/10 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-ink/20"
+            className="w-9 h-9 md:w-7 md:h-7 bg-jn-paper/95 hover:bg-jn-ink/10 active:scale-95 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-ink/20 touch-manipulation"
           >
             {LAYOUT_EMOJI[post.layout_type]}
           </button>
         )}
-        {/* � 2026-08-16 聖上拍板: 循環切換相框風格 (4 種) */}
+        {/* 🆕 2026-08-16 聖上拍板: 循環切換相框風格 (4 種) */}
         {onChangeFrame && (
           <button
             type="button"
-            onClick={() => onChangeFrame(post.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onChangeFrame(post.id);
+              activatePanel();
+            }}
             title={`目前相框: ${FRAME_LABEL[post.frame_style]} — 點擊循環切換`}
             aria-label="切換相框風格"
-            className="w-7 h-7 bg-jn-paper/95 hover:bg-jn-gold/30 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-gold/40"
+            className="w-9 h-9 md:w-7 md:h-7 bg-jn-paper/95 hover:bg-jn-gold/30 active:scale-95 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-gold/40 touch-manipulation"
           >
             {FRAME_EMOJI[post.frame_style]}
           </button>
