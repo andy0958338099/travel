@@ -95,15 +95,44 @@ interface YTPlayer {
 const VOLUME_DEFAULT = 30;
 const LS_KEY_ENABLED = "story-blog-bg-music-enabled";
 
-export default function BackgroundMusicPlayer() {
+interface BackgroundMusicPlayerProps {
+  /** 🆕 2026-08-19 聖上拍板 🅐a: inHero=true → 在 hero 區水平排列 (無 fixed), 不在 floating 模式 */
+  inHero?: boolean;
+}
+
+export default function BackgroundMusicPlayer({ inHero = false }: BackgroundMusicPlayerProps) {
   const [enabled, setEnabled] = useState(false); // false = 60px 圓鈕, true = 展開 mini-player
   const [started, setStarted] = useState(false); // false = 還沒 click 過, true = 已 click 過開始播放
   const [currentIdx, setCurrentIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const [volume, setVolume] = useState(VOLUME_DEFAULT);
   const [apiReady, setApiReady] = useState(false);
+  // 🆕 2026-08-19 聖上拍板 🅐: expanded 後 5 秒無操作 → 自動 collapse 到小 🎵 icon
+  const [collapsed, setCollapsed] = useState(false);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // 🆕 5 秒無操作 → auto-collapse
+  // 使用者操作 (click 按鈕) → reset
+  const resetCollapseTimer = useCallback(() => {
+    if (!enabled) return; // 沒在播就不計時
+    if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
+    collapseTimerRef.current = setTimeout(() => setCollapsed(true), 5000);
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled) {
+      setCollapsed(false);
+      if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
+      return;
+    }
+    // 剛展開 → reset timer
+    resetCollapseTimer();
+    return () => {
+      if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
+    };
+  }, [enabled, resetCollapseTimer]);
 
   // ── 載入 YouTube IFrame Player API (一次性) ──
   useEffect(() => {
@@ -290,23 +319,45 @@ export default function BackgroundMusicPlayer() {
         }}
       />
 
-      {/* 右下浮動 widget (z-30, 低於 modal z-50) */}
+      {/* 🆕 2026-08-19 聖上拍板 �a: inHero=true → 不 fixed, 直接 inline 渲染在 hero flex 列內 */}
       {!enabled ? (
-        // 預設狀態: 60px 圓鈕 (左下) — 🆕 2026-08-14 聖上拍板: 跟 mini-player 一致金底黑字朱紅邊框
+        // 預設狀態: 60px 圓鈕 — inHero 時無 fixed, 走 hero 排版
         <button
           type="button"
           onClick={handleStart}
-          className="fixed bottom-20 left-6 md:bottom-6 z-30 bg-jn-gold-light text-jn-ink px-4 py-3 rounded-full font-bold border-2 border-jn-vermilion hover:bg-jn-gold transition-all hover:scale-105 flex items-center gap-2 text-sm"
+          className={
+            inHero
+              ? "bg-jn-gold-light text-jn-ink px-4 py-3 rounded-full font-bold border-2 border-jn-vermilion hover:bg-jn-gold transition-all hover:scale-105 flex items-center gap-2 text-sm shadow-md"
+              : "fixed bottom-20 left-6 md:bottom-6 z-30 bg-jn-gold-light text-jn-ink px-4 py-3 rounded-full font-bold border-2 border-jn-vermilion hover:bg-jn-gold transition-all hover:scale-105 flex items-center gap-2 text-sm"
+          }
           aria-label="點擊開始背景音樂"
           title="🎵 點擊開始背景音樂 (音量 30%)"
         >
           🎵 點擊開始背景音樂
         </button>
+      ) : collapsed ? (
+        // 🆕 2026-08-19 聖上拍板 🅐: 5 秒無操作 → collapsed 狀態只顯示 32×32 小 icon
+        <button
+          type="button"
+          onClick={() => { setCollapsed(false); resetCollapseTimer(); }}
+          className={
+            inHero
+              ? "bg-jn-gold-light text-jn-ink w-10 h-10 rounded-full font-bold border-2 border-jn-vermilion hover:bg-jn-gold transition-all hover:scale-110 flex items-center justify-center text-lg shadow-md"
+              : "fixed bottom-20 left-6 md:bottom-6 z-30 bg-jn-gold-light text-jn-ink w-10 h-10 rounded-full font-bold border-2 border-jn-vermilion hover:bg-jn-gold transition-all hover:scale-110 flex items-center justify-center text-lg"
+          }
+          aria-label="展開背景音樂播放器"
+          title="🎵 點擊展開播放器"
+        >
+          🎵
+        </button>
       ) : (
-        // 展開狀態: 280x100 mini-player (左下) — 🆕 2026-08-14 聖上拍板 🅑
-        // 宣紙色 #fde9b8 (95% 透明) + 朱印紅 1px 邊框 + 暖茶褐雙層陰影 + 內陰影紙張感
+        // 展開狀態: mini-player — inHero 時無 fixed
         <div
-          className="fixed bottom-20 left-6 md:bottom-6 z-30 border border-jn-vermilion/60 rounded-xl p-3 flex flex-col gap-2 backdrop-blur-sm"
+          className={
+            inHero
+              ? "border border-jn-vermilion/60 rounded-xl p-3 flex flex-col gap-2 backdrop-blur-sm"
+              : "fixed bottom-20 left-6 md:bottom-6 z-30 border border-jn-vermilion/60 rounded-xl p-3 flex flex-col gap-2 backdrop-blur-sm"
+          }
           style={{
             width: 280,
             backgroundColor: "rgba(253, 233, 184, 0.95)",
@@ -327,7 +378,7 @@ export default function BackgroundMusicPlayer() {
             </div>
             <button
               type="button"
-              onClick={handleClose}
+              onClick={(e) => { e.stopPropagation(); handleClose(); resetCollapseTimer(); }}
               className="text-jn-ink/60 hover:text-jn-vermilion text-lg leading-none w-6 h-6 flex items-center justify-center"
               aria-label="關閉播放器 (ESC)"
               title="關閉 (ESC)"
@@ -340,7 +391,7 @@ export default function BackgroundMusicPlayer() {
           <div className="flex items-center justify-center gap-2">
             <button
               type="button"
-              onClick={handlePrev}
+              onClick={(e) => { e.stopPropagation(); handlePrev(); resetCollapseTimer(); }}
               className="w-8 h-8 bg-jn-paper hover:bg-jn-gold-light text-jn-ink rounded flex items-center justify-center text-sm border border-jn-ink/20"
               aria-label="上一首"
               title="上一首"
@@ -349,7 +400,7 @@ export default function BackgroundMusicPlayer() {
             </button>
             <button
               type="button"
-              onClick={handleTogglePause}
+              onClick={(e) => { e.stopPropagation(); handleTogglePause(); resetCollapseTimer(); }}
               className="w-10 h-8 bg-jn-gold-light text-jn-ink hover:bg-jn-gold rounded flex items-center justify-center text-sm font-bold border-2 border-jn-vermilion"
               aria-label={paused ? "繼續播放" : "暫停"}
               title={paused ? "繼續播放" : "暫停"}
@@ -358,7 +409,7 @@ export default function BackgroundMusicPlayer() {
             </button>
             <button
               type="button"
-              onClick={handleNext}
+              onClick={(e) => { e.stopPropagation(); handleNext(); resetCollapseTimer(); }}
               className="w-8 h-8 bg-jn-paper hover:bg-jn-gold-light text-jn-ink rounded flex items-center justify-center text-sm border border-jn-ink/20"
               aria-label="下一首 (隨機)"
               title="下一首 (隨機)"
@@ -386,7 +437,7 @@ export default function BackgroundMusicPlayer() {
               min={0}
               max={100}
               value={volume}
-              onChange={(e) => handleVolumeChange(Number(e.target.value))}
+              onChange={(e) => { handleVolumeChange(Number(e.target.value)); resetCollapseTimer(); }}
               className="flex-1 h-1 accent-jn-vermilion"
               aria-label={`音量 ${volume}%`}
             />

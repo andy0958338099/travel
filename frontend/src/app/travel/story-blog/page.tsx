@@ -83,7 +83,9 @@ function StoryBlogPageInner() {
       // 只有 hero 被滾出 viewport (sticky 起來了) 才開始計時
       const heroOut = heroEl ? heroEl.getBoundingClientRect().bottom < 0 : window.scrollY > 300;
       if (heroOut) {
-        heroTimerRef.current = setTimeout(() => setHeroHidden(true), 3000);
+        // 🆕 2026-08-19 聖上拍板 �-C: 3 秒 → 10 秒
+        // 理由: CTA 移到 hero 內 (FAB + 音樂鈕),太快 fade 會讓使用者看不到操作入口
+        heroTimerRef.current = setTimeout(() => setHeroHidden(true), 10000);
       }
     };
 
@@ -481,6 +483,19 @@ function StoryBlogPageInner() {
             <span>👥 13 位親友</span>
             <span>📝 {posts.length} 個故事</span>
           </div>
+          {/* 🆕 2026-08-19 聖上拍板 �a: 兩顆 CTA 移到 hero 內 (stats 列下方, 水平同列)
+              - 背景音樂 (被動) + 補充故事 (主動寫作)
+              - 原本 fixed bottom floating 全部刪掉, 文章區乾淨無干擾 */}
+          <div className="mt-5 flex justify-center items-center gap-3 flex-wrap">
+            <BackgroundMusicPlayer inHero />
+            <button
+              type="button"
+              onClick={() => openModal(activeDay)}
+              className="bg-jn-gold-light text-jn-ink font-bold px-5 py-3 rounded-full shadow-md hover:bg-jn-gold transition-all hover:scale-105 border-2 border-jn-vermilion"
+            >
+              ✍️ 補充故事
+            </button>
+          </div>
         </div>
       </header>
 
@@ -500,16 +515,7 @@ function StoryBlogPageInner() {
         onOpenModal={openModal}
       />
 
-      {/* 浮動按鈕 (聖上寫新故事, 改回右下角 — 音樂 widget 移到左下避讓) */}
-      <button
-        onClick={() => openModal(activeDay)}
-        className="fixed bottom-20 right-6 md:bottom-6 z-40 bg-jn-gold-light text-jn-ink font-bold px-5 py-3 rounded-full shadow-lg hover:bg-jn-gold transition-all hover:scale-105 border-2 border-jn-vermilion"
-      >
-        ✍️ 補充故事
-      </button>
-
-      {/* 🆕 2026-08-14 聖上拍板: 部落格背景音樂 (左下浮動, 不影響閱讀) */}
-      <BackgroundMusicPlayer />
+      {/* 🆕 2026-08-19 聖上拍板 🅐a: 補充故事 FAB 移到 hero 內, 文章區乾淨無 floating button */}
 
       {/* Modal */}
       <AddStoryModal
