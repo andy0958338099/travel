@@ -138,8 +138,8 @@ export default function StoryBlogPrintPage() {
       });
       chapterPage++;
       const rest = d0Posts.slice(1);
-      for (let i = 0; i < rest.length; i += 3) {
-        const slice = rest.slice(i, i + 3);
+      for (let i = 0; i < rest.length; i += 1) {
+        const slice = rest.slice(i, i + 1);
         pages.push({ kind: "chapter-stories", day: 0, posts: slice });
         chapterPage++;
       }
@@ -163,8 +163,8 @@ export default function StoryBlogPrintPage() {
       });
       chapterPage++;
       const rest = dPosts.slice(1);
-      for (let i = 0; i < rest.length; i += 3) {
-        const slice = rest.slice(i, i + 3);
+      for (let i = 0; i < rest.length; i += 1) {
+        const slice = rest.slice(i, i + 1);
         pages.push({ kind: "chapter-stories", day: d, posts: slice });
         chapterPage++;
       }
@@ -183,8 +183,8 @@ export default function StoryBlogPrintPage() {
       });
       chapterPage++;
       const rest = epPosts.slice(1);
-      for (let i = 0; i < rest.length; i += 3) {
-        const slice = rest.slice(i, i + 3);
+      for (let i = 0; i < rest.length; i += 1) {
+        const slice = rest.slice(i, i + 1);
         pages.push({ kind: "chapter-stories", day: 9, posts: slice });
         chapterPage++;
       }
@@ -502,7 +502,7 @@ function ChapterStories({ day, posts }: { day: number; posts: PostRow[] }) {
 function PostArticle({ post, index, isLast, day }: { post: PostRow; index: number; isLast: boolean; day: number }) {
   // 版型:第一篇→大圖;後續→照片+短文交錯
   return (
-    <article className="print-book-post" style={{ marginBottom: isLast ? 0 : "5mm" }}>
+    <article className={`print-book-post print-book-frame-${post.frame_style || "vermilion"}`} style={{ marginBottom: isLast ? 0 : "5mm" }}>
       {post.title && (
         <h3 className="print-book-story-title">{post.title}</h3>
       )}
@@ -512,8 +512,13 @@ function PostArticle({ post, index, isLast, day }: { post: PostRow; index: numbe
           <img
             src={post.image_url}
             alt={post.title || "旅行照片"}
-            className={index === 0 ? "print-book-photo-full-img" : "print-book-photo-half-img"}
+            className={`print-book-photo-img ${index === 0 ? "print-book-photo-full-img" : "print-book-photo-half-img"}`}
             loading="lazy"
+            onLoad={(event) => {
+              const image = event.currentTarget;
+              const orientation = image.naturalHeight > image.naturalWidth ? "portrait" : "landscape";
+              image.closest(".print-book-photo")?.setAttribute("data-orientation", orientation);
+            }}
           />
         </figure>
       )}

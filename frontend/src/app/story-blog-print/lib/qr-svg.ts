@@ -85,7 +85,7 @@ function pickVersion(byteLen: number): number {
 }
 
 // === Encode data into bit stream + Reed-Solomon ===
-function encodeData(text: string, version: number): { modules: number[]; size: number } {
+function encodeData(text: string, version: number): { modules: number[][]; size: number } {
   const size = VERSION_SIZE[version];
   // 1. byte mode header (4 bits) + char count (8 bits for v1-9, 16 bits for v10+)
   const bitCount = version <= 9 ? 8 : 16;
@@ -192,7 +192,7 @@ function drawFinder(modules: boolean[][], size: number, x0: number, y0: number) 
 
 function drawAlignment(modules: boolean[][], size: number, version: number) {
   // Alignment pattern 中心位置 (per version, ECC L 簡化)
-  const centers: Record<number, number[][]> = {
+  const centers: Record<number, number[]> = {
     1: [], 2: [6, 18], 3: [6, 22], 4: [6, 26], 5: [6, 30],
     6: [6, 34], 7: [6, 22, 38], 8: [6, 24, 42], 9: [6, 26, 46], 10: [6, 28, 50],
   };

@@ -347,6 +347,38 @@
   page-break-inside: avoid;
 }
 
+/* 沿用線上相本的四種相框，但以 A5 印刷比例收斂尺寸 */
+.print-book-post .print-book-photo-img {
+  box-sizing: content-box;
+  display: block;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 2.5mm;
+  border: 1.2mm solid #b91c1c;
+  box-shadow: 1.5mm 1.5mm 0 #d4a72c;
+}
+.print-book-photo[data-orientation="portrait"] .print-book-photo-full-img { max-height: 105mm; }
+.print-book-photo[data-orientation="portrait"] .print-book-photo-half-img { max-height: 72mm; }
+.print-book-photo[data-orientation="landscape"] .print-book-photo-full-img { max-height: 62mm; }
+.print-book-photo[data-orientation="landscape"] .print-book-photo-half-img { max-height: 42mm; }
+.print-book-frame-polaroid .print-book-photo-img {
+  padding: 3mm 3mm 7mm;
+  border: 0.5mm solid #e7e5e4;
+  box-shadow: 1.5mm 1.5mm 2mm rgba(0,0,0,.18);
+}
+.print-book-frame-ink .print-book-photo-img {
+  padding: 2mm;
+  border: 1.5mm solid #171717;
+  box-shadow: 2mm 2mm 0 #292524;
+  filter: contrast(1.1) saturate(.85) brightness(.95);
+}
+.print-book-frame-wash .print-book-photo-img {
+  padding: 2.5mm;
+  border: 0.8mm solid #b9a98d;
+  box-shadow: 1.2mm 1.2mm 0 #e7dcc3;
+}
+
 .print-book-photo-full {
   width: 100%;
   height: 130mm;
@@ -362,7 +394,7 @@
 .print-book-photo-full-img {
   width: 100%;
   height: auto;
-  max-height: 130mm;
+  max-height: 62mm;
   object-fit: contain;
   display: block;
   margin: 0 0 4mm;
@@ -374,7 +406,7 @@
 .print-book-photo-half-img {
   width: 100%;
   height: auto;
-  max-height: 80mm;
+  max-height: 42mm;
   object-fit: contain;
   display: block;
   margin: 0 0 4mm;
@@ -437,15 +469,15 @@
 
 /* === 故事文字區 === */
 .print-book-story {
-  font-size: 11pt;
-  line-height: 1.75;
+  font-size: 9.2pt;
+  line-height: 1.42;
   color: #1e293b;
   letter-spacing: 0.04em;
   text-align: justify;
 }
 
 .print-book-story p {
-  margin: 0 0 3.5mm;
+  margin: 0 0 1.5mm;
   text-indent: 2em;
 }
 
@@ -454,21 +486,21 @@
 }
 
 .print-book-story-title {
-  font-size: 16pt;
+  font-size: 12.5pt;
   font-weight: 700;
   color: #1e293b;
-  margin: 4mm 0 3mm;
-  line-height: 1.4;
+  margin: 2mm 0 1.5mm;
+  line-height: 1.25;
   letter-spacing: 0.05em;
   break-after: avoid;
   page-break-after: avoid;
 }
 
 .print-book-story-author {
-  font-size: 9pt;
+  font-size: 8pt;
   color: #1e293b;
   opacity: 0.55;
-  margin: 0 0 4mm;
+  margin: 0 0 1mm;
   letter-spacing: 0.15em;
 }
 

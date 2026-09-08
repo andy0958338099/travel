@@ -11,6 +11,7 @@
  */
 import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import TimelineStory, { type PostRow } from "@/components/story/TimelineStory";
 import type { FrameStyle } from "@/components/story/PhotoFrame";
@@ -488,6 +489,12 @@ function StoryBlogPageInner() {
               - 原本 fixed bottom floating 全部刪掉, 文章區乾淨無干擾 */}
           <div className="mt-5 flex justify-center items-center gap-3 flex-wrap">
             <BackgroundMusicPlayer inHero />
+            <Link
+              href="/story-blog-print"
+              className="bg-jn-paper text-jn-vermilion font-bold px-5 py-3 rounded-full shadow-md hover:bg-jn-gold-light transition-all hover:scale-105 border-2 border-jn-gold"
+            >
+              🖨️ A5 列印收藏版
+            </Link>
             <button
               type="button"
               onClick={() => openModal(activeDay)}
