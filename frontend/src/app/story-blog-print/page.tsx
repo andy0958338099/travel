@@ -157,7 +157,7 @@ export default function StoryBlogPrintPage() {
       pages.push({
         kind: "chapter-intro",
         day: d,
-        dayTitle: dPosts[0].title || `Day ${d}`,
+        dayTitle: `Day ${String(d).padStart(2, "0")}`, // 章節大標統一用 Day 標籤,不再用 post title 避免字太大
         dateStr: dayDate(d),
         firstPost: dPosts[0],
       });
@@ -177,7 +177,7 @@ export default function StoryBlogPrintPage() {
       pages.push({
         kind: "chapter-intro",
         day: 9,
-        dayTitle: epPosts[0].title || "後記",
+        dayTitle: "後記",
         dateStr: "後記",
         firstPost: epPosts[0],
       });
@@ -301,60 +301,14 @@ function CoverSection({ trip }: { trip: TripRow }) {
   return (
     <div className="print-book-cover">
       <div style={{ width: "100%" }}>
-        <div
+        <img
+          src="/print-cover-q-version-2k.jpg"
+          alt="江南水鄉 8 天卡通 Q 版封面"
           className="print-book-cover-image"
-          aria-label="封面照片"
-        >
-          {/* 江南水墨風 SVG placeholder — 確保沒 hero_image 也有質感封面 */}
-          <svg viewBox="0 0 200 280" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice"
-               style={{ width: "100%", height: "100%", display: "block" }}>
-            <defs>
-              <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#e8dcc0" />
-                <stop offset="0.5" stopColor="#d4c5a0" />
-                <stop offset="1" stopColor="#a89476" />
-              </linearGradient>
-              <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="#5a6f7a" />
-                <stop offset="1" stopColor="#3a4f5a" />
-              </linearGradient>
-            </defs>
-            {/* 天空 */}
-            <rect width="200" height="160" fill="url(#sky)" />
-            {/* 遠山 */}
-            <path d="M0,160 Q40,130 80,150 T160,140 T200,150 L200,160 Z" fill="#7a8470" opacity="0.6" />
-            <path d="M0,150 Q30,125 70,145 T130,135 T200,140 L200,160 L0,160 Z" fill="#5a6f5a" opacity="0.7" />
-            {/* 水 */}
-            <rect y="155" width="200" height="125" fill="url(#water)" />
-            {/* 水面倒影線 */}
-            <g stroke="#fafaf9" strokeWidth="0.3" opacity="0.4">
-              <line x1="20" y1="180" x2="180" y2="180" />
-              <line x1="10" y1="195" x2="190" y2="195" />
-              <line x1="25" y1="210" x2="175" y2="210" />
-              <line x1="15" y1="225" x2="185" y2="225" />
-              <line x1="30" y1="240" x2="170" y2="240" />
-              <line x1="20" y1="255" x2="180" y2="255" />
-            </g>
-            {/* 船 */}
-            <ellipse cx="60" cy="195" rx="12" ry="2" fill="#3a2820" />
-            <path d="M55,195 L65,195 L62,180 Z" fill="#5a3a2a" />
-            <line x1="62" y1="180" x2="62" y2="170" stroke="#3a2820" strokeWidth="0.5" />
-            {/* 屋頂剪影 */}
-            <g fill="#1e293b" opacity="0.85">
-              <path d="M130,160 L150,140 L170,160 Z" />
-              <path d="M160,160 L180,140 L200,160 L200,170 L160,170 Z" />
-              <rect x="148" y="155" width="6" height="10" />
-              <rect x="172" y="155" width="6" height="10" />
-            </g>
-            {/* 月 */}
-            <circle cx="40" cy="50" r="8" fill="#fafaf9" opacity="0.7" />
-          </svg>
-        </div>
+        />
       </div>
       <div>
-        <p className="print-book-cover-subtitle">江 南 水 鄉</p>
         <h1 className="print-book-cover-title">{trip.title}</h1>
-        <p className="print-book-cover-season">2026 · 夏</p>
         <p className="print-book-cover-meta">上海・西塘・烏鎮・江南水鄉</p>
         <p className="print-book-cover-meta" style={{ marginTop: "2mm" }}>
           {start.getFullYear()} / {String(start.getMonth() + 1).padStart(2, "0")} / {String(start.getDate()).padStart(2, "0")} – {String(new Date(trip.end_date).getMonth() + 1).padStart(2, "0")} / {String(new Date(trip.end_date).getDate()).padStart(2, "0")}
@@ -451,6 +405,22 @@ function ChapterIntro({
         </figure>
       )}
 
+      {/* 序章頁一次性 QR 說明 — 全書唯一指引,章節內不再重複 */}
+      {day === 0 && (
+        <aside className="print-book-qr-inline">
+          <span
+            className="print-book-qr-svg"
+            dangerouslySetInnerHTML={{
+              __html: qrSvg(`${SITE_BASE}/travel/story-blog`, { size: 64 }),
+            }}
+          />
+          <div className="print-book-qr-inline-text">
+            <b>本印刷版為精選回憶</b>
+            所有照片、補充故事、即時互動留言,請掃碼連回線上完整版
+          </div>
+        </aside>
+      )}
+
       {firstPost && (
         <div className="print-book-story">
           {firstPost.content.split("\n").filter((l) => l.trim()).map((para, i) => (
@@ -532,21 +502,7 @@ function PostArticle({ post, index, isLast, day }: { post: PostRow; index: numbe
         </div>
       )}
 
-      {/* 章節結尾插入 QR (D4 / D8) */}
-      {isLast && (day === 4 || day === 8) && (
-        <aside className="print-book-qr-inline">
-          <span
-            className="print-book-qr-svg"
-            dangerouslySetInnerHTML={{
-              __html: qrSvg(`${SITE_BASE}/travel/story-blog?day=${day}`, { size: 64 }),
-            }}
-          />
-          <div className="print-book-qr-inline-text">
-            <b>掃碼觀看完整旅程</b>
-            Day {day} 的所有照片、補充故事、即時互動留言都在線上版
-          </div>
-        </aside>
-      )}
+      {/* 章節結尾 QR 已移除 — 統一指引只在序章與後記出現一次 */}
     </article>
   );
 }

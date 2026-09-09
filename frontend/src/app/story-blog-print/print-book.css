@@ -95,8 +95,8 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
   position: relative;
   overflow: hidden;
-  /* 內頁安全邊界 */
-  padding: 16mm 14mm 18mm;
+  /* 內頁安全邊界 — 上邊距縮到 8mm 讓頁頭貼頂端,不浪費空間 */
+  padding: 8mm 14mm 16mm;
   box-sizing: border-box;
   page-break-after: always;
   break-after: page;
@@ -116,18 +116,23 @@
   align-items: center;
   justify-content: space-between;
   text-align: center;
-  padding: 24mm 14mm 20mm;
+  padding: 14mm 14mm 16mm;
 }
 
 .print-book-cover-image {
   width: 100%;
   max-width: 120mm;
-  height: 130mm;
+  /* 自動高度,讓 <img> 1024×7228 全景圖保持原比例不被切 */
+  height: auto;
+  max-height: 130mm;
   background: #e8e4dc center/cover no-repeat;
   margin-bottom: 6mm;
   border-radius: 2px;
   /* 淡淡的紙感 */
   position: relative;
+  display: block;
+  object-fit: cover;
+  object-position: center top;
 }
 
 .print-book-cover-image::after {
@@ -139,26 +144,45 @@
 }
 
 .print-book-cover-title {
-  font-size: 32pt;
+  font-size: 26pt;
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   color: #1e293b;
   margin: 0 0 4mm;
-  line-height: 1.3;
+  line-height: 1.2;
+  position: relative;
+  /* 12字標題「2026 江南 8 天 7 夜遊記」+ 朱紅 chip (3.5mm + 3mm margin)
+     在 A5 cover 寬度 (~120mm = 454px @96dpi) 必須完整容納
+     26pt (34.67px font-size) × 12字 × letter-spacing → 約 415px
+     + chip 3.5mm (13.3px) + margin 3mm (11.4px) = 440px → 仍 fit 於 454px */
+  white-space: nowrap;
+  text-align: left;
+}
+
+.print-book-cover-title::before {
+  /* 標題左側朱紅 4mm 圓點 — 中國風印章感 */
+  content: "";
+  display: inline-block;
+  width: 3.5mm;
+  height: 3.5mm;
+  background: #dc2626;
+  border-radius: 50%;
+  margin-right: 3mm;
+  vertical-align: 0.18em;
 }
 
 .print-book-cover-subtitle {
-  font-size: 11pt;
+  font-size: 13pt;
   font-weight: 400;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.5em;
   color: #1e293b;
   opacity: 0.75;
   margin: 0 0 12mm;
 }
 
 .print-book-cover-season {
-  font-size: 14pt;
-  letter-spacing: 0.4em;
+  font-size: 16pt;
+  letter-spacing: 0.5em;
   color: #dc2626;
   font-weight: 700;
   margin: 0 0 2mm;
@@ -181,17 +205,17 @@
 }
 
 .print-book-frontispiece-line {
-  font-size: 14pt;
+  font-size: 18pt;
   color: #1e293b;
   letter-spacing: 0.2em;
-  margin: 4mm 0;
+  margin: 5mm 0;
 }
 
 .print-book-frontispiece-line:first-child {
-  font-size: 11pt;
+  font-size: 12pt;
   opacity: 0.5;
-  letter-spacing: 0.4em;
-  margin-bottom: 12mm;
+  letter-spacing: 0.5em;
+  margin-bottom: 14mm;
 }
 
 .print-book-frontispiece-line:last-child {
@@ -292,7 +316,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding-bottom: 8mm;
+  padding-bottom: 4mm;
+  margin-top: 0;
 }
 
 .print-book-day-label {
@@ -301,20 +326,21 @@
   color: #dc2626;
   font-weight: 700;
   text-transform: uppercase;
-  margin: 0 0 2mm;
+  margin: 0 0 1mm;
 }
 
 .print-book-day-title {
-  font-size: 32pt;
+  /* 統一節奏:縮到 28pt + 不截斷,長標題仍佔合理空間不犧牲內容 */
+  font-size: 28pt;
   font-weight: 900;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: #1e293b;
-  margin: 0 0 4mm;
-  line-height: 1.2;
+  margin: 0 0 2mm;
+  line-height: 1.15;
 }
 
 .print-book-day-date {
-  font-size: 9pt;
+  font-size: 10pt;
   letter-spacing: 0.3em;
   color: #1e293b;
   opacity: 0.55;
@@ -324,7 +350,7 @@
   width: 24mm;
   height: 2px;
   background: #dc2626;
-  margin: 4mm 0 6mm;
+  margin: 3mm 0 3mm;
 }
 
 /* === 照片區 === */
@@ -458,19 +484,19 @@
 }
 
 .print-book-photo-caption {
-  font-size: 8.5pt;
-  line-height: 1.5;
+  /* 完全統一:跟 story-title 同字級同字重同色 — 聖上要求「合適粗體就好」 */
+  font-size: 11pt;
+  line-height: 1.4;
+  font-weight: 700;
   color: #1e293b;
-  opacity: 0.65;
-  margin: 1mm 0 0;
-  font-style: italic;
-  letter-spacing: 0.02em;
+  margin: 2mm 0 3mm;
+  letter-spacing: 0.03em;
 }
 
 /* === 故事文字區 === */
 .print-book-story {
-  font-size: 9.2pt;
-  line-height: 1.42;
+  font-size: 10.5pt;
+  line-height: 1.65;
   color: #1e293b;
   letter-spacing: 0.04em;
   text-align: justify;
@@ -486,12 +512,13 @@
 }
 
 .print-book-story-title {
-  font-size: 12.5pt;
+  /* 統一成「合適粗體」:跟 photo-caption 同字級同色,粗體 700 */
+  font-size: 11pt;
   font-weight: 700;
   color: #1e293b;
-  margin: 2mm 0 1.5mm;
-  line-height: 1.25;
-  letter-spacing: 0.05em;
+  margin: 0 0 2mm;
+  line-height: 1.3;
+  letter-spacing: 0.04em;
   break-after: avoid;
   page-break-after: avoid;
 }
@@ -535,23 +562,24 @@
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 9pt;
+  font-size: 8pt;
   letter-spacing: 0.3em;
-  color: #1e293b;
-  opacity: 0.5;
+  color: #dc2626;
+  opacity: 0.75;
+  font-weight: 600;
   /* 樣式: — 12 — */
 }
 
 .print-book-page-number::before {
   content: "— ";
   margin-right: 6px;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .print-book-page-number::after {
   content: " —";
   margin-left: 6px;
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 /* === 章節起始頁面（不顯示頁碼） === */
@@ -591,8 +619,8 @@
 }
 
 .print-book-closing-body {
-  font-size: 11pt;
-  line-height: 1.9;
+  font-size: 12pt;
+  line-height: 1.95;
   color: #1e293b;
   letter-spacing: 0.05em;
   text-align: justify;
@@ -617,7 +645,7 @@
 }
 
 .print-book-qr-label {
-  font-size: 8pt;
+  font-size: 9pt;
   color: #1e293b;
   opacity: 0.55;
   letter-spacing: 0.1em;
@@ -646,15 +674,15 @@
 
 .print-book-qr-inline-text {
   flex: 1;
-  font-size: 8pt;
-  line-height: 1.5;
+  font-size: 9pt;
+  line-height: 1.55;
   color: #1e293b;
   letter-spacing: 0.05em;
 }
 
 .print-book-qr-inline-text b {
   display: block;
-  font-size: 9pt;
+  font-size: 10pt;
   margin-bottom: 1mm;
   color: #dc2626;
 }
@@ -757,11 +785,11 @@
   }
 
   .print-book-cover-title {
-    font-size: 24pt;
+    font-size: 28pt;
   }
 
   .print-book-day-title {
-    font-size: 24pt;
+    font-size: 22pt;
   }
 
   .print-book-closing-title {
