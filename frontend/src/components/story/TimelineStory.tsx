@@ -81,6 +81,8 @@ interface TimelineStoryProps {
   onMoveDown?: (id: string) => void;
   /** 🆕 8-10 聖上拍板: 重新潤飾 — 點擊開 RepolishModal 顯示原文 + LLM 潤飾版 + 採納 */
   onPolish?: (id: string) => void;
+  /** 🆕 9-20 聖上拍板: 精簡至 150 字 — 點擊開 ReshortenModal 顯示原文 + LLM 精簡版 + 採納 */
+  onShorten?: (id: string) => void;
   /** 🆕 2026-08-14 聖上拍板: 循環切換排版 (left-image → right-image → top-image → left-image) */
   onChangeLayout?: (id: string) => void;
   /** 🆕 2026-08-16 聖上拍板: 循環切換相框風格 (4 種) */
@@ -96,6 +98,7 @@ export default function TimelineStory({
   onMoveUp,
   onMoveDown,
   onPolish,
+  onShorten,
   onChangeLayout,
   onChangeFrame,
 }: TimelineStoryProps) {
@@ -273,6 +276,22 @@ export default function TimelineStory({
             className="w-9 h-9 md:w-7 md:h-7 bg-jn-paper/95 hover:bg-jn-gold active:scale-95 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-gold/60 touch-manipulation"
           >
             ⚙
+          </button>
+        )}
+        {/* 🆕 9-20 聖上拍板: 精簡至 150 字按鈕 — 開 ReshortenModal */}
+        {onShorten && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onShorten(post.id);
+              activatePanel();
+            }}
+            title="用 LLM 修整字數至 150 字 (意思與原文一致)"
+            aria-label="精簡至 150 字"
+            className="w-9 h-9 md:w-7 md:h-7 bg-jn-paper/95 hover:bg-jn-gold active:scale-95 text-jn-ink rounded shadow flex items-center justify-center text-sm border border-jn-gold/60 touch-manipulation"
+          >
+            ✂️
           </button>
         )}
         {/* 🆕 2026-08-14 聖上拍板: 循環切換排版 (圖左文右 / 圖右文左 / 圖上文下) */}

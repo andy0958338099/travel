@@ -17,6 +17,7 @@ import TimelineStory, { type PostRow } from "@/components/story/TimelineStory";
 import type { FrameStyle } from "@/components/story/PhotoFrame";
 import AddStoryModal from "@/components/story/AddStoryModal";
 import RepolishModal from "@/components/story/RepolishModal";
+import ReshortenModal from "@/components/story/ReshortenModal"; // 🆕 9-20 v2: 精簡至 150-200 字 modal
 import BackgroundMusicPlayer from "@/components/story/BackgroundMusicPlayer"; // 🆕 2026-08-14 聖上拍板: 部落格背景音樂
 import { toast } from "@/components/GlobalToastHost"; // 🆕 2026-08-15 聖上拍板 🅐: 送出後 router.refresh() + toast 接到全域 host
 
@@ -70,6 +71,8 @@ function StoryBlogPageInner() {
   const [modalDay, setModalDay] = useState(1);
   // 🆕 8-10 聖上拍板: 重新潤飾 modal state (article ⚙ 按鈕觸發)
   const [repolishPost, setRepolishPost] = useState<PostRow | null>(null);
+  // 🆕 9-20 聖上拍板: 精簡至 150 字 modal state (article ✂️ 按鈕觸發)
+  const [reshortenPost, setReshortenPost] = useState<PostRow | null>(null);
   // 🆕 2026-08-14 聖上拍板: hero 自動隱藏 (滾過後 sticky 起來 + 3 秒無動作 → fade out)
   const [heroHidden, setHeroHidden] = useState(false);
   const heroTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -236,6 +239,12 @@ function StoryBlogPageInner() {
   const handleRepolish = useCallback((id: string) => {
     const target = posts.find((p) => p.id === id);
     if (target) setRepolishPost(target);
+  }, [posts]);
+
+  // 🆕 9-20 聖上拍板: 精簡至 150 字 — 點 article ✂️ 觸發
+  const handleReshorten = useCallback((id: string) => {
+    const target = posts.find((p) => p.id === id);
+    if (target) setReshortenPost(target);
   }, [posts]);
 
   // 採納潤飾版 → 寫回 DB (RepolishModal 內已 PATCH, 這裡做樂觀更新)
@@ -517,6 +526,7 @@ function StoryBlogPageInner() {
         handleMoveUp={handleMoveUp}
         handleMoveDown={handleMoveDown}
         handleRepolish={handleRepolish}
+        handleReshorten={handleReshorten}  // 🆕 9-20 聖上拍板: 精簡至 150 字
         handleChangeLayout={handleChangeLayout}  // 🆕 2026-08-14 聖上拍板
         handleChangeFrame={handleChangeFrame}    // 🆕 2026-08-16 聖上拍板
         onOpenModal={openModal}
@@ -559,6 +569,17 @@ function StoryBlogPageInner() {
             : []
         }
       />
+
+      {/* 🆕 9-20 聖上拍板: 精簡至 150-200 字 modal (article ✂️ 按鈕觸發) */}
+      <ReshortenModal
+        open={reshortenPost !== null}
+        onClose={() => setReshortenPost(null)}
+        post={reshortenPost}
+        onAdopted={handleAdoptedPolished}
+        toast={(msg, kind) => { console.log(`[toast ${kind}] ${msg}`); }}
+        minLength={150}
+        maxLength={200}
+      />
     </main>
   );
 }
@@ -571,6 +592,7 @@ function CurrentDayContent({
   handleMoveUp,
   handleMoveDown,
   handleRepolish,
+  handleReshorten,  // 🆕 9-20 聖上拍板: 精簡至 150 字
   handleChangeLayout,  // 🆕 2026-08-14 聖上拍板
   handleChangeFrame,   // 🆕 2026-08-16 聖上拍板
   onOpenModal,
@@ -582,6 +604,7 @@ function CurrentDayContent({
   handleMoveUp: (id: string) => void;
   handleMoveDown: (id: string) => void;
   handleRepolish: (id: string) => void;  // 🆕 8-10
+  handleReshorten: (id: string) => void;  // 🆕 9-20
   handleChangeLayout: (id: string) => void;  // 🆕 2026-08-14 聖上拍板
   handleChangeFrame: (id: string) => void;   // 🆕 2026-08-16 聖上拍板
   onOpenModal: (day: number) => void;
@@ -617,8 +640,9 @@ function CurrentDayContent({
               onMoveUp={idx > 0 ? handleMoveUp : undefined}
               onMoveDown={idx < dayPosts.length - 1 ? handleMoveDown : undefined}
               onPolish={handleRepolish}  // 🆕 8-10
+              onShorten={handleReshorten}  // 🆕 9-20 聖上拍板: 精簡至 150 字
               onChangeLayout={handleChangeLayout}  // 🆕 2026-08-14 聖上拍板
-              onChangeFrame={handleChangeFrame}    // � 2026-08-16 聖上拍板
+              onChangeFrame={handleChangeFrame}    // 🆕 2026-08-16 聖上拍板
             />
           ))}
         </div>
