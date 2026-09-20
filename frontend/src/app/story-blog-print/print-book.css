@@ -95,8 +95,9 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12), 0 1px 4px rgba(0, 0, 0, 0.08);
   position: relative;
   overflow: hidden;
-  /* 內頁安全邊界 — 上邊距縮到 8mm 讓頁頭貼頂端,不浪費空間 */
-  padding: 8mm 14mm 16mm;
+  /* 🆕 9-20 v12: 聖上要求「第一張圖文與最上面距離再近一點」
+     上 padding 從 8mm 縮到 6mm (中間值), 避免太貼頂被裁切 */
+  padding: 6mm 14mm 16mm;
   box-sizing: border-box;
   page-break-after: always;
   break-after: page;
@@ -316,7 +317,8 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding-bottom: 4mm;
+  /* 🆕 9-20 v12: padding-bottom 從 4mm 縮到 1mm, 讓第一張圖文更靠近章節標題 */
+  padding-bottom: 1mm;
   margin-top: 0;
 }
 
@@ -350,7 +352,8 @@
   width: 24mm;
   height: 2px;
   background: #dc2626;
-  margin: 3mm 0 3mm;
+  /* 🆕 9-20 v12: margin 從 3mm 縮到 1.5mm, 縮 6mm→3mm 留白 */
+  margin: 1.5mm 0 1.5mm;
 }
 
 /* === 照片區 === */
@@ -375,9 +378,11 @@
 
 /* 沿用線上相本的四種相框，但以 A5 印刷比例收斂尺寸 */
 .print-book-post .print-book-photo-img {
-  box-sizing: content-box;
+  /* 🆕 9-20 v12: box-sizing border-box + width:100% 確保 border+padding+box-shadow 算在內,
+     防止圖片邊框溢到右欄文字 (聖上 page 13 看到的問題) */
+  box-sizing: border-box;
   display: block;
-  width: auto;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
   padding: 2.5mm;
@@ -794,5 +799,352 @@
 
   .print-book-closing-title {
     font-size: 18pt;
+  }
+}
+
+/* =====================================================================
+ * 🆕 2026-09-20: 三種排版方案 A / B / C 的差異化樣式
+ *
+ * - A 攝影雜誌: 圖佔 60-70% 高度, 文在下方窄區, 大留白
+ * - B 故事閱讀: 圖文 50:50, 中等密度, 適合長文字
+ * - C 高密度 (共頁): 兩篇並排 (CSS grid 2 column), 各佔 50% 寬
+ *
+ * 所有變化都透過 .print-book-post--{class} 在同一頁內調節。
+ * 列印媒體查詢下維持一致, 但 A 方案的留白稍縮以省紙。
+ * ===================================================================== */
+
+/* === 共用: 切換器 UI === */
+.print-book-layout-switcher {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #d4cfc4;
+  border-radius: 8px;
+  padding: 4px;
+  flex-wrap: wrap;
+}
+
+.print-book-chip {
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  color: #4a4a4a;
+  transition: background 0.15s, color 0.15s;
+  min-width: 90px;
+}
+
+.print-book-chip:hover {
+  background: #f5ebd5;
+  color: #1e293b;
+}
+
+.print-book-chip--active {
+  background: #dc2626;
+  color: #fff;
+}
+
+.print-book-chip--active:hover {
+  background: #991b1b;
+  color: #fff;
+}
+
+.print-book-chip-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.print-book-chip-sub {
+  font-size: 9px;
+  opacity: 0.85;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.print-book-page-estimate {
+  margin-left: 8px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: #6b6b6b;
+  border-left: 1px solid #d4cfc4;
+}
+
+.print-book-page-estimate b {
+  color: #dc2626;
+  font-size: 14px;
+  margin: 0 2px;
+}
+
+/* === 共頁容器: 兩篇並排 (C 方案) === */
+.print-book-paired-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4mm;
+  align-items: start;
+}
+
+/* === 🆕 9-20 v3: B 方案上下分割共頁容器 ===
+   聖上要求: 一頁 2 個主題, 上下分割, 每個主題「左文右圖, 標題在照片下方」
+   - Container 用 grid-template-areas 強制 2 row:
+     row 1: 標題+章節 (header)
+     row 2-3: 兩篇 post (各佔 1fr) */
+.print-book-b-stacked-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  /* 🆕 9-20 v6: 聖上要求「中間浪費空間太多」
+     原本 1fr 1fr 強制均分兩 row 高度, 導致內容少的 row 下方留白巨大
+     改用 auto auto: row 高度跟內容走, 中間不留多餘空間 */
+  grid-template-rows: auto auto auto;
+  gap: 4mm; /* gap 也縮 6→4mm, 兩主題更緊湊 */
+  align-items: start; /* 從 stretch 改 start, 避免 row 撐高 */
+}
+
+.print-book-b-stacked-container > .print-book-chapter-header {
+  grid-row: 1;
+}
+
+.print-book-b-stacked-container > .print-book-post--stacked-top {
+  grid-row: 2;
+}
+
+.print-book-b-stacked-container > .print-book-post--stacked-bottom {
+  grid-row: 3;
+  /* 🆕 9-20 v6: 聖上要求「中間浪費空間太多」
+     拿掉原本的 border-top + padding-top 分隔線, 兩主題緊貼排列 */
+}
+
+.print-book-post--stacked-top,
+.print-book-post--stacked-bottom {
+  /* 單 row 內: 左文右圖
+     🆕 9-20 v4: 聖上要求「直式照寬度只要 2/3」, 把 grid 從 40/60 改成 50/50,
+     並把右欄圖片 max-width 設為 66% (約 2/3), 讓左欄文字區更大
+     🆕 9-20 v11: 聖上要求「橫式照能借 A5 左右寬大一點避免壓文字」
+     從 50/50 改成 40/60: 左欄文 40% (夠放文字), 右欄圖 60% (可容納更大橫式照) */
+  display: grid;
+  grid-template-columns: 40% 60%; /* 文 40% / 圖 60%, 圖欄更寬 */
+  gap: 4mm;
+  align-items: start;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* 🆕 9-20 v9: 聖上要求「隨機左右讓視覺不易疲勞」
+   圖左文右: 把 grid 變成 image 在 col 1, 文在 col 2
+   並把 grid-template-columns 反轉 (圖欄 50% 在前, 文欄在後)
+   圖 H3 也跟著移到 col 1 */
+.print-book-post--image-left.print-book-post--stacked-top,
+.print-book-post--image-left.print-book-post--stacked-bottom {
+  grid-template-columns: 40% 60%; /* 🆕 v11: 同樣 40/60, 但圖在左欄 */
+}
+
+.print-book-post--image-left.print-book-post--stacked-top .print-book-story,
+.print-book-post--image-left.print-book-post--stacked-bottom .print-book-story {
+  grid-column: 2; /* 文移到右欄 */
+  grid-row: 1 / 3;
+}
+
+.print-book-post--image-left.print-book-post--stacked-top .print-book-photo,
+.print-book-post--image-left.print-book-post--stacked-bottom .print-book-photo {
+  grid-column: 1; /* 圖移到左欄 */
+  grid-row: 1;
+}
+
+.print-book-post--image-left.print-book-post--stacked-top .print-book-story-title,
+.print-book-post--image-left.print-book-post--stacked-bottom .print-book-story-title {
+  grid-column: 1; /* 標題跟圖同欄 */
+}
+
+/* 聖上要求: 標題放在照片下方, 不佔左邊文字區位置
+   實作: PostArticle 內 H3 用 order 排到 figure 後面,
+   但因為左欄是文 DIV, 右欄是 figure, 我們要重新分配 grid cells:
+   - 左欄 (40%): 純文字 .print-book-story (不含 H3)
+   - 右欄 (60%): 圖 .print-book-photo + H3 在下方 */
+/* 🆕 9-20 v7: 聖上要求「標題與照片的距離能非常近或者直接寫在照片上面」
+   B 共頁直式照右欄: 標題緊貼照片底緣 (margin-top: -1mm) + 緊湊行高,
+   讓視覺上標題「幾乎貼在照片上」, 不佔多餘高度 */
+.print-book-post--stacked-top .print-book-story-title,
+.print-book-post--stacked-bottom .print-book-story-title {
+  grid-column: 2;
+  font-size: 10.5pt; /* 略縮, 讓標題更精緻 */
+  font-weight: 700;
+  margin: -1mm 0 0; /* 負 margin 拉到照片上 */
+  padding: 0;
+  line-height: 1.25;
+  color: #1e293b;
+  order: 2;
+}
+
+.print-book-post--stacked-top .print-book-photo,
+.print-book-post--stacked-bottom .print-book-photo {
+  grid-column: 2;
+  grid-row: 1;
+  order: 1;
+  margin: 0 0 0; /* 照片下方無 margin */
+}
+
+.print-book-post--stacked-top .print-book-story,
+.print-book-post--stacked-bottom .print-book-story {
+  grid-column: 1;
+  grid-row: 1 / 3; /* 左欄跨整個高度 */
+  font-size: 9.5pt;
+  line-height: 1.55;
+}
+
+.print-book-post--stacked-top .print-book-photo-img,
+.print-book-post--stacked-bottom .print-book-photo-img {
+  /* B 共頁右欄, 圖 max-height 由 inline style 控 70mm
+     🆕 9-20 v4: 聖上要求「直式照寬度只要 2/3」, max-width 66%, 讓直式照不撐滿右欄
+     🆕 9-20 v8: 聖上要求「長型照片改為 90% 大小」, 再縮到 60% (≈ 0.9 × 2/3),
+     爭取更多垂直高度給文字
+     🆕 9-20 v10: 聖上要求「寬的橫式照片能多寬」, 橫式 (ratio > 1) 放寬到 100%,
+     因為橫式照本身矮, max-width 100% 不會爆版面, 直式照仍維持 60% */
+  max-width: 60%; /* 直式照 (預設, 後面 JSX 根據 orientation 覆寫) */
+  width: 100%;
+  object-fit: contain;
+  margin: 0 auto; /* 水平置中 */
+}
+
+/* 🆕 9-20 v10: 橫式照 (landscape) 放寬到 100% (撐滿右欄寬度)
+   為什麼安全: A5 右欄寬 ≈ 56mm (page 120mm / 2), 橫式照 aspect ratio 1.33
+   → max-height 70mm 限制下實際寬度 = 70/1.33 ≈ 52mm, 仍 fit 在 56mm 內 */
+.print-book-post--stacked-top .print-book-photo[data-orientation="landscape"] .print-book-photo-img,
+.print-book-post--stacked-bottom .print-book-photo[data-orientation="landscape"] .print-book-photo-img {
+  max-width: 100%;
+}
+
+/* 🆕 9-20 v12: 聖上要求「直式照不要留這麼多空」
+   之前 max-width: 35mm + object-fit: contain 讓直式照在 272px 寬容器裡只顯示 152px 寬,
+   左右留白 60px。改成 max-width: 100% + object-fit: cover 撐滿容器寬度 */
+.print-book-post--stacked-top .print-book-photo[data-orientation="portrait"] .print-book-photo-img,
+.print-book-post--stacked-bottom .print-book-photo[data-orientation="portrait"] .print-book-photo-img {
+  max-width: 100%;
+  /* object-fit: cover 從 base rule 繼承 (default), 圖片撐滿寬度, 直式照會被裁頂/底邊 */
+}
+
+/* 接近正方的也放寬一些 */
+.print-book-post--stacked-top .print-book-photo[data-orientation="square"] .print-book-photo-img,
+.print-book-post--stacked-bottom .print-book-photo[data-orientation="square"] .print-book-photo-img {
+  max-width: 80%;
+}
+
+.print-book-post--paired-left,
+.print-book-post--paired-right {
+  /* 在 grid container 內, 高度自動 */
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.print-book-post--paired-left .print-book-photo-img,
+.print-book-post--paired-right .print-book-photo-img {
+  max-height: 60mm; /* 共頁時圖片壓小, 留空間給文 */
+}
+
+.print-book-post--paired-left .print-book-story,
+.print-book-post--paired-right .print-book-story {
+  font-size: 9pt;
+  line-height: 1.55;
+}
+
+.print-book-post--paired-left .print-book-story-title,
+.print-book-post--paired-right .print-book-story-title {
+  font-size: 11pt;
+  margin-bottom: 1.5mm;
+}
+
+/* === 方案 A: 攝影雜誌 (大圖 + 短文) ===
+   🆕 9-20 v2: 標題縮 11.5pt (原本 14pt 太大吃掉版面), 圖 max-height 110mm, contain (避免長圖爆版面) */
+.print-book-post--photo-major {
+  /* 圖佔大部分, 文在下 */
+}
+
+.print-book-page--mode-A .print-book-post--photo-major .print-book-photo-img {
+  max-height: 110mm; /* A5 安全區 184mm, 大圖佔 60%, 不再 130/155 */
+  width: 100%;
+  object-fit: contain; /* 改 contain, 長圖完整呈現不被裁切 */
+}
+
+.print-book-page--mode-A .print-book-post--photo-major .print-book-story {
+  font-size: 10pt; /* 縮一點 (原本 10.5pt) */
+  line-height: 1.65;
+  max-width: 100%;
+}
+
+.print-book-page--mode-A .print-book-post--photo-major .print-book-story-title {
+  font-size: 11.5pt;
+  /* 🆕 9-20 v7: 標題緊貼照片底緣 (原本 2mm 太多) */
+  margin-top: 0.5mm;
+  margin-bottom: 0;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* === 方案 B: 故事閱讀 (圖文平衡) ===
+   🆕 9-20 v2: 標題 11.5pt (原本 13pt), 圖 max-height 95mm */
+.print-book-post--balanced {
+  display: grid;
+  grid-template-columns: 45% 55%;
+  gap: 4mm;
+  align-items: start;
+}
+
+.print-book-page--mode-B .print-book-post--balanced .print-book-photo-img {
+  max-height: 95mm; /* 縮 (原本 130mm 太大) */
+  width: 100%;
+  object-fit: contain;
+}
+
+.print-book-page--mode-B .print-book-post--balanced .print-book-story {
+  font-size: 10pt;
+  line-height: 1.65;
+}
+
+.print-book-page--mode-B .print-book-post--balanced .print-book-story-title {
+  font-size: 11.5pt;
+  /* 🆕 9-20 v7: 標題緊湊排列 (原本 2mm 太多) */
+  margin-top: 0;
+  margin-bottom: 0.5mm;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* === 方案 D: 原文呈現 (沿用原本 baseline) ===
+   🆕 9-20 v2: 不套 A/B 的 grid, 走原本的 print-book-post baseline
+   - 標題 11pt (CSS default)
+   - 圖 max-height 由 .print-book-photo-half-img 原本規則決定
+   - 共頁功能停用 (跟原本行為一致) */
+.print-book-post--original {
+  /* 不套 grid, 維持原本 .print-book-post 的直向 flow */
+  display: block;
+}
+
+.print-book-page--mode-D .print-book-post--original .print-book-photo-img {
+  /* 沿用原本 .print-book-photo-half-img 的 max-height (orientation-based)
+     但加寬寬度到 100% (讓圖佔滿頁面寬度而非 auto) */
+  width: 100%;
+  object-fit: contain;
+}
+
+/* === 全域安全防護: 長圖絕不超過 A5 安全區 75% ===
+   🆕 9-20 v2: 防止直式照 (0.56 ratio) 在任何方案下爆版面 */
+.print-book-page .print-book-photo-img {
+  max-height: 115mm; /* hard cap, A5 內文安全區 184mm 的 62% */
+}
+
+/* === 列印時隱藏切換器 === */
+@media print {
+  .print-book-layout-switcher {
+    display: none !important;
   }
 }
