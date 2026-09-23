@@ -167,10 +167,10 @@ type Page =
   | { kind: "cover"; trip: TripRow }
   | { kind: "frontispiece"; trip: TripRow }
   | { kind: "toc"; trip: TripRow; tocItems: { num: string; title: string; pageNum: number }[] }
-  | { kind: "chapter-intro"; day: number; dayTitle: string; dateStr: string; firstPost: PostRow | null; layoutMode: LayoutMode }
+  | { kind: "chapter-intro"; day: number; dayTitle: string; dateStr: string; firstPost: PostRow | null; layoutMode: LayoutMode; customLabel?: string }
   // 🆕 9-20: posts 改為二維, 每頁 1 或 2 篇 (方案 C 共頁)
   // 🆕 9-23: enrichTick 強制 re-mount PostArticle, 否則 post._orient mutate 但 React 看不到
-  | { kind: "chapter-stories"; day: number; posts: PostRow[]; layoutMode: LayoutMode; enrichTick: number; continueFromPage?: number };
+  | { kind: "chapter-stories"; day: number; posts: PostRow[]; layoutMode: LayoutMode; enrichTick: number; chapterTitle: string; continueFromPage?: number };
 
 export default function StoryBlogPrintPage() {
   const [trip, setTrip] = useState<TripRow | null>(null);
@@ -288,7 +288,7 @@ export default function StoryBlogPrintPage() {
       const dpages = paginateDay(rest, layoutMode);
       for (const slice of dpages) {
         if (slice.length === 2) pairCount++;
-        pages.push({ kind: "chapter-stories", day: 0, posts: slice, layoutMode, enrichTick });
+        pages.push({ kind: "chapter-stories", day: 0, posts: slice, layoutMode, enrichTick, chapterTitle: "序章" });
         chapterPage++;
       }
     }
@@ -297,15 +297,42 @@ export default function StoryBlogPrintPage() {
     for (let d = 1; d <= 8; d++) {
       const dPosts = dayPosts[d];
       if (!dPosts?.length) continue;
+      // 🆕 9-23 聖上拍板: 章節中文標題寫在 label, h2 title 保持「Day 0X」(跟其他天一致)
+      //   聖上 USER 偏好: 中文標題寫在 label, 不要寫在 h2 (跟序章 label「P R O L O G U E」+ h2「序章」對稱)
+      //   customLabelMap 集中管理 — 之後想改任何天都改這裡就好
+      const customLabelMap: Record<number, string> = {
+        1: `Day ${String(d).padStart(2, "0")} · 搭乘春秋航空抵達上海`,
+        2: `Day ${String(d).padStart(2, "0")} · 體會上海魔都`,
+        3: `Day ${String(d).padStart(2, "0")} · 西塘古鎮體搖擼船`,
+        4: `Day ${String(d).padStart(2, "0")} · 烏鎮西柵沈浸式體驗`,
+        5: `Day ${String(d).padStart(2, "0")} · 烏鎮早茶客體驗`,
+        6: `Day ${String(d).padStart(2, "0")} · 杭州宋城千古情`,
+        7: `Day ${String(d).padStart(2, "0")} · 杭州宮宴遊西湖`,
+        8: `Day ${String(d).padStart(2, "0")} · 遊南宋御街後返台`,
+      };
+      const customTitleMap: Record<number, string> = {
+        1: "搭乘春秋航空抵達上海",
+        2: "體會上海魔都",
+        3: "西塘古鎮體搖擼船",
+        4: "烏鎮西柵沈浸式體驗",
+        5: "烏鎮早茶客體驗",
+        6: "杭州宋城千古情",
+        7: "杭州宮宴遊西湖",
+        8: "遊南宋御街後返台",
+      };
+      const customLabel = customLabelMap[d] || null;
+      const customTitle = customTitleMap[d] || null;
+      const tocTitle = customTitle || dPosts[0].title || `Day ${d}`;
       toc.push({
         num: `Day ${String(d).padStart(2, "0")}`,
-        title: dPosts[0].title || `Day ${d}`,
+        title: tocTitle,
         pageNum: chapterPage,
       });
       pages.push({
         kind: "chapter-intro",
         day: d,
-        dayTitle: `Day ${String(d).padStart(2, "0")}`,
+        dayTitle: `Day ${String(d).padStart(2, "0")}`, // h2 title 始終是 Day 0X
+        customLabel: customLabel || undefined,
         dateStr: dayDate(d),
         firstPost: dPosts[0],
         layoutMode,
@@ -315,7 +342,7 @@ export default function StoryBlogPrintPage() {
       const dpages = paginateDay(rest, layoutMode);
       for (const slice of dpages) {
         if (slice.length === 2) pairCount++;
-        pages.push({ kind: "chapter-stories", day: d, posts: slice, layoutMode, enrichTick });
+        pages.push({ kind: "chapter-stories", day: d, posts: slice, layoutMode, enrichTick, chapterTitle: customTitle || `Day ${String(d).padStart(2, "0")}` });
         chapterPage++;
       }
     }
@@ -337,7 +364,7 @@ export default function StoryBlogPrintPage() {
       const dpages = paginateDay(rest, layoutMode);
       for (const slice of dpages) {
         if (slice.length === 2) pairCount++;
-        pages.push({ kind: "chapter-stories", day: 9, posts: slice, layoutMode, enrichTick });
+        pages.push({ kind: "chapter-stories", day: 9, posts: slice, layoutMode, enrichTick, chapterTitle: "後記" });
         chapterPage++;
       }
     }
@@ -443,10 +470,11 @@ function PageRenderer({ page, pageNum }: { page: Page; pageNum: number }) {
           dateStr={page.dateStr}
           firstPost={page.firstPost}
           layoutMode={page.layoutMode}
+          customLabel={page.customLabel}
         />
       )}
       {page.kind === "chapter-stories" && (
-        <ChapterStories day={page.day} posts={page.posts} layoutMode={page.layoutMode} enrichTick={page.enrichTick} />
+        <ChapterStories day={page.day} posts={page.posts} layoutMode={page.layoutMode} enrichTick={page.enrichTick} chapterTitle={page.chapterTitle} />
       )}
 
       {showPageNum && <div className="print-book-page-number">{pageNum}</div>}
@@ -534,18 +562,35 @@ function ChapterIntro({
   dateStr,
   firstPost,
   layoutMode,
+  customLabel,
 }: {
   day: number;
   dayTitle: string;
   dateStr: string;
   firstPost: PostRow | null;
   layoutMode: LayoutMode;
+  customLabel?: string;
 }) {
+  // 🆕 9-23 聖上拍板: 章節中文標題統一, 寫在 label + caption (避免 DB post.title 跟 hero 矛盾)
+  //   對應的 day 列表見 useMemo/paginateDay 的 customLabelMap + customTitleMap
+  const customCaptionMap: Record<number, string> = {
+    1: "搭乘春秋航空抵達上海",
+    2: "體會上海魔都",
+    3: "西塘古鎮體搖擼船",
+    4: "烏鎮西柵沈浸式體驗",
+    5: "烏鎮早茶客體驗",
+    6: "杭州宋城千古情",
+    7: "杭州宮宴遊西湖",
+    8: "遊南宋御街後返台",
+  };
+  const customCaption = customCaptionMap[day] || null;
+  const displayCaption = customCaption || firstPost?.title;
   return (
     <div className="print-book-chapter">
       <div className="print-book-chapter-header">
+        {/* 🆕 9-23: customLabel 優先 (D1 用「Day 01 · 搭乘春秋航空抵達上海」), 其他天用標準 label */}
         <p className="print-book-day-label">
-          {day === 0 ? "P R O L O G U E" : day === 9 ? "E P I L O G U E" : `D A Y  ${String(day).padStart(2, "0")}`}
+          {customLabel || (day === 0 ? "P R O L O G U E" : day === 9 ? "E P I L O G U E" : `D A Y  ${String(day).padStart(2, "0")}`)}
         </p>
         <h2 className="print-book-day-title">{dayTitle}</h2>
         <div className="print-book-day-divider" />
@@ -572,8 +617,10 @@ function ChapterIntro({
               width: "100%",
             }}
           />
-          {firstPost.title && firstPost.title !== dayTitle && (
-            <figcaption className="print-book-photo-caption">{firstPost.title}</figcaption>
+          {/* 🆕 9-23: 改用 displayCaption (D1 用 customTitle, 其他天用 firstPost.title)
+             注意: 當 caption 跟 dayTitle 相同時仍顯示 (D1 自訂, 跟 hero 標題一致) */}
+          {displayCaption && (
+            <figcaption className="print-book-photo-caption">{displayCaption}</figcaption>
           )}
         </figure>
       )}
@@ -636,7 +683,7 @@ function ChapterIntro({
 }
 
 // === 章節故事頁 (1 或 2 篇 post / 每頁, 由 layoutMode 決定) ===
-function ChapterStories({ day, posts, layoutMode, enrichTick }: { day: number; posts: PostRow[]; layoutMode: LayoutMode; enrichTick: number }) {
+function ChapterStories({ day, posts, layoutMode, enrichTick, chapterTitle }: { day: number; posts: PostRow[]; layoutMode: LayoutMode; enrichTick: number; chapterTitle: string }) {
   const paired = posts.length === 2;
   // 🆕 9-20 v3: B 模式 → 上下分割 (B-stacked-container), C 模式 → 左右並排 (paired-container)
   const containerClass = paired && layoutMode === "B"
@@ -683,9 +730,25 @@ function ChapterStories({ day, posts, layoutMode, enrichTick }: { day: number; p
       {/* 🆕 9-20 v22: 移除 inline paddingBottom, 用 CSS 控制 (避免上方留白過大) */}
       <div className="print-book-chapter-header">
         <p className="print-book-day-label" style={{ fontSize: "9pt", letterSpacing: "0.4em" }}>
-          {day === 9 ? "E P I L O G U E · 續" : day === 0 ? "P R O L O G U E · 續" : `D A Y  ${String(day).padStart(2, "0")} · 續`}
+          {/* 🆕 9-23: 續頁 label 用 continueLabelMap lookup (跟 customTitleMap 對齊), 集中管理 */}
+          {(() => {
+            const continueLabelMap: Record<number, string> = {
+              1: "搭乘春秋航空抵達上海",
+              2: "體會上海魔都",
+              3: "西塘古鎮體搖擼船",
+              4: "烏鎮西柵沈浸式體驗",
+              5: "烏鎮早茶客體驗",
+              6: "杭州宋城千古情",
+              7: "杭州宮宴遊西湖",
+              8: "遊南宋御街後返台",
+            };
+            const cn = continueLabelMap[day];
+            if (cn) return `D A Y  ${String(day).padStart(2, "0")} · ${cn}`;
+            if (day === 9) return "E P I L O G U E · 續";
+            if (day === 0) return "P R O L O G U E · 續";
+            return `D A Y  ${String(day).padStart(2, "0")} · 續`;
+          })()}
         </p>
-        {/* 🆕 v22: divider margin 縮到 0.5mm, 不再留 4mm 大空隙 */}
         <div className="print-book-day-divider" style={{ margin: "0.5mm 0" }} />
       </div>
 
