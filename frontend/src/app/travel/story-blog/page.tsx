@@ -474,26 +474,47 @@ function StoryBlogPageInner() {
       </nav>
 
       {/* Hero — 🆕 2026-08-14 聖上拍板: 3 秒無動作自動 fade + collapse */}
+      {/* 🆕 9-24 聖上拍板 🅐: 中國風加強 — 雲頭紋上下邊界 (.hero-cloud-edge) + 硃砂暈染紋理 (.hero-rice-overlay)
+          只在現有結構外加一層 div, 不動 heroHidden / overflow / transition */}
       <header
-        className={`relative bg-gradient-to-br from-jn-vermilion via-jn-vermilion-deep to-jn-ink text-jn-paper overflow-hidden transition-all duration-700 ease-in-out ${
+        className={`relative bg-gradient-to-br from-jn-vermilion via-jn-vermilion-deep to-jn-ink text-jn-paper overflow-hidden transition-all duration-700 ease-in-out hero-cloud-edge ${
           heroHidden ? "max-h-0 opacity-0" : "max-h-[600px] opacity-100"
         }`}
         style={{ transitionProperty: "max-height, opacity" }}
       >
-        <div className="max-w-4xl mx-auto text-center py-10 md:py-16 px-4">
-          <p className="text-jn-gold-light text-sm tracking-widest mb-2">江南水鄉 · 八日遊記</p>
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black leading-tight mb-4">
-            {trip?.title || "2026 江南 8 天 7 夜遊記"}
+        <div className="hero-rice-overlay absolute inset-0 pointer-events-none" aria-hidden="true" />
+        <div className="relative max-w-4xl mx-auto text-center py-10 md:py-16 px-4">
+          {/* 🆕 9-24 v2: 朱紅印章 chip 副標 — 字級 12→14 + 加浮雕陰影 */}
+          <div className="mb-3 flex justify-center">
+            <span
+              className="chinese-seal inline-block px-4 py-1.5 text-sm tracking-widest rounded font-bold"
+              style={{ boxShadow: "0 2px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.18)" }}
+            >
+              江南水鄉 · 八日遊記
+            </span>
+          </div>
+          <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl font-black leading-tight mb-4">
+            {/* 9-24 v3: 「標題暗暗」聖上回報修正 — 拿掉 v2 的陰影疊加 (黑色 0.45 + 硃砂描邊)
+                改用「下方內陰影」+「金黃發光」, 讓金/米字從紅底浮出來, 不靠陰影對抗 */}
+            <span
+              className="jn-title-gradient inline-block"
+              style={{
+                backgroundImage: "linear-gradient(110deg, #fbbf24 0%, #f59e0b 55%, #fef3c7 100%)",
+                filter: "drop-shadow(0 0 14px rgba(254, 243, 199, 0.55)) drop-shadow(0 1px 0 rgba(153, 27, 27, 0.35))",
+              }}
+            >
+              {trip?.title || "2026 江南 8 天 7 夜遊記"}
+            </span>
           </h1>
           {trip?.description && (
-            <p className="text-jn-paper/85 text-lg max-w-2xl mx-auto">{trip.description}</p>
+            <p className="text-jn-paper/85 text-lg max-w-2xl mx-auto font-serif">{trip.description}</p>
           )}
           <div className="mt-6 flex justify-center gap-6 text-sm text-jn-paper/70">
             <span>📍 上海 → 西塘 → 烏鎮 → 杭州</span>
             <span>👥 13 位親友</span>
             <span>📝 {posts.length} 個故事</span>
           </div>
-          {/* 🆕 2026-08-19 聖上拍板 �a: 兩顆 CTA 移到 hero 內 (stats 列下方, 水平同列)
+          {/* 🆕 2026-08-19 聖上拍板a: 兩顆 CTA 移到 hero 內 (stats 列下方, 水平同列)
               - 背景音樂 (被動) + 補充故事 (主動寫作)
               - 原本 fixed bottom floating 全部刪掉, 文章區乾淨無干擾 */}
           <div className="mt-5 flex justify-center items-center gap-3 flex-wrap">

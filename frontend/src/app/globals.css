@@ -101,6 +101,40 @@ h1, h2, h3, .font-serif {
     background-size: 30px 30px;
   }
 
+  /* 🆕 9-24 聖上拍板 🅐: 中國風 hero 用 — 朱紅漸層 + 宣紙紋理 + 金光浮動
+     - 在 bg-gradient 之上疊一層 radial 雜訊,模擬「硃砂暈染」效果
+     - 紋理 SVG data URI, 跟 .rice-paper 同一手法但更密更艷 */
+  .hero-rice-overlay {
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(251, 191, 36, 0.10) 0%, transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(254, 243, 199, 0.08) 0%, transparent 35%),
+      radial-gradient(circle at 50% 50%, rgba(153, 27, 27, 0.20) 0%, transparent 60%);
+  }
+
+  /* 🆕 9-24: 卷軸雲頭紋 (hero 上下邊界) — SVG 如意雲頭輪廓,非 Q sin
+     path: M0,7 → arc 上 → arc 下 → 收, 對稱雲頭 */
+  .hero-cloud-edge::before,
+  .hero-cloud-edge::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 20px;  /* 9-24 v2: 14→20 如意雲頭更有存在感 */
+    pointer-events: none;
+    background-repeat: repeat-x;
+    background-size: 96px 20px;
+    opacity: 0.40;  /* 9-24 v2: 0.55→0.40 降飽和, 不蓋 CTA */
+  }
+  .hero-cloud-edge::before {
+    top: 0;
+    /* 如意雲頭: 兩個對稱卷雲頭 + 中間垂下的橫段 */
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 16' preserveAspectRatio='none'><path fill='%23fbbf24' d='M0,16 L0,10 Q6,2 12,10 Q18,2 24,10 Q30,16 36,10 Q42,2 48,10 Q54,2 60,10 Q66,2 72,10 Q78,2 80,10 L80,16 Z'/></svg>");
+  }
+  .hero-cloud-edge::after {
+    bottom: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 16' preserveAspectRatio='none'><path fill='%23fef3c7' d='M0,0 L80,0 L80,6 Q74,14 68,6 Q62,14 56,6 Q50,14 44,6 Q38,14 32,6 Q26,14 20,6 Q14,14 8,6 Q2,14 0,6 Z'/></svg>");
+  }
+
   /* 🆕 2026-07-02 江楠 family pack — page level background */
   .jn-page-bg {
     background: var(--jn-gradient-2);
