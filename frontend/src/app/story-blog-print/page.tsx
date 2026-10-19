@@ -18,6 +18,10 @@ import { useEffect, useState, useMemo, useRef, useLayoutEffect, useCallback } fr
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 import { qrSvg } from "./lib/qr-svg";
+import {
+  buildChunks,
+  type DownloadProgress,
+} from "./lib/download-utils";
 import "./print-book.css";
 
 /**
@@ -177,6 +181,9 @@ export default function StoryBlogPrintPage() {
   const [posts, setPosts] = useState<PostRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 🆕 10-19: 主容器 ref,DownloadPanel 透過它抓所有 .print-book-page
+  const mainRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -416,7 +423,7 @@ export default function StoryBlogPrintPage() {
   }
 
   return (
-    <main className="print-book-screen">
+    <main ref={mainRef} className="print-book-screen">
       {/* 螢幕上方的操作列 (列印時自動隱藏) */}
       <div className="print-book-controls">
         <div className="print-book-controls-text">
@@ -439,6 +446,11 @@ export default function StoryBlogPrintPage() {
           </button>
         </div>
       </div>
+
+      {/* 🆕 10-19 聖上指示: 加 PDF 下載 (全下載 + 每 10 頁分檔) */}
+      {pages.length > 0 && (
+        <DownloadPanel pagesContainerRef={mainRef} totalPages={pages.length} />
+      )}
 
       {/* 章節內容 */}
       {pages.map((page, idx) => (
@@ -1327,6 +1339,218 @@ function layoutClassFor(mode: LayoutMode, index: number, total: number, post: Po
     return "print-book-post--solo";
   }
   return "print-book-post--balanced";
+}
+
+/**
+ * 🆕 2026-10-19 聖上指示: PDF 下載面板
+ *
+ * 兩種下載模式:
+ *   1. 「全部下載」 — 一個 PDF 檔含所有頁 (按 pdf.save 自動觸發瀏覽器下載)
+ *   2. 「每 10 頁分開下載」 — 自動切 N 個 chip, 點擊獨立下載
+ *
+ * 機制: jsPDF + html2canvas 拼成 A5 直式 PDF (見 lib/download-utils.ts)
+ */
+function DownloadPanel({
+  pagesContainerRef,
+  totalPages,
+}: {
+  pagesContainerRef: React.RefObject<HTMLElement | null>;
+  totalPages: number;
+}) {
+  const [progress, setProgress] = useState<DownloadProgress | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  // 控制「下載中」狀態, disable 所有按鈕 + 顯示取消鈕
+  const [busyKey, setBusyKey] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const chunks = useMemo(() => buildChunks(totalPages, 10), [totalPages]);
+
+  const runDownload = async (key: string, range: string, filename: string, pageCount: number) => {
+    setError(null);
+    setSuccess(null);
+    setProgress(null);
+    setBusyKey(key);
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    try {
+      // 顯示「準備中」狀態 (Puppeteer PDF 沒有分頁進度, 只有 ready + done)
+      setProgress({
+        current: 0,
+        total: pageCount,
+        percent: 5,
+        message: "叫 puppeteer 開 Chrome headless, 跑本機 /story-blog-print 拍 A5 PDF…",
+      });
+
+      const res = await fetch(
+        `/api/story-blog/print-pdf?range=${encodeURIComponent(range)}`,
+        { signal: controller.signal }
+      );
+
+      if (!res.ok) {
+        let msg = `HTTP ${res.status}`;
+        try {
+          const j = await res.json();
+          if (j.error) msg = j.error;
+          if (j.hint) msg += ` (${j.hint})`;
+        } catch {}
+        throw new Error(msg);
+      }
+
+      // 拿到 PDF blob
+      setProgress({
+        current: Math.floor(pageCount * 0.95),
+        total: pageCount,
+        percent: 95,
+        message: "PDF 從 server 送回, 正在存檔…",
+      });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      // 從 Content-Disposition 抓 server 提供的檔名 (or fallback)
+      const cd = res.headers.get("content-disposition") || "";
+      const m = cd.match(/filename="?([^";]+)"?/);
+      const finalName = m ? m[1] : filename;
+
+      // 自動 trigger 下載
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = finalName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // 30 秒後釋放 URL (給瀏覽器時間下載完)
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+
+      setSuccess(
+        `✅ ${finalName} 下載完成 (${(blob.size / 1024 / 1024).toFixed(2)} MB)`
+      );
+    } catch (e) {
+      const msg = (e as Error).message ?? String(e);
+      if (msg === "aborted" || msg.toLowerCase().includes("aborted")) {
+        setError("已取消下載");
+      } else {
+        setError(`下載失敗: ${msg}`);
+      }
+    } finally {
+      setBusyKey(null);
+      setProgress(null);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleCancel = () => {
+    abortControllerRef.current?.abort();
+  };
+
+  const isBusy = busyKey !== null;
+
+  return (
+    <section className="print-book-download-panel" aria-label="PDF 下載">
+      <header className="print-book-download-panel-header">
+        <div>
+          <div className="print-book-download-panel-title">📥 下載 PDF</div>
+          <div className="print-book-download-panel-sub">
+            全部 {totalPages} 頁 = {chunks.length} 個分檔 (每 10 頁一檔) · 走 jsPDF + html2canvas 拼成 A5 直式
+          </div>
+        </div>
+        <div className="print-book-download-actions">
+          <button
+            type="button"
+            className="print-book-download-btn print-book-download-btn--primary"
+            disabled={isBusy}
+            onClick={() =>
+              runDownload("full", "full", "story-blog-A5-full.pdf", totalPages)
+            }
+            title="下載完整 PDF — Puppeteer 拍約 3-7 分鐘,請耐心等候"
+          >
+            📦 全部下載 ({totalPages} 頁)
+          </button>
+          {/* 🆕 10-19 v2 聖上指示: 先跑前 30 頁證明 Puppeteer 通了,
+              smoke test 跑完再決定要不要跑完整 374 頁 */}
+          <button
+            type="button"
+            className="print-book-download-btn"
+            disabled={isBusy}
+            onClick={() =>
+              runDownload(
+                "preview30",
+                "1-30",
+                "story-blog-A5-preview-30.pdf",
+                30
+              )
+            }
+            title="下載前 30 頁,30-60 秒拿到 — 證明 Puppeteer 拍 PDF 通"
+          >
+            ⚡ 前 30 頁 (smoke test)
+          </button>
+          {isBusy && (
+            <button
+              type="button"
+              className="print-book-download-btn"
+              onClick={handleCancel}
+            >
+              ✖ 取消
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* 10 頁分檔 chip */}
+      <div className="print-book-download-chunks">
+        <span className="print-book-download-chunks-label">分檔下載 (每 10 頁):</span>
+        {chunks.map((c) => {
+          const chipKey = `chunk-${c.startIdx}`;
+          const isCurrent = busyKey === chipKey;
+          const rangeStr = c.startIdx === c.endIdx
+            ? `${c.startIdx + 1}`
+            : `${c.startIdx + 1}-${c.endIdx + 1}`;
+          return (
+            <button
+              key={chipKey}
+              type="button"
+              className="print-book-download-chunk-chip"
+              disabled={isBusy && !isCurrent}
+              onClick={() =>
+                runDownload(chipKey, rangeStr, c.filename, c.endIdx - c.startIdx + 1)
+              }
+              title={c.filename}
+            >
+              {c.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 進度條 */}
+      {progress && (
+        <div className="print-book-download-progress">
+          <div>
+            <b>準備中…</b> 第 {progress.current}/{progress.total} 頁 ({progress.percent}%)
+          </div>
+          <div className="print-book-download-progress-bar" aria-hidden="true">
+            <div
+              className="print-book-download-progress-fill"
+              style={{ width: `${progress.percent}%` }}
+            />
+          </div>
+          <div className="print-book-download-progress-message">
+            {progress.message}
+          </div>
+        </div>
+      )}
+
+      {success && !progress && (
+        <div className="print-book-download-success">{success}</div>
+      )}
+
+      {error && (
+        <div className="print-book-download-error">{error}</div>
+      )}
+    </section>
+  );
 }
 
 /**

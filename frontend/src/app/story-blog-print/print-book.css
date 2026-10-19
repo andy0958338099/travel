@@ -1342,7 +1342,187 @@
 
 /* === 列印時隱藏切換器 === */
 @media print {
-  .print-book-layout-switcher {
+  .print-book-layout-switcher,
+  .print-book-download-panel {
     display: none !important;
   }
+}
+
+/* ============================================================
+ * 🆕 2026-10-19 聖上指示: 加 PDF 下載 (全下載 + 每 10 頁分開下載)
+ * 工具: jsPDF + html2canvas (見 lib/download-utils.ts)
+ * ============================================================ */
+
+.print-book-download-panel {
+  /* sticky 在 controls 列下方, 不擋主視覺 */
+  position: sticky;
+  top: 56px;
+  z-index: 90;
+  background: rgba(250, 250, 249, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid #d4cfc4;
+  margin: 0 0 24px;
+  padding: 14px 16px;
+  font-family: "Noto Serif TC", "Source Han Serif TC", serif;
+}
+
+.print-book-download-panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.print-book-download-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.print-book-download-panel-sub {
+  font-size: 12px;
+  color: #4a4a4a;
+  opacity: 0.7;
+}
+
+.print-book-download-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.print-book-download-btn {
+  background: #fafaf9;
+  border: 1.2px solid #991b1b;
+  color: #991b1b;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.print-book-download-btn:hover:not(:disabled) {
+  background: #dc2626;
+  color: #fafaf9;
+  border-color: #991b1b;
+}
+
+.print-book-download-btn--primary {
+  background: #dc2626;
+  color: #fafaf9;
+  border-color: #991b1b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.print-book-download-btn--primary:hover:not(:disabled) {
+  background: #991b1b;
+  color: #fafaf9;
+  border-color: #7f1d1d;
+}
+
+.print-book-download-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #e5e7eb;
+  color: #6b7280;
+  border-color: #d4d4d4;
+}
+
+.print-book-download-chunks {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.print-book-download-chunks-label {
+  margin-right: 8px;
+  color: #4a4a4a;
+  align-self: center;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.print-book-download-chunk-chip {
+  background: #fafaf9;
+  border: 1px solid #d4cfc4;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 5px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.print-book-download-chunk-chip:hover:not(:disabled) {
+  background: #fef3c7;
+  border-color: #d4a72c;
+}
+
+.print-book-download-chunk-chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.print-book-download-progress {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #1e293b;
+}
+
+.print-book-download-progress-bar {
+  height: 8px;
+  background: #fde68a;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.print-book-download-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #dc2626 0%, #b91c1c 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease-out;
+}
+
+.print-book-download-progress-message {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: #4a4a4a;
+  margin-top: 4px;
+}
+
+.print-book-download-success {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 4px;
+  color: #065f46;
+  font-size: 12px;
+}
+
+.print-book-download-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  color: #991b1b;
+  font-size: 12px;
 }
