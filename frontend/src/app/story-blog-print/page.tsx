@@ -1364,6 +1364,16 @@ function DownloadPanel({
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // 🆕 10-19 v3: 偵測是否本機 dev server (puppeteer 跑得起來的條件)
+  //   - localhost:* 都算本機
+  //   - Netlify deploy domain 不算 (puppeteer 沒 Chrome binary)
+  const [isLocalDev, setIsLocalDev] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const host = window.location.hostname;
+    setIsLocalDev(host === "localhost" || host === "127.0.0.1");
+  }, []);
+
   const chunks = useMemo(() => buildChunks(totalPages, 10), [totalPages]);
 
   const runDownload = async (key: string, range: string, filename: string, pageCount: number) => {
@@ -1374,6 +1384,8 @@ function DownloadPanel({
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
+    // 客戶端 timeout: 7 分鐘 (Puppeteer 374 頁 PDF 可能 3-5 分鐘)
+    const clientTimeout = setTimeout(() => controller.abort(), 420000);
     try {
       // 顯示「準備中」狀態 (Puppeteer PDF 沒有分頁進度, 只有 ready + done)
       setProgress({
@@ -1391,10 +1403,18 @@ function DownloadPanel({
       if (!res.ok) {
         let msg = `HTTP ${res.status}`;
         try {
-          const j = await res.json();
-          if (j.error) msg = j.error;
-          if (j.hint) msg += ` (${j.hint})`;
-        } catch {}
+          const text = await res.text();
+          // 試 parse JSON,失敗就保留 raw text
+          try {
+            const j = JSON.parse(text);
+            if (j.error) msg = j.error;
+            if (j.hint) msg += `\n💡 ${j.hint}`;
+          } catch {
+            msg = text.slice(0, 300) || `HTTP ${res.status}`;
+          }
+        } catch (e) {
+          msg = `HTTP ${res.status} (讀取錯誤訊息失敗)`;
+        }
         throw new Error(msg);
       }
 
@@ -1435,6 +1455,7 @@ function DownloadPanel({
         setError(`下載失敗: ${msg}`);
       }
     } finally {
+      clearTimeout(clientTimeout);
       setBusyKey(null);
       setProgress(null);
       abortControllerRef.current = null;
@@ -1446,6 +1467,7 @@ function DownloadPanel({
   };
 
   const isBusy = busyKey !== null;
+  const buttonsDisabled = isBusy || !isLocalDev;
 
   return (
     <section className="print-book-download-panel" aria-label="PDF 下載">
@@ -1453,18 +1475,44 @@ function DownloadPanel({
         <div>
           <div className="print-book-download-panel-title">📥 下載 PDF</div>
           <div className="print-book-download-panel-sub">
-            全部 {totalPages} 頁 = {chunks.length} 個分檔 (每 10 頁一檔) · 走 jsPDF + html2canvas 拼成 A5 直式
+            全部 {totalPages} 頁 = {chunks.length} 個分檔 (每 10 頁一檔)
+            {!isLocalDev && (
+              <> · <b style={{ color: "#dc2626" }}>本機開發限定</b> — Production 站請用瀏覽器列印 → 另存 PDF</>
+            )}
           </div>
+          {!isLocalDev && (
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12,
+                color: "#4a4a4a",
+                background: "#fef3c7",
+                padding: "6px 10px",
+                borderRadius: 4,
+                border: "1px solid #fde68a",
+              }}
+            >
+              💡 Puppeteer 在 Netlify Production 沒安裝 Chrome binary (需 200MB binary + cold start 設定)。
+              <br />
+              <b>本機開發限定</b>: 在本機執行 <code>npm run dev</code> 後到 <code>http://localhost:3000/story-blog-print</code> 即可下載。
+              <br />
+              Production 站請用瀏覽器 <b>右上 🖨️ 列印收藏版</b> → 另存為 PDF。
+            </div>
+          )}
         </div>
         <div className="print-book-download-actions">
           <button
             type="button"
             className="print-book-download-btn print-book-download-btn--primary"
-            disabled={isBusy}
+            disabled={buttonsDisabled}
             onClick={() =>
               runDownload("full", "full", "story-blog-A5-full.pdf", totalPages)
             }
-            title="下載完整 PDF — Puppeteer 拍約 3-7 分鐘,請耐心等候"
+            title={
+              isLocalDev
+                ? "下載完整 PDF — Puppeteer 拍約 3-7 分鐘,請耐心等候"
+                : "本機開發限定 — Production 不支援 Puppeteer"
+            }
           >
             📦 全部下載 ({totalPages} 頁)
           </button>
@@ -1473,7 +1521,7 @@ function DownloadPanel({
           <button
             type="button"
             className="print-book-download-btn"
-            disabled={isBusy}
+            disabled={buttonsDisabled}
             onClick={() =>
               runDownload(
                 "preview30",
@@ -1482,7 +1530,11 @@ function DownloadPanel({
                 30
               )
             }
-            title="下載前 30 頁,30-60 秒拿到 — 證明 Puppeteer 拍 PDF 通"
+            title={
+              isLocalDev
+                ? "下載前 30 頁,30-60 秒拿到 — 證明 Puppeteer 拍 PDF 通"
+                : "本機開發限定 — Production 不支援 Puppeteer"
+            }
           >
             ⚡ 前 30 頁 (smoke test)
           </button>
@@ -1512,7 +1564,7 @@ function DownloadPanel({
               key={chipKey}
               type="button"
               className="print-book-download-chunk-chip"
-              disabled={isBusy && !isCurrent}
+              disabled={buttonsDisabled && !isCurrent}
               onClick={() =>
                 runDownload(chipKey, rangeStr, c.filename, c.endIdx - c.startIdx + 1)
               }
