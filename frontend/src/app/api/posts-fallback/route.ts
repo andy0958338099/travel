@@ -2,17 +2,23 @@
  * GET /api/posts-fallback?trip_id=<uuid>
  *
  * 🆕 2026-11-14: Supabase REST 不可用時的部落格資料來源
+ * 🆕 2026-11-15: 改為「Blobs 快照優先」—— 完全脫離 Supabase
  *
  * Supabase 專案被 spend cap 限制時（402 exceed_cached_egress_quota），
  * 前端 createClient() 拿不到 posts，部落格顯示「0 個故事」。
- * 這支 route 改走 pooler 直連 Postgres（同一份 DB，資料不分叉），
- * 並把 image_url 改寫成本地圖片代理網址。
+ *
+ * 讀取順序：
+ *   1. Netlify Blobs 快照 `content/site-content.json`（線上主路徑，不碰 Supabase）
+ *   2. repo 內靜態快照（離線 / Blobs 故障保底）
+ *   3. Supabase pooler（快照不存在時的最後手段，仍是 Supabase）
+ *
+ * image_url 改寫成圖片代理網址，圖片來源見 /api/local-image。
  *
  * 只讀。回傳格式與 `supabase.from('posts').select('*')` 一致。
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { localQuery } from "@/lib/localFallback";
+import { getSiteContent, type SitePost } from "@/lib/siteContent";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,6 +38,18 @@ interface PostRow {
   frame_style: string | null;
 }
 
+/** 把 image_url 改寫成圖片代理網址 */
+function rewriteImageUrl(p: SitePost) {
+  return {
+    ...p,
+    image_url: p.image_url
+      ? `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200`
+      : null,
+    // 保留原始 Storage 網址，方便之後恢復時比對
+    original_image_url: p.image_url,
+  };
+}
+
 export async function GET(req: NextRequest) {
   const tripId = req.nextUrl.searchParams.get("trip_id");
   const table = req.nextUrl.searchParams.get("table") || "posts";
@@ -41,7 +59,42 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "不支援的表" }, { status: 400 });
   }
 
+  // ── 1) Blobs / 靜態快照（主路徑） ──
+  const content = await getSiteContent();
+  if (content) {
+    if (table === "trips") {
+      const rows = tripId
+        ? content.trips.filter((t) => t.id === tripId)
+        : content.trips.slice(0, 5);
+      return NextResponse.json({
+        ok: true,
+        source: "site-snapshot",
+        count: rows.length,
+        rows,
+      });
+    }
+
+    const rows = (
+      tripId
+        ? content.posts.filter((p) => p.trip_id === tripId)
+        : content.posts
+    )
+      .slice()
+      .sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0))
+      .map(rewriteImageUrl);
+
+    return NextResponse.json({
+      ok: true,
+      source: "site-snapshot",
+      count: rows.length,
+      rows,
+    });
+  }
+
+  // ── 2) 快照不存在 → 退回 Supabase pooler（仍是 Supabase，但至少不會壪掉） ──
   try {
+    const { localQuery } = await import("@/lib/localFallback");
+
     if (table === "trips") {
       const rows = await localQuery<Record<string, unknown>>(
         tripId
@@ -59,13 +112,11 @@ export async function GET(req: NextRequest) {
       tripId ? [tripId] : []
     );
 
-    // image_url 改寫成本地圖片代理（檔名規則：<post_id 前 8 碼>-<原檔名>）
     const withLocalImages = rows.map((p) => ({
       ...p,
       image_url: p.image_url
         ? `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200`
         : null,
-      // 保留原始 Storage 網址，方便之後恢復時比對
       original_image_url: p.image_url,
     }));
 
@@ -77,7 +128,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (e) {
     return NextResponse.json(
-      { error: `本地 fallback 失敗: ${(e as Error).message}` },
+      { error: `內容快照與 pooler 都無法取得資料: ${(e as Error).message}` },
       { status: 502 }
     );
   }

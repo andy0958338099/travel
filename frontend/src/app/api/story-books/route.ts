@@ -25,6 +25,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getSiteContent, refreshBooksSnapshot } from "@/lib/siteContent";
 import { toDisplayImageUrl } from "@/lib/imageSource"; // 🆕 2026-11-14: gdrive:<fileId> → Google 圖片網址
 
 export const runtime = "nodejs";
@@ -221,6 +222,8 @@ async function handlePost(req: NextRequest) {
     if (updErr) {
       return NextResponse.json({ error: updErr.message }, { status: 500 });
     }
+    // 🆕 2026-11-15: 同步公開快照（作者存檔 → 公開頁立即可見）
+    await refreshBooksSnapshot();
     return NextResponse.json(updated);
   }
 
@@ -326,6 +329,8 @@ async function handlePost(req: NextRequest) {
   if (insErr) {
     return NextResponse.json({ error: insErr.message }, { status: 500 });
   }
+  // 🆕 2026-11-15: 同步公開快照（新書立刻能透過 share_slug 公開分享）
+  await refreshBooksSnapshot();
   return NextResponse.json(created, { status: 201 });
 }
 
@@ -348,45 +353,59 @@ async function handleGet(req: NextRequest) {
     );
   }
 
-  let query = supabase
-    .from("custom_story_books")
-    .select("*")
-    .limit(1);
-  if (bookId) {
-    query = query.eq("book_id", bookId);
-  } else {
-    query = query.eq("share_slug", slug);
-  }
-  // 🆕 2026-11-14: Supabase 掛掉時改走本地 pooler fallback
-  //   注意: Supabase 遇到 402 限制時 maybeSingle() 可能直接 throw 而非回 error，
-  //   所以整段要包 try/catch，fallback 才跑得到。
   let book: any = null;
   let error: { message: string } | null = null;
-  try {
-    const res = await query.maybeSingle();
-    book = res.data;
-    error = res.error;
-  } catch (e) {
-    error = { message: (e as Error).message };
+
+  // 🆕 2026-11-15: 站內快照優先（Blobs / repo 靜態檔）—— 完全脫離 Supabase。
+  //   快照含 author_token（Blobs 版），所以作者判定仍可正常運作。
+  const snapshot = await getSiteContent();
+  if (snapshot) {
+    const found = bookId
+      ? snapshot.books.find((b) => b.book_id === bookId)
+      : snapshot.books.find((b) => b.share_slug === slug);
+    if (found) {
+      book = { ...found };
+      if (!book.author_token) book.author_token = null;
+    }
   }
 
-  if (error || !book) {
+  // 快照沒有 → 走 Supabase REST（再退 pooler）
+  if (!book) {
+    let query = supabase.from("custom_story_books").select("*").limit(1);
+    if (bookId) {
+      query = query.eq("book_id", bookId);
+    } else {
+      query = query.eq("share_slug", slug);
+    }
+    // 🆕 2026-11-14: Supabase 掛掉時改走本地 pooler fallback
+    //   注意: Supabase 遇到 402 限制時 maybeSingle() 可能直接 throw 而非回 error，
+    //   所以整段要包 try/catch，fallback 才跑得到。
     try {
-      const { localQuery } = await import("@/lib/localFallback");
-      const rows = await localQuery<Record<string, unknown>>(
-        bookId
-          ? "select * from custom_story_books where book_id = $1 limit 1"
-          : "select * from custom_story_books where share_slug = $1 limit 1",
-        bookId ? [bookId] : [slug]
-      );
-      if (rows.length > 0) {
-        book = rows[0];
-        error = null;
-      }
+      const res = await query.maybeSingle();
+      book = res.data;
+      error = res.error;
     } catch (e) {
-      console.error("[story-books] 本地 fallback 失敗:", e);
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+      error = { message: (e as Error).message };
+    }
+
+    if (error || !book) {
+      try {
+        const { localQuery } = await import("@/lib/localFallback");
+        const rows = await localQuery<Record<string, unknown>>(
+          bookId
+            ? "select * from custom_story_books where book_id = $1 limit 1"
+            : "select * from custom_story_books where share_slug = $1 limit 1",
+          bookId ? [bookId] : [slug]
+        );
+        if (rows.length > 0) {
+          book = rows[0];
+          error = null;
+        }
+      } catch (e) {
+        console.error("[story-books] 本地 fallback 失敗:", e);
+        if (error) {
+          return NextResponse.json({ error: error.message }, { status: 500 });
+        }
       }
     }
   }
@@ -419,38 +438,48 @@ async function handleGet(req: NextRequest) {
   const ids = book.selected_post_ids || [];
   let posts: any[] = [];
   if (ids.length) {
-    // 🆕 2026-11-14: Supabase 掛掉時改走本地 pooler fallback
+    // 🆕 2026-11-15: 站內快照優先 —— 完全脫離 Supabase
     let postsData: any[] | null = null;
     let postsErr: string | null = null;
     let usedFallback = false;
-    try {
-      const { data, error } = await supabase
-        .from("posts")
-        .select("*")
-        .eq("trip_id", book.trip_id)
-        .in("id", ids)
-        .order("sort_order", { ascending: true });
-      if (error) {
-        postsErr = error.message;
-      } else {
-        postsData = data || [];
-      }
-    } catch (e) {
-      postsErr = (e as Error).message;
-    }
 
-    // fallback：改走 pooler 直連（server route 不能用相對網址 fetch /api/...）
-    if (postsErr || !postsData) {
+    if (snapshot) {
+      const byIdSnapshot = new Map(snapshot.posts.map((p) => [p.id, p]));
+      postsData = ids
+        .map((id: string) => byIdSnapshot.get(id))
+        .filter(Boolean) as any[];
+      usedFallback = true; // 快照圖片一律走 /api/local-image
+    } else {
+      // 🆕 2026-11-14: Supabase 掛掉時改走本地 pooler fallback
       try {
-        const { localQuery } = await import("@/lib/localFallback");
-        const all = await localQuery<Record<string, unknown>>(
-          "select * from posts where trip_id = $1 order by sort_order asc",
-          [book.trip_id]
-        );
-        postsData = all as any[];
-        usedFallback = true;
+        const { data, error } = await supabase
+          .from("posts")
+          .select("*")
+          .eq("trip_id", book.trip_id)
+          .in("id", ids)
+          .order("sort_order", { ascending: true });
+        if (error) {
+          postsErr = error.message;
+        } else {
+          postsData = data || [];
+        }
       } catch (e) {
-        console.error("[story-books] posts 本地 fallback 失敗:", e);
+        postsErr = (e as Error).message;
+      }
+
+      // fallback：改走 pooler 直連（server route 不能用相對網址 fetch /api/...）
+      if (postsErr || !postsData) {
+        try {
+          const { localQuery } = await import("@/lib/localFallback");
+          const all = await localQuery<Record<string, unknown>>(
+            "select * from posts where trip_id = $1 order by sort_order asc",
+            [book.trip_id]
+          );
+          postsData = all as any[];
+          usedFallback = true;
+        } catch (e) {
+          console.error("[story-books] posts 本地 fallback 失敗:", e);
+        }
       }
     }
 
@@ -464,11 +493,8 @@ async function handleGet(req: NextRequest) {
     // 🆕 2026-11-14: Supabase Storage 也被限制時，圖片改走本地代理
     //   （只在走 fallback 時改寫；Supabase 正常時保持原始 Storage 網址不變）
     if (usedFallback) {
-      const { localImagePath } = await import("@/lib/localFallback");
       posts = posts.map((p: any) => {
         if (!p.image_url) return p;
-        const local = localImagePath(p.image_url, p.id);
-        if (!local) return p;
         return {
           ...p,
           image_url: `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200`,
@@ -479,7 +505,23 @@ async function handleGet(req: NextRequest) {
   }
 
   // 是否作者本人 (= token 對得上)
-  const isOwner = !!(token && token === book.author_token);
+  // 🆕 2026-11-15: repo 靜態快照刻意不含 author_token（版控是公開的）。
+  //   快照是靜態版時 book.author_token 會是 null → 作者判定會失效。
+  //   這時改從 pooler 讀真正的 token 來比對（只在帶了 token 時才查）。
+  let authorTokenForCompare: string | null = book.author_token ?? null;
+  if (!authorTokenForCompare && token) {
+    try {
+      const { localQuery } = await import("@/lib/localFallback");
+      const rows = await localQuery<Record<string, unknown>>(
+        "select author_token from custom_story_books where book_id = $1 limit 1",
+        [book.book_id]
+      );
+      authorTokenForCompare = (rows[0]?.author_token as string) ?? null;
+    } catch (e) {
+      console.error("[story-books] owner token pooler 讀取失敗:", e);
+    }
+  }
+  const isOwner = !!(token && token && token === authorTokenForCompare);
 
   // 🆕 2026-11-14: 安全修正 — 非作者不得拿到 author_token。
   //   之前 GET 一律回傳整包 book(含 author_token),任何拿到 share_slug 的人
@@ -591,6 +633,8 @@ async function handleDelete(req: NextRequest) {
   if (delErr) {
     return NextResponse.json({ error: delErr.message }, { status: 500 });
   }
+  // 🆕 2026-11-15: 同步公開快照（刪書後公開頁不再出現）
+  await refreshBooksSnapshot();
   return NextResponse.json({ ok: true });
 }
 
