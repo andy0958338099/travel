@@ -48,6 +48,12 @@ backend/data/
 frontend/node_modules/
 backend/node_modules/
 
+# Python virtualenv (2026-11-13: 重建的本機 venv, 路徑綁使用者不進 git)
+backend/.venv/
+backend/.venv-local/
+__pycache__/
+*.pyc
+
 # Large media (optional - uncomment if repo gets too big)
 # assets/characters/*/videos/
 
@@ -79,3 +85,19 @@ scripts/batch_repair_*.py
 # - new takeout 處理腳本 (含 .mjs 副檔), 全部 commit
 frontend/public/photos-previews/
 frontend/scripts/.tmp-*.mjs
+
+# 🆕 2026-11-13: 本地備份 / 開發用 artifact 不入 git
+backend/scripts/__pycache__/
+# migrate_absolute_paths.py 執行前產生的 DB 備份
+data/manga_studio.bak-*
+# 開發期量測/探測腳本，非正式工具
+frontend/scripts/dev/
+
+# Google Drive 縮圖快取
+frontend/.cache/
+
+# 🆕 2026-11-15: 公開下載的 PDF 快取(會隨書更新重新產生,不入版控)
+data/pdf-cache/
+
+# 🆕 2026-11-15: 客製書輸出 PDF(44MB 衍生檔,可由 /api/story-books/pdf 重新產生,不入版控)
+output/

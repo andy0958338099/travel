@@ -10,6 +10,9 @@ from services.video_service import MiniMaxVideoService
 from services.music_service import MiniMaxMusicService
 import shutil
 from pathlib import Path
+import os
+import re
+import sys
 import base64
 import time
 import json
@@ -18,12 +21,113 @@ import random
 router = APIRouter()
 init_db()
 
-# 使用外接硬碟路徑
-EXTERNAL_DRIVE = Path("/Volumes/Transcend/manga-studio")
+# 專案根目錄（預設取本檔案位置，可用 MANGA_STUDIO_ROOT 覆寫）
+PROJECT_ROOT = Path(os.environ.get("MANGA_STUDIO_ROOT", Path(__file__).resolve().parents[2]))
+EXTERNAL_DRIVE = PROJECT_ROOT
 ASSETS_DIR = EXTERNAL_DRIVE / "assets"
 OUTPUT_DIR = EXTERNAL_DRIVE / "outputs"
 SONGS_DIR = EXTERNAL_DRIVE / "data" / "songs"
 IMAGES_DIR = EXTERNAL_DRIVE / "data" / "images"
+
+# 舊機器外接碟路徑前綴（/Volumes/Transcend/manga-studio、/Volumes/T7/江南部落格/manga-studio）
+_VOLUME_PREFIX_RE = re.compile(r"^/Volumes/[^/]+(?:/[^/]+)?/manga-studio")
+
+
+def normalize_asset_path(value):
+    """把舊的外接碟絕對路徑轉成專案相對路徑（如 /outputs/xxx.png）。
+
+    2026-11-13：SQLite 早期存的是 /Volumes/Transcend/manga-studio/... 這類絕對路徑，
+    前端拿來當 <img src> 會變成 http://localhost:3000/Volumes/... → 404 破圖。
+    已在 backend/scripts/migrate_absolute_paths.py 做 DB migration；此處為 API 邊界的保險。
+    """
+    if not value or not isinstance(value, str):
+        return value
+    if not value.startswith("/"):
+        return value
+    stripped = _VOLUME_PREFIX_RE.sub("", value)
+    if stripped == value:
+        try:
+            stripped = "/" + str(Path(value).resolve().relative_to(PROJECT_ROOT))
+        except (ValueError, OSError):
+            return value
+    return stripped
+
+
+# 需要正規化的欄位名（API 回應中代表檔案路徑的欄位）
+_PATH_FIELDS = (
+    "image_path",
+    "latest_image",
+    "local_path",
+    "audio_path",
+    "video_path",
+    "seeddance_video_url",
+    "video_url",
+    "cover_path",
+    "thumbnail_path",
+)
+
+# 後端 URL 掛載點 → 專案內實體目錄的相對路徑（需與 backend/main.py 的 app.mount 保持一致）
+_MOUNT_TO_DIR = {
+    "/outputs": "outputs",
+    "/assets": "assets",
+    "/diary_audio": "data/diary_audio",
+    "/voice_test": "data/voice_test",
+    "/video_clips": "data/assets/video_clips",
+    "/subtitles": "data/assets/subtitles",
+    "/travel-images": "data/assets/travel-images",
+    "/songs": "backend/static/songs",
+}
+
+# DB 內部的相對路徑（不是 URL 掛載點）→ 實體目錄
+# 例：character_songs.local_path 存的是 /data/songs/xxx.mp3，指向專案根的 data/songs/
+_INTERNAL_DIR_MAP = {
+    "/data/songs": "data/songs",
+    "/data/diary_audio": "data/diary_audio",
+}
+
+
+def normalize_paths_in(payload):
+    """遞迴正規化 dict/list 中的檔案路徑欄位。"""
+    if isinstance(payload, list):
+        return [normalize_paths_in(item) for item in payload]
+    if not isinstance(payload, dict):
+        return payload
+    out = {}
+    for key, value in payload.items():
+        if key in _PATH_FIELDS and isinstance(value, str):
+            out[key] = normalize_asset_path(value)
+        else:
+            out[key] = normalize_paths_in(value)
+    return out
+
+
+def resolve_project_path(value):
+    """把儲存的路徑解析成實際檔案路徑。
+
+    DB 存的是專案相對路徑（如 /outputs/xxx.png），需接回 PROJECT_ROOT 才能刪檔。
+    相容舊的絕對路徑與非專案內的任意路徑。
+
+    注意：後端的 URL 掛載點與實體目錄不完全一致（例：/diary_audio → data/diary_audio），
+    所以要查 _MOUNT_TO_DIR 對照表。
+    """
+    if not value:
+        return None
+    relative = value.lstrip("/")
+    prefixed = "/" + relative
+    # 注意：DB 存的「專案相對路徑」以 / 開頭，但 Path("/x").is_absolute() 也是 True，
+    # 不能用 is_absolute() 判斷，必須先比對已知的掛載點／內部目錄前綴。
+    for prefix, dir_rel in _INTERNAL_DIR_MAP.items():
+        if prefixed == prefix or prefixed.startswith(prefix + "/"):
+            return PROJECT_ROOT / dir_rel / relative[len(prefix):].lstrip("/")
+    for mount_prefix, dir_rel in _MOUNT_TO_DIR.items():
+        if prefixed == mount_prefix or prefixed.startswith(mount_prefix + "/"):
+            return PROJECT_ROOT / dir_rel / relative[len(mount_prefix):].lstrip("/")
+    # 真正的系統絕對路徑（例如 /Users/... 或 /tmp/...）
+    if value.startswith("/Users/") or value.startswith("/tmp/") or value.startswith("/var/") \
+            or value.startswith("/private/") or value.startswith("/opt/") or value.startswith("/etc/"):
+        return Path(value)
+    return PROJECT_ROOT / relative
+
 
 ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -63,7 +167,7 @@ def list_characters_gallery():
                     char[field] = []
         result.append(char)
 
-    return result
+    return normalize_paths_in(result)
 
 
 @router.get("/characters")
@@ -90,7 +194,7 @@ def list_characters():
                     char[field] = []
         result.append(char)
     conn.close()
-    return result
+    return normalize_paths_in(result)
 
 
 @router.post("/characters")
@@ -142,7 +246,7 @@ def list_female_characters():
                     char[field] = []
         result.append(char)
     conn.close()
-    return result
+    return normalize_paths_in(result)
 
 
 @router.get("/characters/{char_id}")
@@ -199,8 +303,10 @@ def delete_character(char_id: int):
     deleted_files = []
     if char.get("image_path"):
         try:
-            Path(char["image_path"]).unlink(missing_ok=True)
-            deleted_files.append(char["image_path"])
+            target = resolve_project_path(char["image_path"])
+            if target:
+                target.unlink(missing_ok=True)
+                deleted_files.append(char["image_path"])
         except:
             pass
 
@@ -277,8 +383,10 @@ def delete_character_image(char_id: int, image_id: int):
     deleted_file = False
     if image_path:
         try:
-            Path(image_path).unlink(missing_ok=True)
-            deleted_file = True
+            target = resolve_project_path(image_path)
+            if target:
+                target.unlink(missing_ok=True)
+                deleted_file = True
         except:
             pass
     
@@ -1421,7 +1529,9 @@ def delete_song(song_id: int):
     # 刪除歌曲檔案
     if song.get("song_path"):
         try:
-            Path(song["song_path"]).unlink(missing_ok=True)
+            target = resolve_project_path(song["song_path"])
+            if target:
+                target.unlink(missing_ok=True)
         except:
             pass
 
@@ -2916,7 +3026,9 @@ def delete_portfolio_image(char_id: int, portfolio_id: int):
     # 刪除檔案
     if img.get("image_path"):
         try:
-            Path(img["image_path"]).unlink(missing_ok=True)
+            target = resolve_project_path(img["image_path"])
+            if target:
+                target.unlink(missing_ok=True)
         except:
             pass
 
@@ -3406,6 +3518,9 @@ def get_automation_status():
         "last_diary_at": last_diary[0] if last_diary else None,
         "last_song_at": last_song[0] if last_song else None,
         "timestamp": datetime.now().isoformat(),
+        # 讓前端顯示實際的資料根目錄，而不是猜一個舊的外接碟路徑
+        "project_root": str(PROJECT_ROOT),
+        "database_path": str(PROJECT_ROOT / "data" / "manga_studio.db"),
     }
 
 
@@ -3444,8 +3559,8 @@ def trigger_automation(mode: str = "full"):
     """手動觸發自動化生成"""
     import subprocess
     result = subprocess.run(
-        ["/Library/Frameworks/Python.framework/Versions/3.13/bin/python3.13",
-         "/Volumes/Transcend/manga-studio/scripts/daily_automation.py",
+        [sys.executable,
+         str(Path(__file__).resolve().parents[2] / "scripts" / "daily_automation.py"),
          "--mode", mode],
         capture_output=True, text=True, timeout=300
     )
@@ -3488,9 +3603,13 @@ def compose_video_clip(req: dict):
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = str(output_dir / f"{output_name}.mp4")
 
+    # 路徑正規化：前端可能送專案相對路徑（如 /diary_audio/xxx.mp3）或舊的絕對路徑
+    resolved_image = resolve_project_path(normalize_asset_path(image_path)) or Path(image_path)
+    resolved_audio = resolve_project_path(normalize_asset_path(audio_path)) or Path(audio_path)
+
     ok, err, duration = compose_clip_with_audio(
-        image_path=str(image_path),
-        audio_path=str(audio_path),
+        image_path=str(resolved_image),
+        audio_path=str(resolved_audio),
         output_path=output_path,
         subtitle_text=subtitle,
     )

@@ -1,0 +1,762 @@
+/* ============================================================
+ * 🆕 2026-10-20 聖上指示: 客製書印刷模式專用覆寫
+ *
+ * 場景: /story-blog-custom/preview/[slug]?print=1 (Puppeteer 拍攝模式)
+ * 大部分 class 從 /story-blog-print/print-book.css 沿用, 這裡只補
+ * 「客製書獨有」的 component class。
+ * ============================================================ */
+
+/* ============================================================
+ * 🆕 2026-11-14 美化:宣紙質感 + 頁面外框 + 字體分工
+ *
+ * 使用者選擇:
+ *   - 頁面外框細線(宣紙紙底已於 2026-11-15 依使用者要求移除)
+ *   - 內文改宋體(明朝體),標題維持黑體
+ *   - 照片尺寸不變(維持放大 30% 策略)
+ *
+ * ⚠️ 字體陷阱:
+ *   CSS 寫字面 `"Noto Serif TC"` 無效 —— next/font 產生的是 hashed family
+ *   (`__Noto_Serif_TC_xxxx`),而且 next/font 對 Noto Serif TC 只提供
+ *   `latin` subset(沒有中文字形)。
+ *   → 實測 CDP 查到的實際渲染字體是 **Songti TC**(macOS 系統宋體),
+ *     線上 Linux 部署就會掉成 sans。
+ *   → 解法:自己 embed 思源宋體 TC 子集(public/fonts/NotoSerifTC-Print-*.woff2,
+ *     OFL 授權,已用 Big5 常用字 + 全站文章用字 subset 到 6,816 字),
+ *     用 @font-face 掛一個專屬 family 名,不跟 next/font 搶名字。
+ * ============================================================ */
+
+/* === 內文宋體:自帶思源宋體子集 ===
+   family 名刻意取 "PrintSerifTC",避免跟 next/font 的 hashed family 混淆。 */
+@font-face {
+  font-family: "PrintSerifTC";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/NotoSerifTC-Print-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "PrintSerifTC";
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url("/fonts/NotoSerifTC-Print-Bold.woff2") format("woff2");
+}
+
+/* === 紙底 ===
+   🆕 2026-11-15 使用者回饋「宣紙底我不喜歡,請移除」
+   → 移除淡米色紙底與纖維紋理,回到原本的純白紙面 #fafaf9
+     (print-book.css 的原始值;這裡顯式宣告避免被其他規則蓋掉)。
+   → 只留頁面外框細框 + 字體分工(宋體內文 / 黑體標題)。 */
+.print-book-page {
+  background-color: #fafaf9;
+  background-image: none;
+  color: #2a1810;
+}
+
+/* === 頁面外框細線(單框 + 內側淡框)===
+   用 ::before / ::after 畫,不影響任何內容的排版與高度計算。
+   inset 4.5mm 在 A5 內容區(padding 14mm)之內 → 不會壓到文字。
+   ⚠️ 這兩個 pseudo 掛在 .print-book-page 上,而 cell/page 本身是
+      position:relative → 框線不會跑版,也不會撐高頁面。 */
+.print-book-page::before,
+.print-book-page::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+}
+.print-book-page::before {
+  inset: 4.5mm;
+  border: 0.5pt solid rgba(60, 40, 20, 0.28);
+}
+.print-book-page::after {
+  inset: 6.2mm;
+  border: 0.4pt solid rgba(60, 40, 20, 0.12);
+}
+/* 封面是整版照片,外框會壓到圖 → 不畫 */
+.print-book-cover::before,
+.print-book-cover::after {
+  display: none;
+}
+
+/* === 字體分工:內文宋體 / 標題黑體 ===
+   ⚠️ 本檔後面第 147 / 178 行還有 .print-book-post-title / .print-book-post-text
+      的 font-family 宣告(寫字面 "Noto Serif TC")→ 會覆蓋前面這段。
+      所以真正的規則放在檔案最末尾,見「字型分工(最終)」區塊。 */
+
+.print-book-custom-mode {
+  /* 跟全本印刷模式一致 */
+}
+
+.print-book-post-article {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8mm 6mm;
+  box-sizing: border-box;
+}
+
+.print-book-post-header {
+  margin-bottom: 4mm;
+}
+
+.print-book-post-day {
+  display: inline-block;
+  font-size: 8pt;
+  letter-spacing: 0.15em;
+  color: rgba(60, 40, 20, 0.55);
+  padding: 1mm 3mm;
+  border: 0.5pt solid rgba(60, 40, 20, 0.3);
+  margin-bottom: 2mm;
+}
+
+.print-book-post-title {
+  /* 🆕 2026-11-14 標題維持黑體(使用者選擇) */
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  /* 🆕 10-20 聖上拍板:標題 vs 內文層次比 1.4:1 (內文 16pt → 標題 22pt) */
+  font-size: 22pt;
+  font-weight: 700;
+  color: #2a1810;
+  margin: 0 0 2mm;
+  line-height: 1.35;
+  /* 🔧 10-20 v3: vision 報標題換行太醜,用 word-break keep 標題不該拆的中文字一起 */
+  word-break: keep-all;
+  line-break: strict;
+  hanging-punctuation: allow-end;
+}
+
+.print-book-post-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+  overflow: hidden;
+}
+
+.print-book-post-image {
+  width: 100%;
+  max-height: 95mm;
+  object-fit: contain;
+  border: 0.5pt solid rgba(60, 40, 20, 0.2);
+  border-radius: 1mm;
+  background: #faf6ec;
+}
+
+.print-book-post-text {
+  /* 🆕 2026-11-14 內文改宋體(思源宋體子集,OFL) */
+  font-family: "PrintSerifTC", "Songti TC", "Songti SC", "STSong",
+    "Noto Serif TC", serif;
+  font-size: 10pt;
+  line-height: 1.8;
+  color: #2a1810;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.print-book-post-footer {
+  margin-top: 4mm;
+  font-size: 8pt;
+  color: rgba(60, 40, 20, 0.5);
+  text-align: right;
+  border-top: 0.5pt solid rgba(60, 40, 20, 0.15);
+  padding-top: 2mm;
+}
+
+.print-book-post-page.print-book-post-left-image .print-book-post-article,
+.print-book-post-page.print-book-post-right-image .print-book-post-article,
+.print-book-post-page.print-book-post-top-image .print-book-post-article {
+  /* 統一排版 — 不依賴 layout_type 變化 */
+}
+
+/* ============================================================
+ * 🆕 2026-10-20 聖上指示: 客製書印刷模式 — layout_mode A/B/C 差異化
+ *
+ * - mode A「攝影雜誌」:圖佔主,文字在 caption 區,文章段落較小
+ * - mode B「故事閱讀」:一頁 2 則 + 圖文並列 (主軸)
+ * - mode C「高密度」:兩篇左右並排(.print-book-paired-container 為既有)
+ * ============================================================ */
+
+/* --- mode A (攝影雜誌): 圖佔大,文縮成小 caption --- */
+.print-book-post-page.print-book-mode-a .print-book-post-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4mm;
+}
+.print-book-post-page.print-book-mode-a .print-book-post-image {
+  width: 100%;
+  max-height: 140mm;
+  flex: 1;
+}
+.print-book-post-page.print-book-mode-a .print-book-post-text {
+  font-size: 8.5pt;
+  line-height: 1.5;
+  /* 文當成 caption,不讓它搶太多空間 */
+  max-height: 35mm;
+  overflow: hidden;
+}
+
+/* ============================================================
+ * 🅿 2026-10-20 (第二輪) Mode B — 聖上拍板「彈性密度」
+ *
+ * 規格:
+ *   - 一頁 2 則 (核心) → 每則 cell 固定 80mm 高
+ *   - 圖文並列 (float-left, 第一則圖左 / 第二則圖右交替)
+ *   - 圖 58mm × 40mm + 卡其相本框
+ *   - 文 9pt (由 adaptive-font-size hook 二分搜尋覆寫)
+ *   - Day stamp 紅色 serif 寬字距 + 紅色細線
+ *
+ * ⚠️ 硬約束 (10-20 實測): 63 頁 / 114 圖 + display:grid 或
+ *    display:flex 的 cell 會觸發 Chrome PDF render tree crash
+ *    → Protocol error (Page.printToPDF): Printing failed
+ *    所以 cell 內部一律「純 block + float」, 不准 grid/flex。
+ * ============================================================ */
+
+.print-book-mode-b-pair-page {
+  /* 一個 page section = 1-2 個 cell 直式排列 */
+  padding: 10mm 14mm;
+  box-sizing: border-box;
+  display: block;
+  page-break-after: always;
+  break-after: page;
+}
+
+/* === cell: 固定 80mm = 一頁兩則的關鍵 === */
+.print-book-mode-b-pair-page .print-book-b-cell {
+  display: block;             /* 純 block,非 flex/grid */
+  height: 80mm;
+  /* 🆕 2026-11-14: 使用者要求「兩則之間的間隔縮到最小」
+     → cell 的下邊距與下一格的 margin-top 都收到 1.5mm。
+     (adjacent sibling 的垂直 margin 會 collapse → 實際間距 = 兩者較大者,
+      所以兩邊都要改,否則 cell 自己的 4mm 會撐開間距。) */
+  margin: 0 0 1.5mm 0;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: relative;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.print-book-mode-b-pair-page .print-book-b-cell:last-child {
+  margin-bottom: 0;
+}
+/* 🆕 2026-11-14: 兩則之間加細髮絲線,分隔清楚但不搶戲
+   (部落格排版常用的「分隔留白 + 細線」手法)
+
+   ⚠️ 用 margin-top 而非 padding-top:padding 會吃掉 cell 的內容高度,
+      而自適應字級 hook 讀的是 clientHeight(不含 padding 內縮),
+      兩者不一致 → 文字實際溢出被裁。margin 不影響 cell 內部可用高度。 */
+.print-book-mode-b-pair-page .print-book-b-cell + .print-book-b-cell {
+  margin-top: 1.5mm;
+  border-top: 0.5pt solid rgba(60, 40, 20, 0.14);
+}
+/* 細線下方留白靠標題的 margin-top 撐(標題高已被 hook 的 reserveSelector 計入) */
+.print-book-mode-b-pair-page .print-book-b-cell + .print-book-b-cell .print-book-post-title {
+  margin-top: 1.5mm;
+}
+
+/* === 🆕 2026-11-14 頁頂統一 day header (同頁同日時) ===
+   舊版每一格都自己帶一個紅色 day stamp → 同一頁兩個一樣的紅標籤,
+   浪費垂直空間又凌亂。現在同頁同日只在頁頂顯示一次,底下兩格共用。
+
+   高度預算 (A5 頁高 210mm,上下 padding 6+16=22mm → 內容區 188mm):
+     padding-top 6mm + header ~11mm(含 4mm margin) + 80mm + 5mm(分隔線含 margin)
+     + 80mm = 182mm → 留 6mm 餘裕,不溢出。 */
+.print-book-mode-b-pair-page.has-two {
+  padding-top: 6mm;
+}
+.print-book-pair-day-header {
+  display: block;
+  margin: 0 0 3mm 0;
+  padding-bottom: 1.2mm;
+  border-bottom: 0.8pt solid #C43A2F;
+  text-align: center;
+}
+.print-book-pair-day-label {
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  font-size: 10pt;
+  font-weight: 600;
+  color: #C43A2F;
+  letter-spacing: 0.5em;
+  text-indent: 0.5em;   /* 抵銷 letter-spacing 造成的右偏 */
+}
+.print-book-pair-day-title {
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  font-size: 8.5pt;
+  font-weight: 500;
+  color: rgba(196, 58, 47, 0.75);
+  margin-top: 0.8mm;
+  letter-spacing: 0.08em;
+}
+
+/* === Day stamp (cell 頂) === */
+.print-book-b-cell .print-book-day-header {
+  margin-bottom: 2.5mm;
+  padding-bottom: 1.2mm;
+  border-bottom: 0.5pt solid #C43A2F;
+}
+.print-book-b-cell .print-book-day-header-label {
+  display: inline-block;
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  font-size: 9pt;
+  font-weight: 600;
+  color: #C43A2F;
+  letter-spacing: 0.4em;
+  margin-right: 3mm;
+}
+.print-book-b-cell .print-book-day-header-title {
+  display: inline;
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  font-size: 9pt;
+  font-weight: 500;
+  color: #C43A2F;
+}
+
+/* === 圖: float-left 圖文並列 + 細框 + 柔和陰影 ===
+   🆕 2026-11-14 視覺改版:
+     - 舊版「卡其相本框」(outline 1.6mm + box-shadow 2.2mm) 視覺重量過高,
+       在 A5 上框比照片搶戲 → 改成 0.4mm 細白邊 + 極淡陰影,讓照片當主角。
+     - 圖片欄寬/高改依「圖片原始比例」調整 (見 .is-portrait / .is-landscape)
+
+   ⚠️ 圖片欄寬度的上限由「文字欄必須留得下」決定,不能只看照片好不好看:
+     A5 內容寬 = 148 - 14*2 = 120mm。
+     文字欄至少要 ~56mm,否則 9pt 一行只剩 16~17 字(實測 fill ratio 1.4~2.2,
+     文字塞不下被裁 → 違反「誠實 > 視覺欺騙」)。
+     → 圖片欄上限 = 120 - 56 - 3(margin) ≈ 61mm。
+     舊版 78mm 會把文字欄壓到 38mm → 35 格字級卡 9pt 還溢出。
+
+   ⚠️ 高度計算: cell 高 80mm = 302px。扣掉 day header 約 30px + 圖 margin 8px
+      → 圖本體可用高 ≈ 264px ≈ 69.5mm。取 64mm (直式) 留餘裕。
+      橫式圖更矮 (38mm) 不會溢出。 */
+/* 🆕 2026-11-14: 圖寬高改由 React 依 naturalWidth/Height 算等比後
+   寫 inline style(保證照片一點都不被裁切)。
+   這裡的 width/height 只當「圖尚未 load 量到比例前」的預設值,
+   之後由 inline style 覆蓋 → 所以這裡用 max-height 而非 height。 */
+.print-book-b-cell .print-book-post-image {
+  float: left;
+  display: block;
+  width: 48mm;
+  /* 🆕 2026-11-14: 上限放寬,讓「照片放大 30%」(級距 1.3)真的生效。
+     原本 max-height 62mm / max-width 48mm 會把 1.3 的尺寸夾回原大小
+     (照片看起來沒變大,只是框變大 → 反而多浪費文字欄寬度)。 */
+  max-height: 84mm;
+  /* 🆕 圖已移到標題之後 → 不再需要上邊距 */
+  margin: 0 3mm 2mm 0;
+  padding: 1.2mm;                                   /* 內白邊(薄一點) */
+  border: 0.4mm solid #fff;                          /* 細白邊,不是粗框 */
+  background: #fdfbf7;
+  object-fit: contain;
+  box-sizing: border-box;
+  /* 柔和陰影取代卡其框:照片浮在紙面上,而不是被框框住 */
+  box-shadow: 0 0.3mm 1.4mm rgba(60, 40, 20, 0.18);
+}
+/* 直式照片:窄欄高圖,文字欄留寬
+   ⚠️ 2026-11-14 容量優化:
+     圖欄寬度直接決定「圖旁窄欄每行能放幾字」。
+     舊版 54mm → 窄欄 63mm ≈ 20 字/行,9pt 只能塞 ~170 字,
+     導致 61 篇被迫獨立整頁 (一頁 2 則的目標落空)。
+     降到 48mm → 窄欄 69mm ≈ 25 字/行,同樣高度能多塞 2 成文字,
+     照片仍保有足夠存在感 (視覺分析建議放大)。 */
+/* 🆕 2026-11-14: 各形狀不再各給固定 width/height。
+   實際尺寸改由 React 依 naturalWidth/Height 算等比後寫 inline style
+   (保證照片完整呈現、一點都不被裁切)。
+   這裡只保留「圖欄寬度上限」的概念:inline style 的寬度不超過 48mm,
+   文字欄寬度因此在所有頁面一致 (120-48-3 = 69mm) → 字級容量一致。 */
+.print-book-b-cell.is-portrait .print-book-post-image,
+.print-book-b-cell.is-landscape .print-book-post-image,
+.print-book-b-cell.is-square .print-book-post-image {
+  /* 🆕 2026-11-14: 48mm → 63mm。原本的上限會把「照片放大 30%」(級距 1.3)
+     的 inline 寬度夾回 48mm → 照片其實沒變大,只是框變大,反而吃掉文字欄寬度。
+     63mm = 48 × 1.3,讓放大率真的作用在照片上。 */
+  max-width: 63mm;
+}
+.print-book-b-cell-second .print-book-post-image {
+  /* 第二則反向: 圖靠右 (float 改右 + margin 換邊) */
+  float: right;
+  margin: 0 0 2mm 3mm;
+}
+/* 🆕 2026-11-14: 橫式圖維持 float:left (與第一則同向,讓第二則文字從左邊起排),
+   覆寫掉下面第二則的 float:right 規則 */
+.print-book-b-cell-second.is-landscape .print-book-post-image {
+  float: left;
+  margin: 0 3mm 2mm 0;
+}
+
+/* === 文: overflow:hidden 產生 BFC,自然繞過 float ===
+   ⚠️ height 設 100% 會讓 BFC 高 = cell 全高,而 float 圖 (68mm ≈ 257px)
+      只佔 257px → wrap 底部會超出 cell。
+   正確做法: 不設 height,讓 BFC 由內容撐高;真正的邊界由 cell 的
+   overflow:hidden + hook 的 textMaxH 把關。 */
+.print-book-b-cell .print-book-post-text-wrap {
+  display: block;
+  /* ⚠️ 2026-11-14 關鍵修正:
+     原本是 overflow:hidden 建立 BFC。BFC 盒子「不與 float 重疊」,
+     整個 wrap 會被推到 float 右側(或掉到圖下方),文字永遠繞不到圖片下方,
+     文字欄被壓成 ~42mm → 9pt 也塞不下 (實測 fill ratio 1.4~2.2,文字被裁)。
+     改成 visible:行盒才會正常縮排繞過 float,
+     文字 = 圖旁窄欄 + 圖下方全寬,容量大幅提升。 */
+  overflow: visible;
+  min-height: 0;
+}
+/* ⚠️ 同樣關鍵: .print-book-post-text 全域有 overflow:hidden(為了 mode C 裁切),
+   它自己也會建立 BFC → 文字盒子被推離 float,寬度只剩 ~193px(實測)。
+   mode B 裡 text 必須能繞排,改回 visible;
+   溢出由 cell 的 overflow:hidden 兜底 + hook 的 textMaxH 預防。 */
+.print-book-b-cell .print-book-post-text {
+  overflow: visible;
+}
+
+.print-book-b-cell .print-book-post-title {
+  /* 🆕 2026-11-14 標題維持黑體(使用者選擇:內文宋體、標題黑體) */
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  /* 🆕 2026-11-14: 10.5pt → 12pt,拉開與內文的層級差距
+     (視覺分析指出「標題字級與內文差距不夠明顯」) */
+  font-size: 12pt;
+  font-weight: 600;
+  color: #2a1810;
+  margin: 0 0 1.5mm;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  word-break: keep-all;
+  line-break: strict;
+}
+
+/* === 內文: 9pt 由 hook 二分搜尋覆寫, 這裡是預設值 === */
+.print-book-mode-b-pair-page .print-book-post-text {
+  font-family: "PrintSerifTC", "Songti TC", "Noto Serif TC", serif;
+  font-size: 9pt;
+  font-weight: 400;
+  line-height: 1.65;
+  margin: 0;
+  color: #2a2a2a;
+  letter-spacing: 0.02em;
+  text-indent: 1.5em;
+  text-align: left;
+  word-break: break-word;
+  white-space: pre-wrap;
+  /* ⚠️ 2026-11-14 關鍵:這裡原本是 overflow:hidden。
+     overflow:hidden 會建立 BFC,而 BFC 盒子「不與 float 重疊」→
+     整段文字被推到圖片右側、寬度只剩 ~193px(實測),
+     9pt 也塞不下 → 文字溢出被裁。
+     mode B 是 float 圖文並列,文字必須能繞排 → 改 visible。
+     溢出由 cell 的 overflow:hidden 兜底 + hook 的 textMaxH 預防。 */
+  overflow: visible;
+  /* 🆕 10-21 移除 -webkit-line-clamp:
+     clamp 會把高度硬砍在 N 行,長文(270 字 @8pt 需 13 行)會出現
+     「…」假截斷 — 那違反「誠實 > 視覺欺騙」。
+     hook 的二分搜尋已保證字級塞得下;真塞不下時由 cell 的
+     overflow:hidden 裁切(讀者看得到「字沒印完」而不是假裝完整)。
+     line-clamp 只留在量化測時解除 (font-fit.ts unclamp())。 */
+}
+
+/* === 段尾 === */
+.print-book-b-cell .print-book-post-footer {
+  font-size: 7.5pt;
+  color: rgba(60, 40, 20, 0.5);
+  font-style: italic;
+  text-align: right;
+  margin-top: 1mm;
+}
+
+/* === 落單 cell: 一頁 1 則, 撐高 + 圖更大 === */
+/* 🆕 2026-11-14: 落單整頁改成「flex 欄 + space-between」——
+   短文時頁底會出現大片空白(視覺分析:頁面下半部留白過多,
+   內容集中在上 2/3)。用 space-between 讓
+   「頁首 / 標題 / 照片 / 正文+署名」沿頁面高度自然均分,
+   署名落在頁底 → 視覺重心平衡,不會像「貼上面」。
+   長文時內容已接近滿頁 → space-between 不產生額外間隙,版面不變。
+
+   ⚠️ 2026-11-14: 高度由 172mm 改成 190mm。
+     頁高 210mm − 上下 padding 10+10 = 190mm 的內容區,
+     舊值 172mm 讓頁底固定空 18mm(視覺分析:「頁底還有大片空白」)。
+     改成 190mm 後 cell 剛好滿版 → 配置引擎會把照片等比放大填滿。 */
+.print-book-mode-b-pair-page.is-single .print-book-b-cell {
+  height: 190mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.print-book-mode-b-pair-page.is-single .print-book-b-cell .print-book-post-text-wrap {
+  flex: 0 0 auto;
+}
+/* 🆕 2026-11-14: 落單整頁 → 圖片依原始比例取最大,不留裁切
+   ⚠️ 直式圖 78mm 太高,cell 只有 172mm → 圖吃掉 45% 高度,
+      文字只剩 ~184px,實測 297 字溢出 26px 被裁。
+      降到 62mm → 文字多拿 60px,溢出歸零,照片仍完整呈現。
+
+   ⚠️ 超長篇 (300+ 字,實測 371 字仍溢出 12px) 需要更多文字空間:
+      直式圖降到 46mm,文字多拿 ~60px → 371 字 @10pt 塞得下。
+
+   ⚠️ 2026-11-14 再修正: 落單整頁的照片改由 React 依 naturalWidth/Height
+      算等比尺寸 (inline style),這裡的固定 height 只當「圖片尚未 load
+      量到比例前」的預設值。CSS 的 height 會覆蓋 inline style,所以
+      改成 max-height,讓 inline 的等比高度生效。 */
+.print-book-mode-b-pair-page.is-single .print-book-b-cell .print-book-post-image {
+  width: 100%;
+  max-width: 120mm;
+  max-height: 140mm;
+  float: none;
+  margin: 0 auto 5mm;
+}
+/* ⚠️ 2026-11-14: 直式/橫式/方形不再各給不同 max-height。
+   實際尺寸由 React 依 naturalWidth/Height 算等比後寫 inline style,
+   CSS 的 max-height 只當「圖尚未 load 量到比例前」的保險上限。
+   各形狀若用不同上限,會把 inline 的等比高度夾掉 → 照片變形/留黑邊。 */
+/* 🆕 2026-11-14: 超長篇 (>300 字) 落單整頁 → 圖縮小,讓文字有足夠空間
+   (實測 371 字 @10pt 在 62mm 圖下仍溢出 12px) */
+.print-book-mode-b-pair-page.is-single .print-book-b-cell.is-very-long .print-book-post-image {
+  max-height: 48mm;
+  margin-bottom: 4mm;
+}
+.print-book-mode-b-pair-page.is-single .print-book-post-title {
+  font-size: 15pt;
+  margin-bottom: 3mm;
+}
+.print-book-mode-b-pair-page.is-single .print-book-post-text {
+  line-height: 1.8;
+}
+.print-book-mode-b-pair-page.is-single .print-book-post-footer {
+  font-size: 8.5pt;
+}
+
+/* --- mode C (高密度) — 共頁容器已 reuse print-book.css 的 .print-book-paired-container --- */
+.print-book-mode-c-page {
+  padding: 6mm 4mm;
+}
+.print-book-mode-c-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  overflow: hidden;
+  height: 100%;
+}
+.print-book-mode-c-cell .print-book-post-image {
+  width: 100%;
+  max-height: 70mm;
+  object-fit: cover;
+  border: 0.5pt solid rgba(60, 40, 20, 0.2);
+  border-radius: 1mm;
+}
+.print-book-mode-c-cell .print-book-post-text {
+  font-size: 8pt;
+  line-height: 1.45;
+  margin: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* 章節 intro 頁 */
+.print-book-chapter-intro {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 20mm;
+}
+
+.print-book-chapter-label {
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  font-size: 11pt;
+  letter-spacing: 0.4em;
+  color: #c43a2f;
+  margin-bottom: 6mm;
+}
+
+.print-book-chapter-title {
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  font-size: 22pt;
+  font-weight: 700;
+  color: #2a1810;
+  margin: 0 0 6mm;
+  line-height: 1.3;
+}
+
+.print-book-chapter-meta {
+  font-size: 10pt;
+  color: rgba(60, 40, 20, 0.6);
+  margin-top: 6mm;
+}
+
+/* 末頁 */
+.print-book-back-cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  /* 🆕 2026-11-15 移除宣紙底 → 封底米色漸層一併改回純白,
+     與內頁紙面一致 */
+  background: #fafaf9;
+}
+
+.print-book-back-cover-mark {
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+  font-size: 14pt;
+  color: #2a1810;
+  border-top: 1pt solid #c43a2f;
+  border-bottom: 1pt solid #c43a2f;
+  padding: 4mm 8mm;
+  margin-bottom: 10mm;
+  letter-spacing: 0.1em;
+}
+
+.print-book-back-cover-text {
+  font-size: 9pt;
+  color: rgba(60, 40, 20, 0.55);
+  font-style: italic;
+}
+
+/* ============================================================
+ * 🆕 2026-11-14 字體分工(最終)
+ * 放在檔案最末尾,確保覆蓋前面所有同名規則。
+ *
+ * 使用者選擇:內文改宋體(明朝體)、標題維持黑體、照片尺寸不變。
+ *
+ *   - 內文 / 散文類區塊 → 思源宋體子集(PrintSerifTC,自帶 woff2)
+ *   - 標題 / 標籤類   → 黑體(Geist + PingFang TC)
+ *
+ * ⚠️ 為什麼不用 next/font 的 Noto_Serif_TC:
+ *   next/font 對 Noto Serif TC 只提供 "latin" subset → 中文字形不會下載。
+ *   (實測:document.fonts 只列出 __Noto_Serif_TC_* w400/500/700/900,
+ *    實際渲染落到 macOS 的 Songti TC;線上 Linux 部署會掉成 sans。)
+ * ============================================================ */
+
+/* 散文類:內文、扉頁、封底、章節說明 → 宋體 */
+.print-book-post-text,
+.print-book-frontispiece-line,
+.print-book-back-cover-text,
+.print-book-chapter-meta,
+.print-book-toc-list,
+.print-book-post-footer {
+  font-family: "PrintSerifTC", "Songti TC", "Songti SC", "STSong",
+    "Noto Serif TC", serif;
+}
+
+/* 標題類 → 黑體 */
+.print-book-post-title,
+.print-book-toc-heading,
+.print-book-pair-day-label,
+.print-book-pair-day-title,
+.print-book-chapter-label,
+.print-book-chapter-title,
+.print-book-back-cover-mark,
+.print-book-b-cell .print-book-day-header-label,
+.print-book-b-cell .print-book-day-header-title {
+  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
+    "Noto Sans TC", sans-serif;
+}
+/* ============================================================
+ * 🆕 2026-11-15: 公開閱讀模式(read=1)
+ *   訪客在螢幕上一頁一頁翻書,頂部工具列可翻頁 / 下載 PDF。
+ *   ⚠️ 只在螢幕生效 —— 列印時必須隱藏,否則會被拍進 PDF。
+ * ============================================================ */
+.print-book-reader {
+  background: #55524d;
+  min-height: 100vh;
+}
+
+/* 頂部工具列 */
+.print-book-reader-bar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(38, 35, 32, 0.96);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f5f1e8;
+}
+.print-book-reader-bar-left,
+.print-book-reader-bar-center,
+.print-book-reader-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.print-book-reader-bar-center {
+  flex: 0 0 auto;
+}
+.print-book-reader-bar-right {
+  justify-content: flex-end;
+}
+.print-book-reader-title {
+  font-size: 13px;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 34vw;
+}
+.print-book-reader-counter {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  min-width: 64px;
+  text-align: center;
+  opacity: 0.9;
+}
+.print-book-reader-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f1e8;
+  font-size: 13px;
+  line-height: 1;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+.print-book-reader-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+.print-book-reader-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.print-book-reader-btn.is-primary {
+  background: #b3543f;
+  border-color: #b3543f;
+  font-weight: 500;
+}
+.print-book-reader-btn.is-primary:hover:not(:disabled) {
+  background: #c25f47;
+  border-color: #c25f47;
+}
+
+/* 閱讀模式的頁面外框:跟 PDF 一致的深灰檯面 */
+.print-book-read-screen {
+  background: #55524d;
+  /* ⚠️ 工具列是 sticky(會蓋住頁面頂端)→ 頁面區塊要往下讓,
+     否則每頁最上面的紅色標籤會被壓到。 */
+  padding-top: 16px;
+  padding-bottom: 40px;
+}
+/* 捲動定位時讓開 sticky 工具列的高度(工具列約 46px + 16px 間距) */
+.print-book-read-screen .print-book-page {
+  scroll-margin-top: 62px;
+}
+
+@media print {
+  .print-book-reader-bar {
+    display: none !important;
+  }
+}

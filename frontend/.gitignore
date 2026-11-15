@@ -62,3 +62,11 @@ next-env.d.ts
 
 # 8-14 Supabase migration backups
 .env.backup-*
+
+# 🆕 2026-10-06 聖上 archive — Supabase story-blog 本地完整 dump
+# 789MB 圖片 + 380KB posts.json — 不該 commit (改用 restore script 重建)
+# 保留 .gitkeep 結構方便恢復
+/data/archive/
+!/data/archive/.gitkeep
+.cache/
+frontend/.cache/

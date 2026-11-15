@@ -33,7 +33,7 @@ const FRAME_META: Record<
 > = {
   vermilion: { label: "朱紅金邊", emoji: "🏮", chip: "印", chipText: "印" },
   polaroid: { label: "純白拍立得", emoji: "⬜", chip: "白", chipText: "白" },
-  ink: { label: "墨黑復古", emoji: "�", chip: "古", chipText: "古" },
+  ink: { label: "墨黑復古", emoji: "🎞", chip: "古", chipText: "古" },
   wash: { label: "水墨淡邊", emoji: "📜", chip: "卷", chipText: "卷" },
 };
 
@@ -87,7 +87,7 @@ export default function PhotoFrame({
           <div className="border border-stone-200/80 bg-white">
             {!loaded && !error && (
               <div className="aspect-[4/3] w-full min-w-[280px] flex items-center justify-center bg-stone-50">
-                <span className="text-stone-400 text-sm">載入中…</span>
+                <span className="inline-block h-3 w-16 rounded bg-stone-200/80 animate-pulse" aria-label="圖片載入中" />
               </div>
             )}
             {error ? (
@@ -149,7 +149,7 @@ export default function PhotoFrame({
           <div className="border-4 border-black bg-stone-950">
             {!loaded && !error && (
               <div className="aspect-[4/3] w-full min-w-[280px] flex items-center justify-center bg-stone-950">
-                <span className="text-stone-600 text-sm">載入中…</span>
+                <span className="inline-block h-3 w-16 rounded bg-stone-200/80 animate-pulse" aria-label="圖片載入中" />
               </div>
             )}
             {error ? (
@@ -222,7 +222,7 @@ export default function PhotoFrame({
             <div className="border border-amber-600/40 p-0.5 bg-white">
               {!loaded && !error && (
                 <div className="aspect-[4/3] w-full min-w-[280px] flex items-center justify-center bg-stone-50">
-                  <span className="text-stone-400 text-sm">載入中…</span>
+                  <span className="inline-block h-3 w-16 rounded bg-stone-200/80 animate-pulse" aria-label="圖片載入中" />
                 </div>
               )}
               {error ? (
@@ -297,7 +297,7 @@ export default function PhotoFrame({
           <div className="border-2 border-jn-gold-light p-0.5 bg-jn-paper-warm">
             {!loaded && !error && (
               <div className="aspect-[4/3] w-full min-w-[280px] flex items-center justify-center bg-jn-paper-warm">
-                <span className="text-jn-ink/40 text-sm">載入中…</span>
+                <span className="inline-block h-3 w-16 rounded bg-jn-ink/10 animate-pulse" aria-label="圖片載入中" />
               </div>
             )}
             {error ? (

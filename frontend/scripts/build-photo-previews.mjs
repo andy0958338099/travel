@@ -23,12 +23,17 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
+import { fileURLToPath } from "node:url";
+
+// 🆕 2026-11-13 搬遷 T7 後改用「跟著腳本走」的路徑 (不再硬編碼磁碟)
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+
 const SOURCE_DIR =
   process.env.SOURCE_DIR ||
   "/Volumes/Transcend/travel-archive/2026-jiangnan/00-inbox";
 const OUTPUT_DIR =
   process.env.OUTPUT_DIR ||
-  "/Volumes/Transcend/manga-studio/frontend/public/photos-previews";
+  path.resolve(SCRIPT_DIR, "../public/photos-previews");
 
 const SUPPORTED = [".HEIC", ".heic", ".JPG", ".jpg", ".JPEG", ".jpeg", ".PNG", ".png"];
 

@@ -57,6 +57,8 @@ export default function ReshortenModal({
     originalLength: number;
     shortenedLength: number;
     overflow?: boolean;
+    attempts?: number;
+    fallback?: boolean;
   } | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -107,12 +109,18 @@ export default function ReshortenModal({
         originalLength: data.originalLength,
         shortenedLength: data.shortenedLength,
         overflow: data.overflow,
+        attempts: data.attempts,
+        fallback: data.fallback,
       });
       if (data.fallback && data.warning) {
         setShortenWarning(data.warning);
         toast?.(`⚠️ ${data.warning}`, "info");
+      } else if (data.overflow && data.warning) {
+        setShortenWarning(data.warning);
+        toast?.(`⚠️ ${data.warning}`, "info");
       } else {
-        toast?.(`✂️ 精簡完成 — ${data.originalLength} → ${data.shortenedLength} 字`, "success");
+        const attemptNote = data.attempts && data.attempts > 1 ? ` (第 ${data.attempts} 次嘗試成功)` : "";
+        toast?.(`✂️ 精簡完成${attemptNote} — ${data.originalLength} → ${data.shortenedLength} 字`, "success");
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "精簡失敗";
@@ -201,6 +209,12 @@ export default function ReshortenModal({
                 {shortenStats?.overflow && (
                   <span className="ml-2 text-xs text-amber-700">⚠️ 超出 {minLength}-{maxLength} 範圍</span>
                 )}
+                {shortenStats?.attempts && shortenStats.attempts > 1 && (
+                  <span className="ml-2 text-xs text-jn-ink/50">🔁 第 {shortenStats.attempts} 次嘗試成功</span>
+                )}
+                {shortenStats?.fallback && (
+                  <span className="ml-2 text-xs text-jn-ink/50">🛟 啟發式 fallback</span>
+                )}
               </h3>
               <div className="flex gap-1">
                 <button
@@ -220,7 +234,7 @@ export default function ReshortenModal({
             </div>
             {shortening && !shortenedContent && (
               <div className="bg-jn-paper-warm border-l-4 border-jn-gold rounded p-4 text-center text-jn-ink/60">
-                <p className="text-sm">⏳ LLM 正在精簡 (3-8 秒) ...</p>
+                <p className="text-sm">⏳ LLM 正在精簡… 若首次失敗會自動重試 2 次 + 升級模型</p>
               </div>
             )}
             {shortenedContent && (

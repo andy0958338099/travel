@@ -124,7 +124,7 @@ export default function VideoEditorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           image_path: selectedImagePath,
-          audio_path: audioPath || audioUrl.replace("/diary_audio/", "/Volumes/Transcend/manga-studio/data/diary_audio/"),
+          audio_path: audioPath || audioUrl.replace("/diary_audio/", "/diary_audio/"),
           subtitle_text: autoSubtitle ? undefined : undefined, // 讓後端自己燒 SRT
           output_name: `diary_clip_${selectedDiaryId}_${Date.now()}`,
         }),

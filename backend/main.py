@@ -37,43 +37,49 @@ async def track_watchdog_activity(request, call_next):
 
 app.include_router(router, prefix="/api")
 
+# 專案根目錄（可用 MANGA_STUDIO_ROOT 覆寫）
+PROJECT_ROOT = os.environ.get(
+    "MANGA_STUDIO_ROOT",
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+)
+
 # 靜態檔案服務
-outputs_dir = os.path.join(os.path.dirname(__file__), "..", "outputs")
+outputs_dir = os.path.join(PROJECT_ROOT, "outputs")
 if os.path.exists(outputs_dir):
     app.mount("/outputs", StaticFiles(directory=outputs_dir), name="outputs")
 
 # 歌曲靜態檔案服務
-songs_dir = "/Volumes/Transcend/manga-studio/backend/static/songs"
+songs_dir = os.path.join(PROJECT_ROOT, "backend", "static", "songs")
 if os.path.exists(songs_dir):
     app.mount("/songs", StaticFiles(directory=songs_dir), name="songs")
 
 # 角色資產靜態檔案服務（包含影片）
-assets_dir = "/Volumes/Transcend/manga-studio/assets"
+assets_dir = os.path.join(PROJECT_ROOT, "assets")
 if os.path.exists(assets_dir):
     app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
 # 日記有聲配音靜態檔案服務
-diary_audio_dir = "/Volumes/Transcend/manga-studio/data/diary_audio"
+diary_audio_dir = os.path.join(PROJECT_ROOT, "data", "diary_audio")
 if os.path.exists(diary_audio_dir):
     app.mount("/diary_audio", StaticFiles(directory=diary_audio_dir), name="diary_audio")
 
 # 音色測試音頻靜態檔案服務
-voice_test_dir = "/Volumes/Transcend/manga-studio/data/voice_test"
+voice_test_dir = os.path.join(PROJECT_ROOT, "data", "voice_test")
 if os.path.exists(voice_test_dir):
     app.mount("/voice_test", StaticFiles(directory=voice_test_dir), name="voice_test")
 
 # 影片剪輯靜態檔案服務
-video_clips_dir = "/Volumes/Transcend/manga-studio/data/assets/video_clips"
+video_clips_dir = os.path.join(PROJECT_ROOT, "data", "assets", "video_clips")
 if os.path.exists(video_clips_dir):
     app.mount("/video_clips", StaticFiles(directory=video_clips_dir), name="video_clips")
 
 # 字幕靜態檔案服務
-subtitles_dir = "/Volumes/Transcend/manga-studio/data/assets/subtitles"
+subtitles_dir = os.path.join(PROJECT_ROOT, "data", "assets", "subtitles")
 if os.path.exists(subtitles_dir):
     app.mount("/subtitles", StaticFiles(directory=subtitles_dir), name="subtitles")
 
 # 旅遊插圖靜態檔案服務
-travel_images_dir = "/Volumes/Transcend/manga-studio/data/assets/travel-images"
+travel_images_dir = os.path.join(PROJECT_ROOT, "data", "assets", "travel-images")
 if os.path.exists(travel_images_dir):
     app.mount("/travel-images", StaticFiles(directory=travel_images_dir), name="travel_images")
 

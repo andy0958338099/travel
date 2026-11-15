@@ -38,7 +38,7 @@ const LAYOUT_LABEL: Record<PostRow["layout_type"], string> = {
   "top-image": "圖上 文下",
 };
 const LAYOUT_EMOJI: Record<PostRow["layout_type"], string> = {
-  "left-image": "�",
+  "left-image": "⬅",
   "right-image": "➡",
   "top-image": "⬆",
 };
@@ -51,7 +51,7 @@ const FRAME_LABEL: Record<FrameStyle, string> = {
   wash: "水墨淡邊",
 };
 const FRAME_EMOJI: Record<FrameStyle, string> = {
-  vermilion: "�",
+  vermilion: "🟥",
   polaroid: "⬜",
   ink: "🎞",
   wash: "📜",
@@ -140,11 +140,23 @@ export default function TimelineStory({
 
   // 🆕 8-10 聖上拍板: 內容區不再顯示小標題 (小標題只在照片 caption 顯示一次)
   //   + 不再顯示編輯時間 (created_at 整段拿掉)
+  // 2026-11-14: 若內文開頭與標題重複 (AddStoryModal 打字時會自動帶入標題,
+  //   使用者未覆寫就存檔), 正文區就不重複渲染, 避免整句話連續出現兩遍。
+  const bodyText = (() => {
+    const raw = post.content || "";
+    const title = (post.title || "").trim();
+    if (!title) return raw;
+    if (raw.trim() === title) return "";
+    if (raw.trimStart().startsWith(title)) {
+      return raw.trimStart().slice(title.length).replace(/^\n+/, "");
+    }
+    return raw;
+  })();
   const ContentBlock = (
     <div className="flex-1 min-w-0 space-y-4">
-      {post.content && (
+      {bodyText && (
         <p className="text-base md:text-lg text-jn-ink/85 leading-relaxed whitespace-pre-wrap font-serif">
-          {post.content}
+          {bodyText}
         </p>
       )}
       {/* 作者名: 朱紅印章 chip — 聖上 USER 偏好保留 (知道是誰寫的) */}

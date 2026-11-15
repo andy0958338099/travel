@@ -23,6 +23,8 @@ import {
   type DownloadProgress,
 } from "./lib/download-utils";
 import "./print-book.css";
+import { toDisplayImageUrl } from "@/lib/imageSource"; // 🆕 2026-11-14: gdrive:<fileId> → Google 圖片網址
+import { fetchPostsWithFallback, fetchTripWithFallback } from "@/lib/postsFallback"; // 🆕 2026-11-14: Supabase 掛掉時改走本地 pooler
 
 /**
  * 🆕 9-20 自適應: 動態調整圖片最大高度, 最大化圖片顯示
@@ -189,19 +191,23 @@ export default function StoryBlogPrintPage() {
     let cancelled = false;
     (async () => {
       try {
-        const supabase = createClient();
-        const [{ data: tripData }, { data: postData, error: postErr }] = await Promise.all([
-          supabase.from("trips").select("*").eq("id", TRIP_ID).maybeSingle(),
-          supabase.from("posts").select("*").eq("trip_id", TRIP_ID).order("sort_order", { ascending: true }),
+        // 🆕 2026-11-14: Supabase 掛掉時自動改走本地 pooler fallback
+        const [{ rows: tripRows }, { rows: postData, error: postErr }] = await Promise.all([
+          fetchTripWithFallback<TripRow>(TRIP_ID),
+          fetchPostsWithFallback<PostRow>(TRIP_ID),
         ]);
         if (cancelled) return;
         if (postErr) {
-          setError(`無法讀取文章資料: ${postErr.message}`);
+          setError(`無法讀取文章資料: ${postErr}`);
           return;
         }
         // 🆕 9-20: 先 render (page=373 估算, 不等 dims), dims 抓完再 setPosts 觸發 useMemo 重算 → 共頁才生效
-        const rawPosts = (postData || []) as PostRow[];
-        setTrip((tripData || null) as TripRow | null);
+        // 🆕 2026-11-14: gdrive:<fileId> token 解析成 Google 圖片網址 (顯示層, DB 不動)
+        const rawPosts = ((postData || []) as PostRow[]).map((p) => ({
+          ...p,
+          image_url: toDisplayImageUrl(p.image_url),
+        }));
+        setTrip((tripRows?.[0] || null) as TripRow | null);
         setPosts(rawPosts);
         setLoading(false);
         // 背景抓 image 寬高, 完成後再次 setPosts 觸發 C 方案分頁重算
@@ -1225,9 +1231,20 @@ async function enrichShortenedContentLive(
 
 /**
  * 取得 post 的「顯示用」content: 優先用 _shortened_content (≤ 200 字), fallback 回原文
+ *
+ * 2026-11-14: 若內文與標題重複 (AddStoryModal 打字時自動帶入標題, 使用者未覆寫
+ *   就存檔), 去掉重複開頭, 避免書本版把同一句話連續印兩次。
  */
 function displayContent(post: PostRow): string {
-  return post._shortened_content || post.content || "";
+  const raw = post._shortened_content || post.content || "";
+  const title = (post.title || "").trim();
+  if (!title) return raw;
+  if (raw.trim() === title) return "";
+  if (raw.trimStart().startsWith(title)) {
+    const rest = raw.trimStart().slice(title.length).replace(/^\n+/, "");
+    return rest;
+  }
+  return raw;
 }
 
 /**

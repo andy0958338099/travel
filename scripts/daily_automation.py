@@ -17,6 +17,8 @@ from pathlib import Path
 from datetime import datetime, date
 from typing import Optional
 
+_ROOT = Path(__file__).resolve().parents[1]
+
 # 添加 backend 路徑
 sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
 
@@ -245,7 +247,7 @@ class DailyAutomationService:
         self.ai_service = AIService()
         self.music_service = MiniMaxMusicService()
         self.today = date.today()
-        self.log_path = Path(f"/Volumes/Transcend/manga-studio/data/automation_log_{self.today}.json")
+        self.log_path = _ROOT / "data" / f"automation_log_{self.today}.json"
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
 
     def _load_log(self) -> dict:
@@ -758,7 +760,7 @@ class TripAutomationService:
     def __init__(self):
         self.ai_service = AIService()
         self.today = date.today()
-        self.log_path = Path(f"/Volumes/Transcend/manga-studio/data/trip_automation_log_{self.today}.json")
+        self.log_path = _ROOT / "data" / f"trip_automation_log_{self.today}.json"
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
 
     def _load_log(self) -> dict:

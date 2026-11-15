@@ -20,6 +20,8 @@ import RepolishModal from "@/components/story/RepolishModal";
 import ReshortenModal from "@/components/story/ReshortenModal"; // 🆕 9-20 v2: 精簡至 150-200 字 modal
 import BackgroundMusicPlayer from "@/components/story/BackgroundMusicPlayer"; // 🆕 2026-08-14 聖上拍板: 部落格背景音樂
 import { toast } from "@/components/GlobalToastHost"; // 🆕 2026-08-15 聖上拍板 🅐: 送出後 router.refresh() + toast 接到全域 host
+import { toDisplayImageUrl } from "@/lib/imageSource"; // 🆕 2026-11-14: gdrive:<fileId> → Google 圖片網址
+import { fetchPostsWithFallback, fetchTripWithFallback } from "@/lib/postsFallback"; // 🆕 2026-11-14: Supabase 掛掉時改走本地 pooler
 
 interface TripRow {
   id: string;
@@ -127,12 +129,15 @@ function StoryBlogPageInner() {
   // router.refresh() 只重跑 RSC tree,client 的 useEffect 不會重跑,所以新 post 不會出現。
   // 正解:送出後直接呼叫 fetchPosts 重抓,client state 直接更新。
   const fetchPosts = useCallback(async () => {
-    const supabase = createClient();
-    const { data: postData } = await supabase
-      .from("posts").select("*").eq("trip_id", TRIP_ID)
-      .order("sort_order", { ascending: true });
-    if (!postData) {
+    // 🆕 2026-11-14: Supabase REST 被限流時自動改走本地 pooler fallback
+    const { rows: postData, source, error } = await fetchPostsWithFallback<PostRow>(
+      TRIP_ID
+    );
+    if (!postData || postData.length === 0) {
       setPosts([]);
+      if (error) {
+        console.warn("[story-blog] 取不到 posts:", source, error);
+      }
       return;
     }
     // 🆕 2026-08-16 聖上拍板 🅑 修法: DB 為 source of truth, localStorage 退為 mirror
@@ -143,9 +148,20 @@ function StoryBlogPageInner() {
     const normalized = postData.map((p: any) => {
       const fromDb = p.frame_style;
       const candidate = (fromDb && VALID.includes(fromDb)) ? fromDb : "vermilion";
-      return { ...p, frame_style: candidate };
+      // 🆕 2026-11-14: image_url 若為 gdrive:<fileId> token, 解析成 Google 圖片網址。
+      //   解析只發生在讀取層 (顯示用), DB 內容完全不動 — 雲端資料保持原樣。
+      return {
+        ...p,
+        frame_style: candidate,
+        image_url: toDisplayImageUrl(p.image_url),
+      };
     });
     setPosts(normalized as PostRow[]);
+    if (source === "local-pooler") {
+      console.warn(
+        "[story-blog] Supabase 不可用，已改用本地 pooler 資料（雲端仍為 source of truth）"
+      );
+    }
   }, []);
 
   // 初次載入 (含 trip + realtime 訂閱)
@@ -154,9 +170,10 @@ function StoryBlogPageInner() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     (async () => {
-      const { data: tripData } = await supabase
-        .from("trips").select("*").eq("id", TRIP_ID).maybeSingle();
-      if (tripData) setTrip(tripData as TripRow);
+      // 🆕 2026-11-14: trip 也走 fallback（Supabase 掛掉時改用本地 pooler）
+      const { rows: tripRows } = await fetchTripWithFallback<TripRow>(TRIP_ID);
+      const tripData = tripRows[0];
+      if (tripData) setTrip(tripData);
       await fetchPosts();
       setLoading(false);
 
@@ -519,6 +536,13 @@ function StoryBlogPageInner() {
               - 原本 fixed bottom floating 全部刪掉, 文章區乾淨無干擾 */}
           <div className="mt-5 flex justify-center items-center gap-3 flex-wrap">
             <BackgroundMusicPlayer inHero />
+            <Link
+              href="/story-blog-custom"
+              className="bg-jn-vermilion text-jn-paper font-bold px-5 py-3 rounded-full shadow-md hover:bg-jn-vermilion/90 transition-all hover:scale-105 border-2 border-jn-gold"
+              title="🆕 從 370 篇自由勾選,組成個人化 ~120-150 頁客製書,可分享"
+            >
+              📖 我的客製書
+            </Link>
             <Link
               href="/story-blog-print"
               className="bg-jn-paper text-jn-vermilion font-bold px-5 py-3 rounded-full shadow-md hover:bg-jn-gold-light transition-all hover:scale-105 border-2 border-jn-gold"

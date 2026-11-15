@@ -1,0 +1,481 @@
+/* ============================================================
+ * 🆕 2026-10-20 聖上指示: 個人化客製書勾選頁樣式
+ *
+ * 聖上 USER 偏好 (8-19):
+ *   - paper feel 朱紅/金/宣紙, 不要太冷 modern
+ *   - 不污染全域 CSS — 全 scoped 到 .custom-book-*
+ * ============================================================ */
+
+.custom-book-root {
+  /* 沿用現有 jn- paper token (Tailwind 已配置) */
+  background: linear-gradient(180deg, #faf6ec 0%, #f5edd8 100%);
+  min-height: 100vh;
+  padding-bottom: 60px;
+}
+
+/* ============ Header ============ */
+.custom-book-header {
+  padding: 40px 20px 24px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.08) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(160, 130, 60, 0.15);
+}
+
+.custom-book-header-inner {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.custom-book-title {
+  font-family: "Noto Serif TC", serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #2a1810;
+  margin: 12px 0 8px;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 1px rgba(212, 175, 55, 0.3);
+}
+
+.custom-book-subtitle {
+  font-size: 14px;
+  color: rgba(42, 24, 16, 0.55);
+  margin: 0;
+}
+
+/* ============ Grid layout ============ */
+.custom-book-grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  max-width: 1400px;
+  margin: 24px auto 0;
+  padding: 0 20px;
+}
+
+@media screen and (max-width: 900px) {
+  .custom-book-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============ Left side — 章節樹 ============ */
+.custom-book-left {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.custom-book-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(160, 130, 60, 0.18);
+  border-radius: 6px;
+  position: sticky;
+  top: 8px;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+}
+
+.custom-book-input,
+.custom-book-select {
+  flex: 1;
+  min-width: 140px;
+  padding: 6px 10px;
+  font-size: 14px;
+  border: 1px solid rgba(160, 130, 60, 0.3);
+  border-radius: 4px;
+  background: #fffdf6;
+  color: #2a1810;
+  font-family: inherit;
+}
+
+.custom-book-input:focus,
+.custom-book-select:focus {
+  outline: none;
+  border-color: #d4af37;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.18);
+}
+
+/* ============ Day 章節 ============ */
+.custom-book-day {
+  background: rgba(255, 253, 246, 0.7);
+  border: 1px solid rgba(160, 130, 60, 0.18);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.custom-book-day-header {
+  padding: 10px 14px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(160, 130, 60, 0.15);
+}
+
+.custom-book-day-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.custom-book-day-title {
+  flex: 1;
+  font-family: "Noto Serif TC", serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2a1810;
+}
+
+.custom-book-day-count {
+  font-size: 12px;
+  color: rgba(42, 24, 16, 0.5);
+  padding: 2px 8px;
+  background: rgba(212, 175, 55, 0.12);
+  border-radius: 10px;
+}
+
+/* ============ Post item ============ */
+.custom-book-post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.custom-book-post {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(160, 130, 60, 0.1);
+  transition: background 0.15s;
+}
+.custom-book-post:last-child {
+  border-bottom: none;
+}
+.custom-book-post:hover {
+  background: rgba(212, 175, 55, 0.06);
+}
+.custom-book-post.is-selected {
+  background: linear-gradient(90deg, rgba(196, 58, 47, 0.06) 0%, transparent 100%);
+  border-left: 3px solid #c43a2f;
+  padding-left: 11px;
+}
+
+.custom-book-post .line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ============ Right panel ============ */
+.custom-book-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 8px;
+  align-self: start;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+@media screen and (max-width: 900px) {
+  .custom-book-right {
+    position: static;
+    max-height: none;
+  }
+}
+
+.custom-book-panel {
+  background: #fffdf6;
+  border: 1px solid rgba(160, 130, 60, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(60, 40, 20, 0.06);
+}
+
+.custom-book-panel-title {
+  font-family: "Noto Serif TC", serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #2a1810;
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed rgba(160, 130, 60, 0.25);
+}
+
+/* ============ Stats ============ */
+.custom-book-stat {
+  display: inline-block;
+  margin-right: 12px;
+  padding: 6px 10px;
+  background: rgba(212, 175, 55, 0.08);
+  border-radius: 4px;
+  margin-bottom: 6px;
+}
+
+.custom-book-stat-num {
+  font-size: 22px;
+  font-weight: 700;
+  color: #c43a2f;
+  line-height: 1;
+}
+
+.custom-book-stat-label {
+  font-size: 11px;
+  color: rgba(42, 24, 16, 0.5);
+  margin-top: 2px;
+}
+
+.custom-book-stat-warning {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  margin: 8px 0 12px;
+  display: block;
+}
+.custom-book-stat-warning.is-good {
+  background: rgba(46, 125, 50, 0.08);
+  color: #2e7d32;
+}
+.custom-book-stat-warning.is-over {
+  background: rgba(196, 58, 47, 0.08);
+  color: #c43a2f;
+}
+.custom-book-stat-warning.is-under {
+  background: rgba(245, 159, 0, 0.08);
+  color: #b76e00;
+}
+
+/* ============ Form ============ */
+.custom-book-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.custom-book-form label {
+  display: block;
+}
+
+.custom-book-form-label {
+  display: block;
+  font-size: 11px;
+  color: rgba(42, 24, 16, 0.6);
+  margin-bottom: 4px;
+}
+
+.custom-book-form .custom-book-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ============ Buttons ============ */
+.custom-book-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.custom-book-btn-primary,
+.custom-book-btn-danger,
+.custom-book-btn-ghost {
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  font-family: inherit;
+  transition: all 0.15s;
+  text-align: center;
+  display: block;
+  text-decoration: none;
+}
+
+.custom-book-btn-primary {
+  background: linear-gradient(180deg, #c43a2f 0%, #a02818 100%);
+  color: #fffdf6;
+  border-color: #8a2014;
+}
+.custom-book-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #d04438 0%, #b22c1f 100%);
+}
+.custom-book-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.custom-book-btn-danger {
+  background: #fffdf6;
+  color: #c43a2f;
+  border-color: #c43a2f;
+}
+.custom-book-btn-danger:hover {
+  background: rgba(196, 58, 47, 0.08);
+}
+
+.custom-book-btn-ghost {
+  background: transparent;
+  color: rgba(42, 24, 16, 0.7);
+  border-color: rgba(160, 130, 60, 0.3);
+}
+.custom-book-btn-ghost:hover {
+  background: rgba(160, 130, 60, 0.08);
+}
+
+/* ============ Share URL box ============ */
+.custom-book-share {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(46, 125, 50, 0.06);
+  border: 1px solid rgba(46, 125, 50, 0.25);
+  border-radius: 4px;
+}
+
+.custom-book-share-url {
+  display: block;
+  font-size: 11px;
+  color: #2e7d32;
+  background: #fff;
+  padding: 6px 8px;
+  border-radius: 3px;
+  word-break: break-all;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* ============ TOC ============ */
+.custom-book-toc {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.custom-book-toc-item {
+  display: grid;
+  grid-template-columns: 22px 1fr auto auto auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 4px;
+  border-bottom: 1px dashed rgba(160, 130, 60, 0.15);
+  font-size: 13px;
+}
+
+.custom-book-toc-item:last-child {
+  border-bottom: none;
+}
+
+.custom-book-toc-num {
+  font-family: "Noto Serif TC", serif;
+  color: rgba(42, 24, 16, 0.5);
+  text-align: right;
+}
+
+.custom-book-toc-title {
+  color: #2a1810;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.custom-book-toc-day {
+  font-size: 11px;
+  color: rgba(42, 24, 16, 0.55);
+  padding: 1px 6px;
+  background: rgba(160, 130, 60, 0.1);
+  border-radius: 3px;
+}
+
+.custom-book-toc-move,
+.custom-book-toc-rm {
+  background: transparent;
+  border: 1px solid rgba(160, 130, 60, 0.25);
+  color: rgba(42, 24, 16, 0.55);
+  width: 22px;
+  height: 22px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-book-toc-move:hover:not(:disabled),
+.custom-book-toc-rm:hover {
+  background: rgba(212, 175, 55, 0.1);
+  color: #2a1810;
+}
+.custom-book-toc-move:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.custom-book-toc-rm {
+  color: #c43a2f;
+  border-color: rgba(196, 58, 47, 0.3);
+}
+.custom-book-toc-rm:hover {
+  background: rgba(196, 58, 47, 0.1);
+}
+
+/* ============ Footer ============ */
+.custom-book-footer {
+  text-align: center;
+  margin-top: 32px;
+  padding: 20px;
+  border-top: 1px solid rgba(160, 130, 60, 0.15);
+}
+
+/* ============================================================
+ * 🆕 2026-11-15: 公開分享面板
+ *   訪客進到公開預覽頁最想做的事:「線上看」+「下載 A5 PDF」。
+ *   放最上方,一眼就看得到。
+ * ============================================================ */
+.custom-book-share-panel {
+  max-width: 1200px;
+  margin: 0 auto 20px;
+  padding: 18px 22px;
+  background: #fffdf8;
+  border: 1px solid rgba(120, 90, 55, 0.18);
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(90, 70, 45, 0.07);
+}
+.custom-book-share-panel-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.custom-book-share-panel-label {
+  font-size: 17px;
+  font-weight: 600;
+  color: #3a2f20;
+}
+.custom-book-share-panel-meta {
+  font-size: 13px;
+  color: rgba(60, 45, 30, 0.62);
+}
+.custom-book-share-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.custom-book-share-panel-actions a,
+.custom-book-share-panel-actions button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.custom-book-share-panel-note {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  color: rgba(120, 90, 55, 0.8);
+}

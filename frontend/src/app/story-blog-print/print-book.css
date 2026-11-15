@@ -763,8 +763,14 @@
   }
 }
 
-/* === 小螢幕適配 (手機上看預覽時) === */
-@media (max-width: 600px) {
+/* === 小螢幕適配 (手機上看預覽時) ===
+   ⚠️ 2026-11-14 關鍵修正:
+     原本是 `@media (max-width: 600px)`,但 Chrome 列印時的 layout viewport
+     寬度 = 紙張寬度 (A5 ≈ 559px) → 這個 media query 在「列印」時也會命中!
+     結果每個 .print-book-page 被改成 `width:100vw; height:auto`,
+     內容撐高後溢出紙張 → PDF 從 80 頁變成 374 頁 (一頁拆成 4~5 頁)。
+     修正:加上 `screen` → 只在螢幕預覽生效,列印維持 A5 固定尺寸。 */
+@media screen and (max-width: 600px) {
   .print-book-page {
     width: 100vw;
     height: auto;

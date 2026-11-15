@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Character, getCharacters, getCharacterImages } from "@/lib/api";
+import { toAssetUrlOrPlaceholder } from "@/lib/assetUrl";
 import {
   getCharacterPortfolio,
   generatePortfolio,
@@ -400,23 +401,7 @@ export default function PortfolioPage() {
     }
   };
 
-  const getImageUrl = (path: string) => {
-    if (!path) return "/placeholder.png";
-    // 將本地路徑轉換為後端 HTTP URL
-    if (path.startsWith("/Volumes/Transcend/manga-studio")) {
-      const normalized = path.replace("/Volumes/Transcend/manga-studio", "");
-      return `http://localhost:8000${normalized}`;
-    }
-    // 如果是相對路徑
-    if (path.startsWith("/")) {
-      return `http://localhost:8000${path}`;
-    }
-    // 如果是外部 URL，直接使用
-    if (path.startsWith("http")) {
-      return path;
-    }
-    return path;
-  };
+  const getImageUrl = (path: string) => toAssetUrlOrPlaceholder(path);
 
   const currentCount = portfolio.length;
   const referenceCount = portfolio.filter((p) => p.is_reference === 1).length;

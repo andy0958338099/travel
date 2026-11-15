@@ -32,7 +32,8 @@ export default function AutomationLayout({ children }: { children: React.ReactNo
           <div className="flex items-center gap-2 mb-3">
             <Link
               href="/"
-              className="text-white/90 hover:text-white text-sm flex-shrink-0 flex items-center gap-1"
+              className="text-white hover:text-amber-200 text-sm font-medium flex-shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded"
+              style={{ textShadow: "0 1px 3px rgba(0,0,0,.55)" }}
             >
               <span>←</span>
               <span>返回首頁</span>
@@ -52,7 +53,7 @@ export default function AutomationLayout({ children }: { children: React.ReactNo
                   className={`px-2.5 py-1 rounded-full text-xs sm:text-sm whitespace-nowrap transition-all ${
                     isActive
                       ? 'bg-amber-300 text-red-900 font-bold shadow-md ring-2 ring-amber-200'
-                      : 'bg-white/20 hover:bg-white/30 text-white'
+                      : 'bg-black/40 hover:bg-black/50 text-white shadow-sm'
                   }`}
                 >
                   {item.label}

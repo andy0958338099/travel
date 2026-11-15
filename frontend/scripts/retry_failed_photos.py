@@ -13,10 +13,11 @@ import os
 import ssl
 import certifi
 import sys
+from pathlib import Path
 
 API_KEY = os.environ["MINIMAX_API_KEY"]
 API_URL = "https://api.minimax.io/v1/image_generation"
-OUTPUT_DIR = "/Volumes/Transcend/manga-studio/frontend/public/attractions"
+OUTPUT_DIR = str(Path(__file__).resolve().parent.parent / "public" / "attractions")
 
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 

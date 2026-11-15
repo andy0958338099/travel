@@ -10,7 +10,7 @@
 #   4. lh3.googleusercontent.com/pw/<path> (Takeout 給的真實直連)
 # 看每個能不能拿回真實 image bytes (不是 HTML SPA shell)
 set -e
-cd /Volumes/Transcend/manga-studio/frontend
+cd "$(cd "$(dirname "$0")/.." && pwd)"
 
 USER_AGENT="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 

@@ -10,7 +10,13 @@
 
 import { readFileSync } from "fs";
 
-const env = readFileSync("/Volumes/Transcend/manga-studio/frontend/.env.local", "utf8");
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// 🆕 2026-11-13 搬遷 T7 後改用「跟著腳本走」的路徑 (不再硬編碼磁碟)
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+
+const env = readFileSync(path.resolve(SCRIPT_DIR, "../.env.local"), "utf8");
 const SUPABASE_URL = env.split("\n").find(l => l.startsWith("NEXT_PUBLIC_SUPABASE_URL="))?.split("=", 2)[1].trim();
 const key = env.split("\n").find(l => l.startsWith("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="))?.split("=", 2)[1].trim();
 

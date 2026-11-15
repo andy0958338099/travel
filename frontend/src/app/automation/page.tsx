@@ -9,6 +9,10 @@ interface SystemStatus {
   last_diary_at: string | null;
   last_song_at: string | null;
   timestamp: string;
+  /** 後端實際的資料根目錄（由 /api/automation/status 提供） */
+  project_root?: string;
+  /** 後端實際的 SQLite 路徑 */
+  database_path?: string;
 }
 
 interface Character {
@@ -170,7 +174,7 @@ export default function AutomationDashboard() {
             <InfoRow label="Cron Job 每日生成" value="✅ 06:00 執行" />
             <InfoRow label="Watchdog 監控" value="✅ 每 5 分鐘檢查" />
             <InfoRow label="API 後端" value="http://localhost:8000" />
-            <InfoRow label="資料庫" value="/Volumes/Transcend/manga-studio/data/manga_studio.db" />
+            <InfoRow label="資料庫" value={status?.database_path ?? "載入中…"} />
             <InfoRow label="今日狀態" value={status?.last_diary_at ? "已生成日記" : "等待中"} />
             <InfoRow label="自動改進引擎" value="📌 8 個待辦項目" />
           </div>

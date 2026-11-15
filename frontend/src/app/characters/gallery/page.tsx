@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { getCharactersGallery, getCharacterGallery, deleteCharacterImage } from "@/lib/api";
+import { toAssetUrlOrPlaceholder } from "@/lib/assetUrl";
 
 interface CharacterSummary {
   id: number;
@@ -102,11 +103,7 @@ export default function CharacterGalleryPage() {
     }
   };
 
-  const getImageUrl = (path: string) => {
-    if (!path) return "/placeholder.png";
-    const normalized = path.replace("/Volumes/Transcend/manga-studio", "");
-    return `http://localhost:8000${normalized}`;
-  };
+  const getImageUrl = (path: string) => toAssetUrlOrPlaceholder(path);
 
   const getUniqueValues = (type: "outfit" | "expression" | "angle") => {
     if (!gallery?.images) return [];

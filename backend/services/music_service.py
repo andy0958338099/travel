@@ -256,7 +256,7 @@ This is not a short 1-minute clip - the song should have proper length to tell t
             dict: 包含 local_path 或 error
         """
         # 本地儲存路徑
-        songs_dir = Path("/Volumes/Transcend/manga-studio/data/songs")
+        songs_dir = Path(os.environ.get("MANGA_STUDIO_ROOT", str(Path(__file__).resolve().parents[2]))) / "data" / "songs"
         songs_dir.mkdir(parents=True, exist_ok=True)
 
         # 檔案名稱：char_{id}_song_{id}_{timestamp}.mp3
@@ -272,7 +272,7 @@ This is not a short 1-minute clip - the song should have proper length to tell t
                             f.write(content)
 
                         # 同時複製到 static 目錄供前端訪問
-                        static_dir = Path("/Volumes/Transcend/manga-studio/backend/static/songs")
+                        static_dir = Path(os.environ.get("MANGA_STUDIO_ROOT", str(Path(__file__).resolve().parents[2]))) / "backend" / "static" / "songs"
                         static_dir.mkdir(parents=True, exist_ok=True)
                         static_path = static_dir / filename
                         with open(static_path, "wb") as f:

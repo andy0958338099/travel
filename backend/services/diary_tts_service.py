@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional, List
 
 # 日記音訊儲存目錄
-AUDIO_DIR = Path("/Volumes/Transcend/manga-studio/data/diary_audio")
+AUDIO_DIR = Path(os.environ.get("MANGA_STUDIO_ROOT", str(Path(__file__).resolve().parents[2]))) / "data" / "diary_audio"
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 # mmx-cli 路徑
@@ -46,7 +46,7 @@ class DiaryTTSService:
         pitch: float = 0.0
     ) -> Optional[str]:
         """產生測試音頻（總是重新生成，不使用快取）"""
-        audio_path = Path("/Volumes/Transcend/manga-studio/data/voice_test/test.mp3")
+        audio_path = Path(os.environ.get("MANGA_STUDIO_ROOT", str(Path(__file__).resolve().parents[2]))) / "data" / "voice_test" / "test.mp3"
         audio_path.parent.mkdir(parents=True, exist_ok=True)
 
         # 先刪除舊檔案

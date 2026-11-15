@@ -16,6 +16,9 @@ const geistMono = localFont({
   weight: "100 900",
 });
 const notoSerifTC = Noto_Serif_TC({
+  // ⚠️ next/font 對 Noto Serif TC 只提供 ["latin"] subset → 中文字形不會下載。
+  //   客製書內文的思源宋體改由 print-mode.css 的 @font-face + 本地 woff2 提供
+  //   (見 frontend/public/fonts/NotoSerifTC-*.woff2,OFL 授權)。
   subsets: ["latin"],
   weight: ["400", "500", "700", "900"],
   variable: "--font-noto-serif-tc",

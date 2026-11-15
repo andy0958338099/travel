@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getCharacters, getCharacterDiaries } from '@/lib/api';
+import { toAssetUrl } from '@/lib/assetUrl';
 
 interface Character {
   id: number;
@@ -144,7 +145,7 @@ export default function StoryBiblePage() {
       const imagesMap: { [key: number]: string } = {};
       chars.forEach((char) => {
         if (char.image_path) {
-          imagesMap[char.id] = char.image_path;
+          imagesMap[char.id] = toAssetUrl(char.image_path);
         }
       });
       setCharacterImages(imagesMap);

@@ -18,7 +18,12 @@ from db.database import get_connection
 # 活躍追蹤器
 # =============================================================================
 
-WATCHDOG_DIR = Path("/Volumes/Transcend/manga-studio/data/watchdog")
+WATCHDOG_DIR = Path(
+    os.environ.get(
+        "MANGA_STUDIO_ROOT",
+        str(Path(__file__).resolve().parents[1]),
+    )
+) / "data" / "watchdog"
 WATCHDOG_DIR.mkdir(parents=True, exist_ok=True)
 
 ACTIVITY_FILE = WATCHDOG_DIR / "activity.json"

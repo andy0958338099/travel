@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { getCharacters, listTTSVoices, getCharacterVoice, updateCharacterVoice, testTTS, TTSVoice, Character } from "@/lib/api";
+import { toAssetUrl } from "@/lib/assetUrl";
 
 export default function VoiceTestPage() {
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -59,8 +60,8 @@ export default function VoiceTestPage() {
   };
 
   const getImageUrl = (imagePath: string | null | undefined) => {
-    if (!imagePath) return null;
-    return `http://localhost:8000${imagePath.replace("/Volumes/Transcend/manga-studio", "")}`;
+    const url = toAssetUrl(imagePath);
+    return url || null;
   };
 
   const filteredVoices = voices.filter((v) => {

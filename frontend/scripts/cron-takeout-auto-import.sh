@@ -7,7 +7,7 @@
 #
 # 用法:
 #   1. 設 crontab (聖上 Mac): crontab -e → 加這行
-#      0 14 * * * /Volumes/Transcend/manga-studio/frontend/scripts/cron-takeout-auto-import.sh
+#      0 14 * * * <PROJECT_DIR>/scripts/cron-takeout-auto-import.sh
 #      (每天 14:00 跑, 聖上下班回家電腦開著就掃)
 #
 #   2. 或用 Hermes cronjob (推薦, 跨平台):
@@ -23,7 +23,7 @@
 
 set -e
 
-PROJECT_DIR="/Volumes/Transcend/manga-studio/frontend"
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ARCHIVE_DIR="/Volumes/Transcend/travel-archive/2026-jiangnan"
 INBOX="$ARCHIVE_DIR/00-inbox"
 METADATA="$ARCHIVE_DIR/05-exif-csv"

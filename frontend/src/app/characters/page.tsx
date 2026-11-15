@@ -42,7 +42,7 @@ export default function CharactersPage() {
     try {
       const result = await generateCharacter(form);
       if (result.images && result.images.length > 0) {
-        const imageUrl = result.images[0].replace("/Volumes/Transcend/manga-studio", "");
+        const imageUrl = result.images[0].replace(/^\/Volumes\/[^/]+\/manga-studio/, "");
         setPreviewImage(`http://localhost:8000${imageUrl}`);
       }
       loadCharacters();
@@ -72,7 +72,7 @@ export default function CharactersPage() {
       const result = await generateCharacterVariant(variantModal.char.id, variantForm);
       if (result.images && result.images.length > 0) {
         const variantUrls = result.images.map((path: string) => 
-          `http://localhost:8000${path.replace("/Volumes/Transcend/manga-studio", "")}`
+          `http://localhost:8000${path.replace(/^\/Volumes\/[^/]+\/manga-studio/, "")}`
         );
         setVariantModal({ ...variantModal, variants: variantUrls });
         
@@ -113,7 +113,7 @@ export default function CharactersPage() {
 
   const getImageUrl = (imagePath: string | null | undefined) => {
     if (!imagePath) return null;
-    return `http://localhost:8000${imagePath.replace("/Volumes/Transcend/manga-studio", "")}`;
+    return `http://localhost:8000${imagePath.replace(/^\/Volumes\/[^/]+\/manga-studio/, "")}`;
   };
 
   const angles = [

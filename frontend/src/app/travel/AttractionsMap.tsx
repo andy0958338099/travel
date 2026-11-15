@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { ALL_ATTRACTIONS, Attraction } from "./data";
@@ -48,6 +48,27 @@ function FlyTo({ position, zoom }: { position: [number, number]; zoom: number })
   return null;
 }
 
+// Capture the L.Map instance into a parent's ref.
+//
+// ⚠️ 這裡「絕對不要」在 cleanup 裡呼叫 map.remove()。
+// Next.js App Router 預設開啟 React StrictMode（__NEXT_STRICT_MODE_APP=true），
+// effect 會跑 mount → cleanup → mount 三段。
+// 若 cleanup 殺了 map，第二次 mount 時 TileLayer/Marker 的 layer effect 仍會
+// 對那顆已死的 map 呼叫 addLayer() → Leaflet getPane() 回傳 undefined
+// → TypeError: Cannot read properties of undefined (reading 'appendChild')
+// (leaflet-src.js _initContainer)
+//
+// map 的銷毀交給 MapContainer 自己的 cleanup（@react-leaflet/core MapContainer
+// useEffect deps [context] → 真正 unmount 時才 context?.map.remove()），
+// 時機正確且不會誤殺 StrictMode 的第二次 mount。
+function MapReady({ onReady }: { onReady: (map: L.Map) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    onReady(map);
+  }, [map, onReady]);
+  return null;
+}
+
 interface AttractionsMapProps {
   selectedDay?: string;
   plannedAttractions?: string[];
@@ -59,34 +80,28 @@ export default function AttractionsMap({ selectedDay: _selectedDay, plannedAttra
   const [mapCenter, setMapCenter] = useState<[number, number]>([30.25, 120.15]);
   const [mapZoom, setMapZoom] = useState(11);
 
-  // ── React 18 Strict Mode 雙 mount race fix ──
-  // react-leaflet 4.2.1 MapContainer cleanup 依賴 context state,
-  // 第一次 unmount 時 context 還是 null → map.remove() 不執行 → DOM 上 _leaflet_id 殘留
-  // 第二次 mount 報 "Map container is being reused by another instance"
-  // 修法 (v2): 用 useId() 給 MapContainer 綁定 key, 強制 React 把第二次 mount 視為新實例
-  // 同時在 mount 時主動呼叫 map.remove() 把舊實例清掉
-  const reactId = useId();
+  // Stable callback so MapReady effect doesn't re-run on parent re-render
+  const handleMapReady = useCallback((m: L.Map) => {
+    mapInstanceRef.current = m;
+  }, []);
+
+  // ── Leaflet 生命週期管理 ──
+  // 設計原則（2026-11-13 修正）：**不要手動 map.remove()**。
+  //
+  // 舊的 v3 workaround 在 mount-time effect 裡偵測到殘留的 .leaflet-container
+  // 就呼叫 map.remove() + bump seed 強制 remount。在 React 18 StrictMode 下
+  // （Next.js App Router 預設開啟），這個 mount-time effect 會跑兩次：
+  //   第一次 mount → 偵測不到（容器才剛建好）
+  //   第二次 mount → 偵測到上一輪留下的容器 → map.remove()
+  // 而 react-leaflet 的 layer effect 此刻正要 addLayer() 到那顆被殺掉的 map，
+  // Leaflet getPane() 回傳 undefined → "Cannot read properties of undefined
+  // (reading 'appendChild')"。
+  //
+  // 現在 map 的銷毀完全交給 @react-leaflet/core 的 MapContainer（它自己
+  // useEffect deps [context] → 真正 unmount 時才 context?.map.remove()），
+  // 時機正確。我們只保留 ref 供外部（如 marker 點擊定位）使用。
+  const mapInstanceRef = useRef<L.Map | null>(null);
   const mapWrapperRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    return () => {
-      const el = mapWrapperRef.current?.querySelector(".leaflet-container") as
-        | (HTMLDivElement & { _leaflet_id?: number; _leaflet_map?: unknown })
-        | null;
-      if (el) {
-        // dev-only: 強制清掉 leaflet 內部 state, 避免 "Map container is being reused"
-        try {
-          const mapInstance = (el as any)._leaflet_map;
-          if (mapInstance && typeof mapInstance.remove === "function") {
-            mapInstance.remove();
-          }
-        } catch {
-          /* ignore */
-        }
-        delete el._leaflet_id;
-        delete (el as any)._leaflet_map;
-      }
-    };
-  }, [reactId]);
 
   const filteredAttractions = activeFilter === 'all'
     ? ALL_ATTRACTIONS  // show ALL markers — planned ones get additional red markers below
@@ -140,12 +155,12 @@ export default function AttractionsMap({ selectedDay: _selectedDay, plannedAttra
         className="relative rounded-xl overflow-hidden border border-gray-200 h-[400px] sm:h-[500px]"
       >
         <MapContainer
-          key={reactId}
           center={mapCenter}
           zoom={mapZoom}
           style={{ height: "100%", width: "100%" }}
           scrollWheelZoom={true}
         >
+          <MapReady onReady={handleMapReady} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

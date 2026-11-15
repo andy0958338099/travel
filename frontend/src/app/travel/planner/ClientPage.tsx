@@ -29,6 +29,7 @@ import {
 } from './constants';
 import BudgetSummary from './BudgetSummary';
 import DayHeader from './DayHeader';
+import ItineraryTimelinePanel from './ItineraryTimelinePanel';
 import ActivityBlock from './ActivityBlock';
 import ActivityEditor from './ActivityEditor';
 import MemberManager from './MemberManager';
@@ -620,6 +621,9 @@ export default function PlannerPage() {
           </div>
         </div>
       </div>
+
+      {/* 每日詳細行程表（純前端顯示，資料來自 jiangnan-itinerary.ts） */}
+      <ItineraryTimelinePanel />
 
       {/* Legend */}
       <div className="max-w-7xl mx-auto mt-4 bg-white rounded-lg shadow p-4">
