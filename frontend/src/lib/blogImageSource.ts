@@ -13,6 +13,7 @@
  */
 
 import { getSiteContent } from "@/lib/siteContent";
+import { nodeFetch } from "@/lib/netlifyFetch";
 
 /** Netlify Blobs 的 store 名稱 */
 const BLOB_STORE = "blog-images";
@@ -30,11 +31,14 @@ export async function getBlogBlobStore() {
   const siteID = process.env.NETLIFY_SITE_ID;
   const token = process.env.NETLIFY_AUTH_TOKEN;
 
+  // 用 node:https 實作的 fetch，避免 Next.js patch global fetch 造成大檔下載卡住
+  const fetchOpt = { fetch: nodeFetch as unknown as typeof fetch };
+
   if (siteID && token) {
-    return getStore({ name: BLOB_STORE, siteID, token });
+    return getStore({ name: BLOB_STORE, siteID, token, ...fetchOpt });
   }
   // Netlify runtime 會注入 context，getStore("name") 即可
-  return getStore(BLOB_STORE);
+  return getStore(BLOB_STORE, fetchOpt as any);
 }
 
 /**

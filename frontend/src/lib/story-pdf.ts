@@ -11,8 +11,8 @@
  *   公開下載走「快取」策略: 第一次生成後存檔,後續訪客秒下載。
  */
 
-import puppeteer from "puppeteer";
 import { existsSync } from "fs";
+import { parseRange } from "@/lib/story-pdf-range";
 import { PDFDocument } from "pdf-lib";
 
 /**
@@ -234,40 +234,6 @@ async function forceLoadAllImages(
 }
 
 /**
- * 解析 range query:
- *   - ?range=1-10       → 第 1-10 頁
- *   - ?range=full       → 全部頁 (不傳 pageRanges)
- *   - ?range=1          → 單頁 (cover)
- */
-export function parseRange(raw: string | null): {
-  pageRanges?: string;
-  filename: string;
-} {
-  if (!raw || raw === "full") {
-    return { filename: "story-blog-A5-full.pdf" };
-  }
-  const m = raw.match(/^(\d+)(?:-(\d+))?$/);
-  if (!m) {
-    return { filename: "story-blog-A5-full.pdf" };
-  }
-  const s = +m[1];
-  const e = m[2] ? +m[2] : +m[1];
-  if (e < s) {
-    return { filename: "story-blog-A5-full.pdf" };
-  }
-  if (s === e) {
-    return {
-      pageRanges: String(s),
-      filename: `story-blog-A5-${String(s).padStart(3, "0")}.pdf`,
-    };
-  }
-  return {
-    pageRanges: `${s}-${e}`,
-    filename: `story-blog-A5-${String(s).padStart(3, "0")}-${String(e).padStart(3, "0")}.pdf`,
-  };
-}
-
-/**
  * 產生一本客製書的完整 A5 PDF。
  *
  * @param origin  目標頁的 origin(例: http://localhost:3000)
@@ -291,8 +257,13 @@ export async function renderBookPdf({
       )}?book_slug=${encodeURIComponent(slug)}&print=1`
     : `${origin}/story-blog-print`;
 
+  // ⚠️ 2026-11-15: puppeteer 是 devDependency，線上 serverless 沒有安裝。
+  //   若在 module 頂層 import，整個 route 會在載入時就爆 → HTTP 500 空 body。
+  //   改成 lazy dynamic import：只有真的要生成 PDF 時才載入，
+  //   載入失敗會被下面的 try/catch 接住 → 回 503 + 明確訊息。
   let browser: any;
   try {
+    const { default: puppeteer } = await import("puppeteer");
     browser = await puppeteer.launch({
       headless: true,
       executablePath:

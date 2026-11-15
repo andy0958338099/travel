@@ -1,0 +1,185 @@
+/**
+ * 從 Netlify Blobs 讀取預生成的客製書 PDF
+ *
+ * 背景：Netlify serverless 沒有 Chromium / GUI，無法即時用 Puppeteer 生成 PDF。
+ *   所以 PDF 在本機（dev server 有系統 Chrome）生成好後，上傳到
+ *   Netlify Blobs store `blog-images`，key 格式：
+ *
+ *     pdf/<share_slug>-<sig>.pdf
+ *
+ *   sig 與 api/story-books/pdf/route.ts 的快取 key 演算法一致：
+ *     sha1(book_id | layout_mode | updated_at | 篇數 | 篇序 | range) 前 16 碼
+ *
+ * 讀取策略：
+ *   1. Netlify Blobs REST API（需要 NETLIFY_SITE_ID + NETLIFY_AUTH_TOKEN）
+ *      先向 /api/v1/blobs/... 換 signed URL，再用 node:https 抓內容。
+ *      為什麼不用 SDK：Next.js 會 patch global fetch，本機 dev 下載數 MB 的
+ *      blob 會卡住不返回；node:https 不受 patch 影響。
+ *   2. @netlify/blobs SDK（Netlify runtime 有自動注入的 Blobs context，
+ *      不需要 token；正式站在沒有 token 時走這條）
+ *
+ * 讀不到時回 null，由呼叫端退回本機磁碟快取或回 503。
+ */
+
+import { createHash } from "crypto";
+import https from "https";
+import { getStore as getNetlifyStore } from "@netlify/blobs";
+import { nodeFetch } from "@/lib/netlifyFetch";
+
+const BLOB_STORE = "blog-images";
+const API_BASE = "https://api.netlify.com";
+/**
+ * REST API 的 store 名稱要帶 `site:` 前綴。
+ * 沒有前綴 → API 會回 200 給一個指向不存在 key 的 signed URL（實際抓取才 404）。
+ * 這是 Netlify Blobs 的已知行為，SDK 內部會自動加。
+ */
+const REST_STORE = `site:${BLOB_STORE}`;
+const SIGNED_URL_ACCEPT = "application/json;type=signed-url";
+
+/** 取得 Blob store（runtime context 優先，其次明確 siteID/token） */
+function getStore() {
+  const siteID = process.env.NETLIFY_SITE_ID;
+  const token = process.env.NETLIFY_AUTH_TOKEN;
+  if (siteID && token) {
+    return getNetlifyStore({
+      name: BLOB_STORE,
+      siteID,
+      token,
+      // ⚠️ apiURL 只能到 host，不能帶 /api/v1：
+      //   SDK 會自己接 /api/v1/blobs，帶了會變成 /api/v1/api/v1/blobs → 404。
+      apiURL: API_BASE,
+      // 用 node:https 實作的 fetch，避免 Next.js patch global fetch 造成卡住
+      fetch: nodeFetch as unknown as typeof fetch,
+    });
+  }
+  // Netlify runtime：Blobs context 自動注入，SDK 會走 edge URL
+  return getNetlifyStore(BLOB_STORE, {
+    fetch: nodeFetch as unknown as typeof fetch,
+  } as any);
+}
+
+/**
+ * 把 updated_at 正規化成 ISO 字串。
+ * 快照（JSON）是 ISO 字串，Postgres pooler 可能是 timestamp 字串，
+ * 不統一會算出不同的 sig → 線上找不到對應的 Blob。
+ */
+export function normalizeIso(value: string | null | undefined): string {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toISOString();
+}
+
+/**
+ * 計算 PDF 的 Blob key。
+ * 必須與 api/story-books/pdf/route.ts 的 sig 演算法完全一致，
+ * 否則線上找不到對應的 PDF。
+ */
+export function pdfBlobKey(
+  slug: string,
+  parts: {
+    bookId: string;
+    layoutMode: string;
+    updatedAt: string;
+    postIds: string[];
+    range: string;
+  }
+): string {
+  const sig = createHash("sha1")
+    .update(
+      [
+        parts.bookId,
+        parts.layoutMode,
+        normalizeIso(parts.updatedAt),
+        parts.postIds.length,
+        parts.postIds.join(","),
+        parts.range,
+      ].join("|"),
+    )
+    .digest("hex")
+    .slice(0, 16);
+  return `pdf/${slug}-${sig}.pdf`;
+}
+
+/** node:https GET → Buffer（不受 Next.js fetch patch 影響） */
+function httpsGetBuffer(
+  url: string,
+  headers: Record<string, string> = {},
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const req = https.request(
+      {
+        hostname: u.hostname,
+        path: u.pathname + u.search,
+        method: "GET",
+        headers,
+      },
+      (res) => {
+        const status = res.statusCode ?? 0;
+        if (status >= 300 && status < 400 && res.headers.location) {
+          res.resume();
+          httpsGetBuffer(res.headers.location, headers).then(resolve, reject);
+          return;
+        }
+        if (status !== 200) {
+          res.resume();
+          reject(new Error(`HTTP ${status}`));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        res.on("data", (c) => chunks.push(Buffer.from(c)));
+        res.on("end", () => resolve(Buffer.concat(chunks)));
+        res.on("error", reject);
+      },
+    );
+    req.on("error", reject);
+    req.setTimeout(60000, () => {
+      req.destroy(new Error("request timeout"));
+    });
+    req.end();
+  });
+}
+
+/** 走 Netlify Blobs REST API：先換 signed URL，再抓內容 */
+async function getViaRestApi(key: string): Promise<Buffer | null> {
+  const siteID = process.env.NETLIFY_SITE_ID;
+  const token = process.env.NETLIFY_AUTH_TOKEN;
+  if (!siteID || !token) return null;
+
+  const metaUrl = `${API_BASE}/api/v1/blobs/${siteID}/${REST_STORE}/${key}`;
+  const meta = await httpsGetBuffer(metaUrl, {
+    authorization: `Bearer ${token}`,
+    accept: SIGNED_URL_ACCEPT,
+  });
+  const parsed = JSON.parse(meta.toString("utf-8")) as { url?: string };
+  if (!parsed.url) return null;
+  return await httpsGetBuffer(parsed.url);
+}
+
+/**
+ * 讀取 PDF。
+ * 回傳 null 表示找不到（不是錯誤）。
+ */
+export async function getBlobPdf(key: string): Promise<Buffer | null> {
+  // 1) REST API（有 token 時最可靠，且不受 Next.js fetch patch 影響）
+  if (process.env.NETLIFY_SITE_ID && process.env.NETLIFY_AUTH_TOKEN) {
+    try {
+      const buf = await getViaRestApi(key);
+      if (buf) return buf;
+    } catch (e) {
+      console.error("[blobPdf] REST 讀取失敗:", (e as Error).message);
+    }
+  }
+
+  // 2) SDK（Netlify runtime 走這條）
+  try {
+    const store = getStore();
+    const res = await store.get(key, { type: "arrayBuffer" });
+    if (res) return Buffer.from(res as ArrayBuffer);
+  } catch (e) {
+    console.error("[blobPdf] SDK 讀取失敗:", (e as Error).message);
+  }
+
+  return null;
+}

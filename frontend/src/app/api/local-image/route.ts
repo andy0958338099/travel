@@ -43,6 +43,27 @@ const MIME: Record<string, string> = {
   ".gif": "image/gif",
 };
 
+/**
+ * ⚠️ 2026-11-15 關鍵修正：Netlify CDN 的 cache key 不含 query string。
+ *
+ * Next.js plugin 會把回應的 `netlify-vary` 固定成
+ *   query=__nextDataReq|_rsc, header=..., cookie=...
+ * 也就是說 CDN 只認 `_rsc` 這兩個 query，其餘 query（postId / w）
+ * 全部被排除在 cache key 之外 → 同一個 path 只會快取一份回應。
+ *
+ * 實測症狀：所有 postId 都拿到同一張圖（md5 相同），
+ * 甚至完全沒有 postId 的網址也回 200 + 那張圖。
+ *
+ * 解法：回應加上 `Netlify-Vary: query`（無值 = 納入全部 query）。
+ * plugin 會讀取這個 header 並把 ALL_VARIATIONS 加進去（見
+ * node_modules/@netlify/plugin-nextjs/dist/run/headers.js）。
+ *
+ * ⚠️ 一致性規則：同一個 URL 每次都必須回傳同樣的 Netlify-Vary，
+ *    否則第一個被快取的回應會決定後續行為。
+ */
+const NETLIFY_VARY_QUERY = "Netlify-Vary";
+const VARY_QUERY_VALUE = "query";
+
 /** 依 post id 在本機磁碟找檔 */
 function findLocalFile(postId: string, name: string): string | null {
   let file: string | null = null;
@@ -134,6 +155,7 @@ async function respondWithImage(
           "Content-Type": "image/jpeg",
           "Content-Length": String(resized.byteLength),
           "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+          [NETLIFY_VARY_QUERY]: VARY_QUERY_VALUE,
         },
       });
     } catch {
@@ -147,6 +169,7 @@ async function respondWithImage(
       "Content-Type": MIME[ext] || "application/octet-stream",
       "Content-Length": String(buf.byteLength),
       "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+      [NETLIFY_VARY_QUERY]: VARY_QUERY_VALUE,
     },
   });
 }

@@ -29,7 +29,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { renderBookPdf, parseRange } from "@/lib/story-pdf";
+import { parseRange } from "@/lib/story-pdf-range";
 
 export const runtime = "nodejs";
 export const maxDuration = 600; // 10 分鐘 — Puppeteer PDF 374 頁可能要 3-7 分鐘
@@ -47,6 +47,8 @@ export async function GET(req: NextRequest) {
   const slug = searchParams.get("slug");
 
   try {
+    // lazy import:puppeteer 只在真的生成時才載入
+    const { renderBookPdf } = await import("@/lib/story-pdf");
     const pdfBuffer = await renderBookPdf({
       origin: req.nextUrl.origin,
       slug: slug ?? "",
