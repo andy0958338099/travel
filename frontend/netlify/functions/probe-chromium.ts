@@ -1,18 +1,23 @@
 /**
  * 探測 function: 驗證 Chromium 能否在 Netlify function 環境啟動並渲染 PDF。
  * ⚠️ 這是臨時探測,驗證完會刪除。
+ *
+ * ⚠️ 2026-11-16: Netlify 把 standalone function 打包成 CJS(.cjs),
+ *    而 @sparticuz/chromium 是 ESM → 靜態 import 會在載入時爆
+ *    "require() of ES Module ... not supported"。
+ *    解法:用 dynamic import()。
  */
 import type { Config } from "@netlify/functions";
-import chromiumPkg from "@sparticuz/chromium";
-
-const chromium = chromiumPkg as any;
 import puppeteer from "puppeteer-core";
 
 export default async (req: Request): Promise<Response> => {
   const t0 = Date.now();
   const log: string[] = [];
   try {
-    log.push(`chromium pkg loaded`);
+    const chromiumMod = await import("@sparticuz/chromium");
+    const chromium: any = (chromiumMod as any).default ?? chromiumMod;
+    log.push("chromium pkg loaded");
+
     const executablePath = await chromium.executablePath();
     log.push(`executablePath=${executablePath}`);
 
@@ -42,7 +47,10 @@ export default async (req: Request): Promise<Response> => {
       "https://travel-china.netlify.app/story-blog-custom/preview/843ta5hr?print=1",
       { headers: { "User-Agent": "probe" } },
     );
-    log.push(`site fetch status=${siteRes.status} len=${siteRes.headers.get("content-length")}`);
+    const siteBody = await siteRes.text();
+    log.push(
+      `site fetch status=${siteRes.status} bytes=${siteBody.length} hasPrintPage=${siteBody.includes("print-book-page")}`,
+    );
 
     await browser.close();
     return Response.json({ ok: true, log, ms: Date.now() - t0 });
