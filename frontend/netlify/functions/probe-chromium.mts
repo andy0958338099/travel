@@ -8,7 +8,6 @@
  *    解法:用 dynamic import()。
  */
 import type { Config } from "@netlify/functions";
-import puppeteer from "puppeteer-core";
 
 export default async (req: Request): Promise<Response> => {
   const t0 = Date.now();
@@ -16,6 +15,8 @@ export default async (req: Request): Promise<Response> => {
   try {
     const chromiumMod = await import("@sparticuz/chromium");
     const chromium: any = (chromiumMod as any).default ?? chromiumMod;
+    const puppeteerMod = await import("puppeteer-core");
+    const puppeteer: any = (puppeteerMod as any).default ?? puppeteerMod;
     log.push("chromium pkg loaded");
 
     const executablePath = await chromium.executablePath();
