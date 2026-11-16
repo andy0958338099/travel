@@ -19,11 +19,64 @@ export default async (req: Request): Promise<Response> => {
     const puppeteer: any = (puppeteerMod as any).default ?? puppeteerMod;
     log.push("chromium pkg loaded");
 
+    // ⚠️ 2026-11-16: Netlify function 跑在 AWS Lambda,但 @sparticuz/chromium
+    //    的環境偵測是靠 AWS_EXECUTION_ENV 判斷,Netlify 沒設這個變數 →
+    //    不會自動解壓 al2023.tar.br(內含 libnss3.so 等 AL2023 系統函式庫)
+    //    → Chromium 啟動時報 "error while loading shared libraries: libnss3.so"。
+    //
+    //    解法:自己手動做環境設定。
+    //      1. 把 al2023.tar.br 解到 /tmp/al2023/lib
+    //      2. LD_LIBRARY_PATH 加上它
+    //      3. chromium.setGraphicsMode = false(不需要 GPU)
+    //
+    // ⚠️ /tmp 在 Lambda 只有 512MB,al2023 解壓約 3.5MB,安全。
+    const fs = await import("node:fs");
+    const zlib = await import("node:zlib");
+    const { execFileSync } = await import("node:child_process");
+    const path = await import("node:path");
+
+    // ESM 沒有 require.resolve → 從 import.meta.url 推導套件路徑
+    // (netlify/functions/ 往上兩層 = 專案根, node_modules 在那裡)
+    const here = path.dirname(new URL(import.meta.url).pathname);
+    const projectRoot = path.resolve(here, "..", "..");
+    const al2023Br = path.join(
+      projectRoot,
+      "node_modules",
+      "@sparticuz",
+      "chromium",
+      "bin",
+      "al2023.tar.br",
+    );
+    const libDir = "/tmp/al2023/lib";
+    if (!fs.existsSync(path.join(libDir, "libnss3.so"))) {
+      fs.mkdirSync(libDir, { recursive: true });
+      const tarBuf = zlib.brotliDecompressSync(fs.readFileSync(al2023Br));
+      const tarPath = "/tmp/al2023.tar";
+      fs.writeFileSync(tarPath, tarBuf);
+      execFileSync("tar", ["xf", tarPath, "-C", "/tmp/al2023"]);
+      log.push("al2023 libs extracted");
+    }
+    process.env.LD_LIBRARY_PATH = [
+      libDir,
+      process.env.LD_LIBRARY_PATH,
+    ]
+      .filter(Boolean)
+      .join(":");
+    (chromium as any).setGraphicsMode = false;
+    log.push(`LD_LIBRARY_PATH=${process.env.LD_LIBRARY_PATH}`);
+
     const executablePath = await chromium.executablePath();
     log.push(`executablePath=${executablePath}`);
 
     const browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [
+        ...chromium.args,
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--single-process",
+      ],
       defaultViewport: { width: 800, height: 1200 },
       executablePath,
       headless: true,
