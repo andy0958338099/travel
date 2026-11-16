@@ -532,6 +532,53 @@ function CustomStoryBookInner() {
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/story-blog-custom/preview/${shareBook.share_slug}`
     : null;
 
+  // 下載已公開的客製書 A5 PDF
+  // ⚠️ 2026-11-16: 線上若沒有這本書的預生成 PDF，端點會回 503 JSON。
+  //    直接讓瀏覽器跳 <a download> 會把那份 JSON 錯誤訊息存成 .pdf，
+  //    使用者看到「下載的檔案打不開」。改成先取 blob 再存，
+  //    失敗時帶去「列印 → 另存為 PDF」（版面與 PDF 相同）。
+  const downloadSharePdf = async () => {
+    if (!shareBook) return;
+    try {
+      const res = await fetch(
+        `/api/story-books/pdf?slug=${encodeURIComponent(
+          shareBook.share_slug
+        )}&range=full`
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err.error || `HTTP ${res.status}`;
+        if (err.code === "PDF_NOT_PREBUILT" || /尚未產生/i.test(msg)) {
+          const goPrint = confirm(
+            `${msg}\n\n要直接用「列印 → 另存為 PDF」取得 A5 檔案嗎？\n（版面與下載的 PDF 完全相同）`
+          );
+          if (goPrint) {
+            window.open(
+              `/story-blog-custom/preview/${encodeURIComponent(
+                shareBook.share_slug
+              )}?print=1`,
+              "_blank"
+            );
+          }
+          return;
+        }
+        alert(`下載失敗: ${msg}`);
+        return;
+      }
+      const blob = await res.blob();
+      const stamp = new Date().toISOString().slice(0, 10);
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `custom-story-book-${stamp}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
+    } catch (e) {
+      alert(`下載失敗: ${(e as Error).message}`);
+    }
+  };
+
   return (
     <main className="custom-book-root">
       {/* Header */}
@@ -802,10 +849,17 @@ function CustomStoryBookInner() {
                 </Link>
                 <a
                   href={`/api/story-books/pdf?slug=${encodeURIComponent(
-                    shareBook.share_slug,
+                    shareBook.share_slug
                   )}&range=full`}
                   className="custom-book-btn-ghost mt-1 block text-center"
                   download
+                  onClick={(e) => {
+                    // ⚠️ 2026-11-16: 線上缺預生成 PDF 時（503），
+                    //    直接跳轉會讓瀏覽器下載一個 JSON 錯誤檔。
+                    //    改成先測試端點，失敗就帶去「列印成 PDF」。
+                    e.preventDefault();
+                    void downloadSharePdf();
+                  }}
                 >
                   ⬇️ 下載 A5 列印版 PDF
                 </a>

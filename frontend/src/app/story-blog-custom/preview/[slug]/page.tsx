@@ -499,7 +499,11 @@ export default function PreviewBookPage() {
       const res = await fetch(url);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        const e = new Error(err.error || `HTTP ${res.status}`) as Error & {
+          code?: string;
+        };
+        e.code = err.code;
+        throw e;
       }
       const blob = await res.blob();
       const stamp = new Date().toISOString().slice(0, 10);
@@ -514,7 +518,27 @@ export default function PreviewBookPage() {
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(a.href), 60_000);
     } catch (e) {
-      alert(`下載失敗: ${(e as Error).message}`);
+      // ⚠️ 2026-11-16: 線上缺預生成 PDF 時（503 PDF_NOT_PREBUILT），
+      //    與其只丟一個錯誤 alert，不如直接帶使用者去「列印成 PDF」——
+      //    print=1 頁面跟 PDF 用的是同一份版面 JSX，
+      //    使用者按「另存為 PDF」就能拿到同樣的 A5 檔案。
+      const msg = (e as Error).message || "";
+      const code = (e as (Error & { code?: string })).code || "";
+      if (code === "PDF_NOT_PREBUILT" || /尚未產生/i.test(msg)) {
+        const goPrint = confirm(
+          `${msg}\n\n要直接用「列印 → 另存為 PDF」取得 A5 檔案嗎？\n（版面與下載的 PDF 完全相同）`
+        );
+        if (goPrint) {
+          window.open(
+            `/story-blog-custom/preview/${encodeURIComponent(
+              book.share_slug
+            )}?print=1`,
+            "_blank"
+          );
+        }
+        return;
+      }
+      alert(`下載失敗: ${msg}`);
     } finally {
       setReaderDownloading(false);
     }

@@ -218,13 +218,23 @@ export async function GET(req: NextRequest) {
     } catch (e) {
       const msg = (e as Error).message ?? String(e);
       console.error("[story-books/pdf] 生成失敗:", msg);
+      // ⚠️ 2026-11-16: 線上缺 PDF 時不要再丟 Puppeteer 的原始錯誤
+      //    （"Could not find Chrome ..."），那對使用者毫無意義。
+      //    改成清楚說明「這本書還沒有預生成 PDF」+ 下一步做法。
+      const isChromeMissing = /Could not find Chrome|chrome.*not found|ENOENT.*chrome/i.test(
+        msg
+      );
       return NextResponse.json(
         {
-          error: `PDF 生成失敗: ${msg}`,
-          hint:
-            "Production 環境 (Netlify) 沒有 Chromium,無法即時生成 PDF。請執行 scripts/upload-pdfs-to-blobs.mjs 預先上傳到 Netlify Blobs。",
+          error: isChromeMissing
+            ? "這本書的 A5 PDF 尚未產生，線上伺服器沒有排版引擎無法即時生成。"
+            : `PDF 生成失敗: ${msg}`,
+          code: isChromeMissing ? "PDF_NOT_PREBUILT" : "PDF_GENERATION_FAILED",
+          hint: isChromeMissing
+            ? "請在本機執行 `node scripts/upload-pdfs-to-blobs.mjs` 產生並上傳這本書的 PDF，之後線上即可下載。"
+            : "請查看 Netlify function 記錄。",
         },
-        { status: 503 },
+        { status: 503 }
       );
     }
     cached = buf;
