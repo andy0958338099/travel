@@ -294,7 +294,11 @@ export default function PreviewBookPage() {
       const res = await fetch(url, { signal: controller.signal });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `HTTP ${res.status}`);
+        const e = new Error(err.error || `HTTP ${res.status}`) as Error & {
+          code?: string;
+        };
+        e.code = err.code;
+        throw e;
       }
 
       // 邊讀邊報進度(用 reader + Content-Length)
@@ -333,7 +337,22 @@ export default function PreviewBookPage() {
     } catch (e) {
       clearTimeout(timer);
       const msg = e instanceof Error ? e.message : String(e);
-      if (msg === "The user aborted a request" || msg.includes("aborted")) {
+      const code = (e as (Error & { code?: string })).code || "";
+      if (code === "PDF_NOT_PREBUILT" || /沒有排版引擎|尚未產生/i.test(msg)) {
+        // ⚠️ 2026-11-16: 線上沒有 Chromium 時,不要只丟錯。
+        //    改用「列印 → 另存為 PDF」,版面與 PDF 相同。
+        const goPrint = confirm(
+          `${msg}\n\n要改用「列印 → 另存為 PDF」取得 A5 檔案嗎？\n（版面與下載的 PDF 完全相同）`
+        );
+        if (goPrint) {
+          window.open(
+            `/story-blog-custom/preview/${encodeURIComponent(
+              book.share_slug
+            )}?print=1`,
+            "_blank"
+          );
+        }
+      } else if (msg === "The user aborted a request" || msg.includes("aborted")) {
         alert(
           `⏱️ PDF 下載逾時 (5 分鐘)。Puppeteer 拍攝中,請到終端機看進度:` +
             ` tail -f /tmp/nextdev.log`,

@@ -73,7 +73,14 @@ export async function GET(req: NextRequest) {
 
     // 常見錯誤訊息 (給使用者看得懂的版)
     let userMsg = msg;
-    if (msg.includes("ECONNREFUSED")) {
+    let code: string | undefined;
+    if (/Could not find Chrome|chrome.*not found|ENOENT.*chrome/i.test(msg)) {
+      // ⚠️ 2026-11-16: Netlify serverless 沒有 Chromium,
+      //    不要再把 "Could not find Chrome ..." 丟給使用者。
+      code = "PDF_NOT_PREBUILT";
+      userMsg =
+        "線上伺服器沒有排版引擎,無法即時產生 PDF。完整版的 PDF 已事先產生並放在公開下載連結。";
+    } else if (msg.includes("ECONNREFUSED")) {
       userMsg = "找不到 dev server。請先在本機執行 `npm run dev`,再開新分頁到 /story-blog-print 點下載。";
     } else if (msg.includes("Navigation timeout") || msg.includes("timeout")) {
       userMsg = "PDF 生成逾時。請檢查網路或 dev server 是否還在跑。";
@@ -82,8 +89,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         error: userMsg,
+        code,
         hint:
-          "本機開發限定。Production 環境 (Netlify) 沒有 puppeteer,請改用瀏覽器的「列印 → 另存為 PDF」。",
+          "完整版請改用「下載 A5 列印版 PDF」,或用「列印 → 另存為 PDF」(版面完全相同)。",
       },
       { status: 503 },
     );
