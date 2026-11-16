@@ -70,22 +70,34 @@ export default async (req: Request): Promise<Response> => {
     // (netlify/functions/ 往上兩層 = 專案根, node_modules 在那裡)
     const here = path.dirname(new URL(import.meta.url).pathname);
     const projectRoot = path.resolve(here, "..", "..");
-    const al2023Br = path.join(
+    // ⚠️ 2026-11-16: Netlify function 實際跑在 Amazon Linux 2 (glibc 2.26),
+    //    不是 AL2023 → 必須用 al2.tar.br,否則 libnspr4.so 會要求
+    //    GLIBC_2.33/2.34 而啟動失敗。
+    //    用 Node 報告的 runtime glibc 版本自動選對的函式庫。
+    const glibcVer = (
+      (process.report?.getReport() as any)?.header?.glibcVersionRuntime ?? ""
+    );
+    const glibcMinor = parseInt(glibcVer.split(".")[1] ?? "0", 10);
+    const useAl2023 = glibcMinor >= 33;
+    const tarName = useAl2023 ? "al2023.tar.br" : "al2.tar.br";
+    const libRoot = useAl2023 ? "/tmp/al2023" : "/tmp/al2";
+    const libDir = path.join(libRoot, "lib");
+    const tarPath = path.join(
       projectRoot,
       "node_modules",
       "@sparticuz",
       "chromium",
       "bin",
-      "al2023.tar.br",
+      tarName,
     );
-    const libDir = "/tmp/al2023/lib";
+    log.push(`glibc=${glibcVer || "unknown"} → ${tarName}`);
     if (!fs.existsSync(path.join(libDir, "libnss3.so"))) {
       fs.mkdirSync(libDir, { recursive: true });
-      // ⚠️ AL2023 Lambda 沒有 tar 指令 → 用 Node 內建 zlib 解 brotli,
-      //    再自己解析 tar 格式(只處理 regular file,足夠 al2023.tar.br)。
-      const tarBuf = zlib.brotliDecompressSync(fs.readFileSync(al2023Br));
-      extractTar(tarBuf, "/tmp/al2023");
-      log.push("al2023 libs extracted");
+      // ⚠️ Lambda 沒有 tar 指令 → 用 Node 內建 zlib 解 brotli,
+      //    再自己解析 tar 格式(只處理 regular file,足夠)。
+      const tarBuf = zlib.brotliDecompressSync(fs.readFileSync(tarPath));
+      extractTar(tarBuf, libRoot);
+      log.push(`${tarName} libs extracted`);
     }
     process.env.LD_LIBRARY_PATH = [
       libDir,

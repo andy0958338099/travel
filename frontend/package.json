@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@netlify/blobs": "^11.1.9",
-    "@sparticuz/chromium": "^153.0.0",
+    "@sparticuz/chromium": "^131.0.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "@types/leaflet": "^1.9.21",
