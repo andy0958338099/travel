@@ -760,3 +760,12 @@
     display: none !important;
   }
 }
+
+/* 🆕 2026-11-16 線上即時生成 PDF 的狀態提示 */
+.print-book-reader-gen-note {
+  font-size: 12px;
+  color: #8a6d3b;
+  margin-right: 8px;
+  max-width: 320px;
+  line-height: 1.4;
+}

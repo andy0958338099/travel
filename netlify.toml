@@ -8,3 +8,30 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# ─────────────────────────────────────────────────────────────
+# Functions
+#
+# ⚠️ 2026-11-16: Netlify 只讀 **repo 根目錄**的 netlify.toml，
+#    frontend/netlify.toml 不會被套用 → 設定必須寫在這裡。
+#
+# 為什麼需要 standalone function:
+#   Next.js framework function（___netlify-server-handler）已佔 234MB，
+#   離 250MB 上限只剩 16MB → 塞不下 Chromium（@sparticuz/chromium 約 70MB）。
+#   官方建議：需要大型 runtime 模組時，改用 Netlify Function 比 Next.js function 開銷小。
+#   Standalone function 有自己獨立的 bundle 額度。
+#
+#   @sparticuz/chromium 專為 AWS Lambda 環境打包（Netlify function 跑在 AWS Lambda 上）。
+#   ⚠️ 版本必須鎖 v131：v138 起移除了 al2.tar.br，
+#      而 Netlify function 是 Amazon Linux 2（glibc 2.26）需要 al2 那套。
+# ─────────────────────────────────────────────────────────────
+[functions]
+  directory = "frontend/netlify/functions"
+
+[functions."___netlify-server-handler"]
+  timeout = 60
+
+# 背景生成 A5 PDF：逐頁拍攝需要時間 → 背景 function（15 分鐘上限）
+[functions."story-pdf-generate-background"]
+  timeout = 900
+  memory = 2048

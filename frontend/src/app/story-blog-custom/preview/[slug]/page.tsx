@@ -507,22 +507,101 @@ export default function PreviewBookPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isReadMode, readPage, gotoReadPage]);
 
-  // 下載 A5 列印版 PDF(公開端點,訪客可用;第一次會慢,之後走快取)
+  // 🆕 2026-11-16 線上即時生成 A5 PDF
+  //
+  // 背景:本來線上只能下載「本機預生成後上傳 Blobs」的 PDF,
+  //      新建的書必須回到本機跑 script 才有線上 PDF。
+  //      現在背景 function 能在線上用 Chromium 現拍 → 存 Blobs。
+  //
+  // 流程:
+  //   1. 先照舊下載(命中快取 → 秒完成)
+  //   2. 沒有 → POST /api/story-books/pdf-generate 觸發背景生成
+  //   3. 輪詢 /api/story-books/pdf-status → ready 後重試下載
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [pdfGenNote, setPdfGenNote] = useState<string | null>(null);
+
+  const pollUntilReady = useCallback(
+    async (slug: string, timeoutMs: number): Promise<boolean> => {
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
+        await new Promise((r) => setTimeout(r, 4000));
+        try {
+          const res = await fetch(
+            `/api/story-books/pdf-status?slug=${encodeURIComponent(
+              slug
+            )}&range=full`,
+            { cache: "no-store" }
+          );
+          if (!res.ok) continue;
+          const st = await res.json();
+          if (st?.ready) return true;
+          if (st?.state === "error") {
+            setPdfGenNote(`線上生成失敗: ${st.error || "未知錯誤"}`);
+            return false;
+          }
+        } catch {
+          /* 繼續輪詢 */
+        }
+      }
+      return false;
+    },
+    []
+  );
+
   const handleReaderDownload = useCallback(async () => {
     if (!book) return;
     setReaderDownloading(true);
+    setPdfGenNote(null);
     try {
       const url = `/api/story-books/pdf?slug=${encodeURIComponent(
         book.share_slug,
       )}&range=full`;
-      const res = await fetch(url);
+      let res = await fetch(url);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const e = new Error(err.error || `HTTP ${res.status}`) as Error & {
           code?: string;
         };
         e.code = err.code;
-        throw e;
+        // ── 沒有預生成 PDF → 改成線上現拍 ──
+        if (e.code === "PDF_NOT_PREBUILT" || /尚未產生/i.test(e.message)) {
+          setPdfGenerating(true);
+          setPdfGenNote("正在線上生成 A5 PDF（首次需要約 1-2 分鐘）...");
+          const trig = await fetch(
+            `/api/story-books/pdf-generate?slug=${encodeURIComponent(
+              book.share_slug
+            )}&range=full`,
+            { method: "POST" }
+          );
+          if (!trig.ok) {
+            const tErr = await trig.json().catch(() => ({}));
+            setPdfGenNote(tErr.error || `觸發線上生成失敗 (HTTP ${trig.status})`);
+            setPdfGenerating(false);
+            return;
+          }
+          const trigJson = await trig.json().catch(() => ({}));
+          if (trigJson.alreadyExists) {
+            // 已經有人生成了 → 直接重試下載
+          } else {
+            const ok = await pollUntilReady(book.share_slug, 12 * 60 * 1000);
+            if (!ok) {
+              setPdfGenNote(
+                "線上生成逾時或失敗，可以稍後再試，或改用「列印 → 另存為 PDF」。"
+              );
+              setPdfGenerating(false);
+              return;
+            }
+          }
+          setPdfGenerating(false);
+          setPdfGenNote(null);
+          res = await fetch(url);
+          if (!res.ok) {
+            const err2 = await res.json().catch(() => ({}));
+            throw new Error(err2.error || `HTTP ${res.status}`);
+          }
+        } else {
+          throw e;
+        }
       }
       const blob = await res.blob();
       const stamp = new Date().toISOString().slice(0, 10);
@@ -560,8 +639,9 @@ export default function PreviewBookPage() {
       alert(`下載失敗: ${msg}`);
     } finally {
       setReaderDownloading(false);
+      setPdfGenerating(false);
     }
-  }, [book]);
+  }, [book, pollUntilReady]);
 
   // ============================================================
   // 5. render
@@ -868,13 +948,18 @@ export default function PreviewBookPage() {
             </button>
           </div>
           <div className="print-book-reader-bar-right">
+            {pdfGenNote ? (
+              <span className="print-book-reader-gen-note">{pdfGenNote}</span>
+            ) : null}
             <button
               type="button"
               className="print-book-reader-btn is-primary"
               onClick={handleReaderDownload}
-              disabled={readerDownloading}
+              disabled={readerDownloading || pdfGenerating}
             >
-              {readerDownloading ? "⏳ 產生中..." : "⬇️ 下載 A5 列印版 PDF"}
+              {readerDownloading || pdfGenerating
+                ? "⏳ 產生中..."
+                : "⬇️ 下載 A5 列印版 PDF"}
             </button>
           </div>
         </div>

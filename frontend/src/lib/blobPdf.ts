@@ -21,7 +21,6 @@
  * 讀不到時回 null，由呼叫端退回本機磁碟快取或回 503。
  */
 
-import { createHash } from "crypto";
 import https from "https";
 import { getStore as getNetlifyStore } from "@netlify/blobs";
 import { nodeFetch } from "@/lib/netlifyFetch";
@@ -58,48 +57,10 @@ function getStore() {
   } as any);
 }
 
-/**
- * 把 updated_at 正規化成 ISO 字串。
- * 快照（JSON）是 ISO 字串，Postgres pooler 可能是 timestamp 字串，
- * 不統一會算出不同的 sig → 線上找不到對應的 Blob。
- */
-export function normalizeIso(value: string | null | undefined): string {
-  if (!value) return "";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toISOString();
-}
-
-/**
- * 計算 PDF 的 Blob key。
- * 必須與 api/story-books/pdf/route.ts 的 sig 演算法完全一致，
- * 否則線上找不到對應的 PDF。
- */
-export function pdfBlobKey(
-  slug: string,
-  parts: {
-    bookId: string;
-    layoutMode: string;
-    updatedAt: string;
-    postIds: string[];
-    range: string;
-  }
-): string {
-  const sig = createHash("sha1")
-    .update(
-      [
-        parts.bookId,
-        parts.layoutMode,
-        normalizeIso(parts.updatedAt),
-        parts.postIds.length,
-        parts.postIds.join(","),
-        parts.range,
-      ].join("|"),
-    )
-    .digest("hex")
-    .slice(0, 16);
-  return `pdf/${slug}-${sig}.pdf`;
-}
+// ⚠️ sig 演算法與 key 格式搬到 pdfKey.ts（無 alias 版）。
+//   原因:Netlify standalone function 用 esbuild 打包,不吃 tsconfig 的 `@/` alias,
+//   那邊也要算出完全一樣的 key → 兩邊共用同一份純函式。
+export { normalizeIso, pdfBlobKey } from "@/lib/pdfKey";
 
 /** node:https GET → Buffer（不受 Next.js fetch patch 影響） */
 function httpsGetBuffer(
