@@ -8,6 +8,40 @@
  *    解法:用 dynamic import()。
  */
 import type { Config } from "@netlify/functions";
+import fs from "node:fs";
+import path from "node:path";
+
+/**
+ * 最小 tar 解壓器(只處理 regular file)。
+ *
+ * 為什麼不用系統 tar:AL2023 AWS Lambda(Netlify function 的執行環境)
+ * 沒有 tar 指令,spawnSync("tar") 會 ENOENT。
+ * al2023.tar.br 內含 libnss3.so / libnssutil3.so / libnspr4.so 等
+ * Chromium 在 AL2023 上必須的系統函式庫。
+ */
+function extractTar(buf: Buffer, dest: string): void {
+  let off = 0;
+  while (off + 512 <= buf.length) {
+    const header = buf.subarray(off, off + 512);
+    // 兩個全零 block = 結束
+    if (header.every((b) => b === 0)) break;
+    const name = header.subarray(0, 100).toString("utf8").replace(/\0.*$/, "");
+    const sizeStr = header
+      .subarray(124, 136)
+      .toString("utf8")
+      .replace(/\0.*$/, "")
+      .trim();
+    const size = parseInt(sizeStr, 8) || 0;
+    const typeFlag = String.fromCharCode(header[156]);
+    off += 512;
+    if (typeFlag === "0" || typeFlag === "\0") {
+      const outPath = path.join(dest, name);
+      fs.mkdirSync(path.dirname(outPath), { recursive: true });
+      fs.writeFileSync(outPath, buf.subarray(off, off + size));
+    }
+    off += Math.ceil(size / 512) * 512;
+  }
+}
 
 export default async (req: Request): Promise<Response> => {
   const t0 = Date.now();
@@ -30,10 +64,7 @@ export default async (req: Request): Promise<Response> => {
     //      3. chromium.setGraphicsMode = false(不需要 GPU)
     //
     // ⚠️ /tmp 在 Lambda 只有 512MB,al2023 解壓約 3.5MB,安全。
-    const fs = await import("node:fs");
     const zlib = await import("node:zlib");
-    const { execFileSync } = await import("node:child_process");
-    const path = await import("node:path");
 
     // ESM 沒有 require.resolve → 從 import.meta.url 推導套件路徑
     // (netlify/functions/ 往上兩層 = 專案根, node_modules 在那裡)
@@ -50,10 +81,10 @@ export default async (req: Request): Promise<Response> => {
     const libDir = "/tmp/al2023/lib";
     if (!fs.existsSync(path.join(libDir, "libnss3.so"))) {
       fs.mkdirSync(libDir, { recursive: true });
+      // ⚠️ AL2023 Lambda 沒有 tar 指令 → 用 Node 內建 zlib 解 brotli,
+      //    再自己解析 tar 格式(只處理 regular file,足夠 al2023.tar.br)。
       const tarBuf = zlib.brotliDecompressSync(fs.readFileSync(al2023Br));
-      const tarPath = "/tmp/al2023.tar";
-      fs.writeFileSync(tarPath, tarBuf);
-      execFileSync("tar", ["xf", tarPath, "-C", "/tmp/al2023"]);
+      extractTar(tarBuf, "/tmp/al2023");
       log.push("al2023 libs extracted");
     }
     process.env.LD_LIBRARY_PATH = [
