@@ -22,3 +22,22 @@
 #   2026-06-15 立馬還原 30s, 中堂自主決退 gemini-2.5-flash-image + 中文 Overlay 修法 (6-14 拍板 🅐 既有)
 [functions."___netlify-server-handler"]
   timeout = 30
+
+# ─────────────────────────────────────────────────────────────
+# Standalone functions（獨立於 Next.js framework handler）
+#
+# 為什麼需要獨立 function:
+#   Next.js framework handler（___netlify-server-handler）已佔 234MB,
+#   離 250MB 上限只剩 16MB → 塞不下 Chromium。
+#   官方建議:「需要大型 runtime 模組時,改用 Netlify Function 比 Next.js function 開銷小」。
+#   Standalone function 有自己獨立的 250MB bundle 額度。
+#
+#   @sparticuz/chromium = 70MB(專為 AWS Lambda 環境打包的 Chromium,
+#   Netlify function 就是跑在 AWS Lambda 上)。
+# ─────────────────────────────────────────────────────────────
+[functions]
+  directory = "netlify/functions"
+
+# 探測用:驗證 Chromium 能否在 Netlify function 環境啟動
+[functions."probe-chromium"]
+  timeout = 300
