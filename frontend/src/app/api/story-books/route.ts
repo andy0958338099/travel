@@ -27,6 +27,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSiteContent, refreshBooksSnapshot } from "@/lib/siteContent";
 import { toDisplayImageUrl } from "@/lib/imageSource"; // 🆕 2026-11-14: gdrive:<fileId> → Google 圖片網址
+import { IMAGE_VERSION } from "@/lib/imageVersion"; // 🆕 2026-11-15: 圖片網址版本參數（快取失效）
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -497,7 +498,7 @@ async function handleGet(req: NextRequest) {
         if (!p.image_url) return p;
         return {
           ...p,
-          image_url: `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200`,
+          image_url: `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200&v=${IMAGE_VERSION}`,
           original_image_url: p.image_url,
         };
       });

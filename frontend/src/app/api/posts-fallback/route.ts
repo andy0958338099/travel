@@ -19,6 +19,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSiteContent, type SitePost } from "@/lib/siteContent";
+import { IMAGE_VERSION } from "@/lib/imageVersion";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ function rewriteImageUrl(p: SitePost) {
   return {
     ...p,
     image_url: p.image_url
-      ? `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200`
+      ? `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200&v=${IMAGE_VERSION}`
       : null,
     // 保留原始 Storage 網址，方便之後恢復時比對
     original_image_url: p.image_url,
@@ -115,7 +116,7 @@ export async function GET(req: NextRequest) {
     const withLocalImages = rows.map((p) => ({
       ...p,
       image_url: p.image_url
-        ? `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200`
+        ? `/api/local-image?postId=${encodeURIComponent(p.id)}&w=1200&v=${IMAGE_VERSION}`
         : null,
       original_image_url: p.image_url,
     }));
