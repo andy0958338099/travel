@@ -24,6 +24,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { mkdir, readFile, writeFile, stat } from "fs/promises";
+import { existsSync } from "fs";
 import path from "path";
 import { getBlobPdf } from "@/lib/blobPdf";
 import { pdfSig } from "@/lib/pdfKey";
@@ -55,7 +56,6 @@ function hasLocalChrome(): boolean {
     process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH;
   if (fromEnv) return true;
   try {
-    const { existsSync } = require("fs") as typeof import("fs");
     const candidates = [
       "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
       "/Applications/Chromium.app/Contents/MacOS/Chromium",
