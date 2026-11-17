@@ -35,6 +35,35 @@ const API_BASE = "https://api.netlify.com";
 const REST_STORE = `site:${BLOB_STORE}`;
 const SIGNED_URL_ACCEPT = "application/json;type=signed-url";
 
+/**
+ * 讀 Blob 的最長等待時間。
+ *
+ * ⚠️ 為什麼需要:Next.js 會 patch global fetch,
+ *    @netlify/blobs SDK 在某些情況下會「卡住不返回」。
+ *    沒有 timeout 的話 /api/story-books/pdf-status 會 hang 住,
+ *    正式站 (serverless 有硬性執行時間上限) 直接變 502。
+ */
+const BLOB_READ_TIMEOUT_MS = 8000;
+
+/** 把可能卡住的 promise 包在 timeout 裡 */
+async function withTimeout<T>(
+  p: Promise<T>,
+  ms: number,
+  message: string,
+): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      p,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /** 取得 Blob store（runtime context 優先，其次明確 siteID/token） */
 function getStore() {
   const siteID = process.env.NETLIFY_SITE_ID;
@@ -119,28 +148,84 @@ async function getViaRestApi(key: string): Promise<Buffer | null> {
 }
 
 /**
+ * 讀取 Blob 的文字內容（例如 pdf-status/<slug>.json）。
+ * 回傳 null 表示找不到（不是錯誤）。
+ *
+ * ⚠️ 為什麼不用 SDK 的 store.get()：
+ *    在 Next.js route 裡 SDK 走的是被 patch 過的 global fetch，
+ *    讀 Blob 會卡住不返回（本機實測約 180 秒 → 正式站 502）。
+ *    這裡沿用 getBlobPdf 的 REST API + node:https 路徑，不受 fetch patch 影響。
+ */
+export async function getBlobText(key: string): Promise<string | null> {
+  return withTimeout(
+    (async () => {
+      if (process.env.NETLIFY_SITE_ID && process.env.NETLIFY_AUTH_TOKEN) {
+        try {
+          const siteID = process.env.NETLIFY_SITE_ID;
+          const token = process.env.NETLIFY_AUTH_TOKEN;
+          const metaUrl = `${API_BASE}/api/v1/blobs/${siteID}/${REST_STORE}/${key}`;
+          const meta = await httpsGetBuffer(metaUrl, {
+            authorization: `Bearer ${token}`,
+            accept: SIGNED_URL_ACCEPT,
+          });
+          const parsed = JSON.parse(meta.toString("utf-8")) as { url?: string };
+          if (!parsed.url) return null;
+          const buf = await httpsGetBuffer(parsed.url);
+          return buf.toString("utf-8");
+        } catch (e) {
+          console.error("[blobPdf] REST 文字讀取失敗:", (e as Error).message);
+        }
+      }
+
+      try {
+        const store = getStore();
+        const res = await store.get(key, { type: "text" });
+        if (res) return typeof res === "string" ? res : String(res);
+      } catch (e) {
+        console.error("[blobPdf] SDK 文字讀取失敗:", (e as Error).message);
+      }
+
+      return null;
+    })(),
+    BLOB_READ_TIMEOUT_MS,
+    `讀取 Blob 文字逾時(${BLOB_READ_TIMEOUT_MS}ms): ${key}`,
+  );
+}
+
+/**
  * 讀取 PDF。
  * 回傳 null 表示找不到（不是錯誤）。
+ *
+ * ⚠️ timeout:整段包在 Promise.race 裡。
+ *    Next.js 會 patch global fetch,某些路徑會「卡住不返回」。
+ *    就算卡住也要在 timeout 內放棄 → route 至少能回應 503,
+ *    不會讓整個 status 輪詢 hang 住。
  */
 export async function getBlobPdf(key: string): Promise<Buffer | null> {
-  // 1) REST API（有 token 時最可靠，且不受 Next.js fetch patch 影響）
-  if (process.env.NETLIFY_SITE_ID && process.env.NETLIFY_AUTH_TOKEN) {
-    try {
-      const buf = await getViaRestApi(key);
-      if (buf) return buf;
-    } catch (e) {
-      console.error("[blobPdf] REST 讀取失敗:", (e as Error).message);
-    }
-  }
+  return withTimeout(
+    (async () => {
+      // 1) REST API（有 token 時最可靠，且不受 Next.js fetch patch 影響）
+      if (process.env.NETLIFY_SITE_ID && process.env.NETLIFY_AUTH_TOKEN) {
+        try {
+          const buf = await getViaRestApi(key);
+          if (buf) return buf;
+        } catch (e) {
+          console.error("[blobPdf] REST 讀取失敗:", (e as Error).message);
+        }
+      }
 
-  // 2) SDK（Netlify runtime 走這條）
-  try {
-    const store = getStore();
-    const res = await store.get(key, { type: "arrayBuffer" });
-    if (res) return Buffer.from(res as ArrayBuffer);
-  } catch (e) {
-    console.error("[blobPdf] SDK 讀取失敗:", (e as Error).message);
-  }
+      // 2) SDK（Netlify runtime 走這條）
+      try {
+        const store = getStore();
+        const res = await store.get(key, { type: "arrayBuffer" });
+        if (res) return Buffer.from(res as ArrayBuffer);
+      } catch (e) {
+        console.error("[blobPdf] SDK 讀取失敗:", (e as Error).message);
+      }
 
-  return null;
+      return null;
+    })(),
+    BLOB_READ_TIMEOUT_MS,
+    `讀取 Blob 逾時(${BLOB_READ_TIMEOUT_MS}ms): ${key}`,
+  );
 }

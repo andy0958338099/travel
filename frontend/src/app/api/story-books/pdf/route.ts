@@ -23,10 +23,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createHash } from "crypto";
 import { mkdir, readFile, writeFile, stat } from "fs/promises";
 import path from "path";
-import { getBlobPdf, normalizeIso } from "@/lib/blobPdf";
+import { getBlobPdf } from "@/lib/blobPdf";
+import { pdfSig } from "@/lib/pdfKey";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -120,11 +120,20 @@ function pdfResponse(
       "Content-Type": "application/pdf",
       "Content-Disposition": `${download ? "attachment" : "inline"}; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
       "Content-Length": String(body.length),
-      "Cache-Control": "public, max-age=300",
-      // ⚠️ 2026-11-15: Netlify CDN 的 cache key 不含 query（Next.js plugin
-      //    把 netlify-vary 固定成只認 _rsc）。不加這行的話，不同 slug
-      //    會共用同一份 PDF 快取 → 訪客下載到別人的書。
-      //    詳見 app/api/local-image/route.ts 的說明。
+      // ⚠️ 2026-11-17: 改成 no-store（原本是 public, max-age=300）。
+      //
+      // 為什麼:Netlify CDN 對同一個 path 只認「Netlify-Vary」指定的維度,
+      // 而實際觀測到正式入口會把別本書的 PDF 回給訪客:
+      //   ?slug=843ta5hr&range=1-1 → 回 113 頁(屬於 8zd9x39j)
+      //   ?slug=843ta5hr&range=2-2 → 回 10 頁(屬於 si7jekg8)
+      // 也就是說「訪客下載 A 書卻拿到 B 書」—— 這是不可接受的正確性問題。
+      //
+      // 判斷:根因在共用快取層,不在 route 邏輯(origin 實測 range 處理正確)。
+      // 與其跟 CDN 的 cache-key 規則搏鬥,不如讓這支 route 的回應「不進共用快取」。
+      // PDF 不是熱門路徑(每位訪客下載一次),origin 直接讀 Blob 就好。
+      //
+      // 同時保留 Netlify-Vary:query 作為額外防禦,避免將來有人改快取策略時又踩雷。
+      "Cache-Control": "no-store",
       "Netlify-Vary": "query",
       "X-Pdf-Source": source,
       "X-Pdf-Pages": String(ids.length),
@@ -154,21 +163,18 @@ export async function GET(req: NextRequest) {
   const ids: string[] = book.selected_post_ids || [];
   const perPage = book.layout_mode === "A" ? "1則" : "2則";
 
-  // ── 快取 key:書的 updated_at + mode + 篇數 + range ──
+  // ── 快取 key ──
+  //    來源單一化:統一用 pdfKey.ts 的 pdfSig(),不要再自己重算 sha1。
+  //    ⚠️ 2026-11-17: sig 內含 PDF_LAYOUT_VERSION,
+  //       版面組裝規則一改,線上那份「舊版排錯的 PDF」自動失效。
   //    作者改選篇/改 mode → updated_at 變 → key 變 → 自動失效
-  const sig = createHash("sha1")
-    .update(
-      [
-        book.book_id,
-        book.layout_mode,
-        normalizeIso(book.updated_at),
-        ids.length,
-        ids.join(","),
-        range,
-      ].join("|"),
-    )
-    .digest("hex")
-    .slice(0, 16);
+  const sig = pdfSig({
+    bookId: book.book_id,
+    layoutMode: book.layout_mode,
+    updatedAt: book.updated_at,
+    postIds: ids,
+    range,
+  });
 
   const cachePath = path.join(CACHE_DIR, `${slug}-${sig}.pdf`);
   const blobKey = `pdf/${slug}-${sig}.pdf`;
@@ -202,6 +208,26 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 來源 3:即時生成(只有本機有 Chromium 才能跑)──
+  // ⚠️ 2026-11-17: 正式站(Netlify serverless)沒有 Chromium,
+  //    這條路徑一定會失敗。與其 import puppeteer 再吃一個錯誤,
+  //    不如直接回 503 PDF_NOT_PREBUILT —— 前端 preview 頁看到這個 code
+  //    就會去觸發背景生成 function(線上用 @sparticuz/chromium 現拍)。
+  //    這樣「線上生成」的流程才會被真正啟動,而不是在這裡卡住。
+  const isServerless = !!process.env.NETLIFY;
+  if (!cached && isServerless) {
+    console.log(
+      `[story-books/pdf] blob MISS ${slug} → 正式站無 Chromium,回 PDF_NOT_PREBUILT`,
+    );
+    return NextResponse.json(
+      {
+        error: "這本書的 A5 PDF 尚未產生，將於線上重新生成。",
+        code: "PDF_NOT_PREBUILT",
+        hint: "線上背景生成會自動啟動，約需 1-2 分鐘後即可下載。",
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   if (!cached) {
     source = "generated";
     console.log(`[story-books/pdf] cache MISS ${slug} → 生成中...`);

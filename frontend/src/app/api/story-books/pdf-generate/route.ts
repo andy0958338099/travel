@@ -25,8 +25,16 @@ import { normalizeIso, pdfBlobKey } from "@/lib/pdfKey";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** 背景 function 的名稱（Netlify standalone function，背景模式） */
-const BACKGROUND_FN = "story-pdf-generate-background";
+/**
+ * 背景 function 的名稱（Netlify standalone function，背景模式）。
+ *
+ * ⚠️ 2026-11-17: 舊名是 "story-pdf-generate-background"。
+ *    那個檔案已刪除，統一成單一 "story-pdf-generate"（背景模式由
+ *    function 檔內的 `export const config = { background: true }` 宣告）。
+ *    檔名不可帶 "-background" 後綴又同時用 config.background —— 兩者語意重疊,
+ *    容易觸發 Netlify 的命名慣例判斷而改變實際部署路徑。
+ */
+const BACKGROUND_FN = "story-pdf-generate";
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;

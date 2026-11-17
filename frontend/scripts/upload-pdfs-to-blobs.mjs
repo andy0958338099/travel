@@ -9,8 +9,8 @@
  *   所以 PDF 在本機生成好（dev server 有系統 Chrome），再上傳到
  *   Blobs store `blog-images`，key = `pdf/<slug>-<sig>.pdf`。
  *
- * sig 演算法必須與 src/lib/blobPdf.ts 的 pdfBlobKey() 完全一致：
- *   sha1(book_id | layout_mode | updated_at | 篇數 | 篇序 | range) 前 16 碼
+ * sig 演算法必須與 src/lib/pdfKey.ts 的 pdfSig() 完全一致：
+ *   sha1(PDF_LAYOUT_VERSION | book_id | layout_mode | updated_at | 篇數 | 篇序 | range) 前 16 碼
  *   range 固定 "full"
  */
 
@@ -20,10 +20,29 @@ import path from "path";
 import { createHash } from "crypto";
 import { getStore } from "@netlify/blobs";
 
+/**
+ * ⚠️ 必須與 src/lib/pdfKey.ts 的 PDF_LAYOUT_VERSION 相同。
+ * 版面組裝規則改變時（例：2026-11-17 章節改為「扉頁緊接本章文章」），
+ * 這裡要跟著改，否則上傳的 key 跟線上算的不同 → 下載時找不到。
+ */
+const PDF_LAYOUT_VERSION = "v2-chapter-per-day";
+
 const ROOT = path.resolve(process.cwd());
 const CACHE_DIR = path.join(ROOT, "..", "data", "pdf-cache");
-const SITE_ID =
-  process.env.NETLIFY_SITE_ID || "bc8f9511-8526-4e2c-a3ac-2fd2a15669b7";
+/**
+ * Netlify site ID。
+ *
+ * ⚠️ 2026-11-17: 移除原本的硬寫死 fallback。
+ *    公開 repo 不該寫死站台識別碼 → 一律從環境變數取。
+ *    缺變數就直接報錯,不要猜。
+ */
+const SITE_ID = process.env.NETLIFY_SITE_ID;
+if (!SITE_ID) {
+  console.error(
+    "缺少 NETLIFY_SITE_ID（可從 Netlify 後台 → Site settings → API 取）",
+  );
+  process.exit(1);
+}
 
 function poolerConnectionString() {
   const raw = process.env.DATABASE_URL || "";
@@ -47,11 +66,13 @@ function normalizeIso(value) {
   return d.toISOString();
 }
 
-/** 與 blobPdf.ts 一致的 sig 計算 */
+/** 與 pdfKey.ts 一致的 sig 計算 */
 function pdfSig({ bookId, layoutMode, updatedAt, postIds, range }) {
   return createHash("sha1")
     .update(
       [
+        // ⚠️ 必須與 src/lib/pdfKey.ts 的 PDF_LAYOUT_VERSION 相同
+        PDF_LAYOUT_VERSION,
         bookId,
         layoutMode,
         normalizeIso(updatedAt),

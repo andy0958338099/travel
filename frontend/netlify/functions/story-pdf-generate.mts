@@ -7,7 +7,7 @@
  *   背景 function 有 15 分鐘上限 → 沒有超時風險。
  *
  * 背景 function 立即回 202，實際工作在後台跑：
- *   1. 算 Blob key → 已存在就直接結束（冪等）
+ *   1. 冪等檢查：Blob key 已經存在就直接結束
  *   2. 啟動 Chromium → 開**線上正式站**的 print=1 預覽頁
  *      → 等版面定稿 → 逐頁拍 → pdf-lib 合併
  *   3. 上傳 Netlify Blobs: pdf/<slug>-<sig>.pdf
@@ -18,10 +18,14 @@
  *   公開閱讀頁與 PDF 必須是同一份版面 JSX。
  *   直接抓線上 print=1 頁 → 100% 保證與訪客看到的一致。
  *
- * ⚠️ 環境陷阱（實測踩過，細節見 story-pdf-generate.mts 的說明）:
+ * ⚠️ 環境陷阱（實測踩過）:
  *   - 檔名用 .mts → Netlify 打包成 ESM（否則 CJS require ESM 會爆）
  *   - Netlify function 是 Amazon Linux 2（glibc 2.26）→ 必須用 al2.tar.br
  *   - Lambda 沒有 tar 指令 → 自製 tar 解析
+ *   - 檔名**不可**以 -background 結尾又同時用 config.background（避免舊命名慣例打架）
+ *     → 檔名用 story-pdf-generate.mts，背景模式由 config.background 決定
+ *   - **不可**設定 config.path：設定後預設網址 /.netlify/functions/<name> 就不存在
+ *     → 觸發端（Next.js route）呼叫的就是預設網址
  */
 
 import fs from "node:fs";
@@ -35,12 +39,11 @@ import {
   forceLoadAllImages,
   waitForBookReady,
 } from "../../src/lib/story-pdf-render";
-import { normalizeIso, pdfBlobKey } from "../../src/lib/pdfKey";
 import { parseRange } from "../../src/lib/story-pdf-range";
 
 const BLOB_STORE = "blog-images";
-const API_BASE = "https://api.netlify.com";
 const STATUS_PREFIX = "pdf-status/";
+const SITE_FALLBACK = "https://travel-china.netlify.app";
 
 // ============================================================
 // 最小 tar 解壓器（Lambda 沒有 tar 指令）
@@ -94,16 +97,34 @@ async function prepareChromiumEnv(): Promise<any> {
   const libDir = path.join(libRoot, "lib");
   console.log(`[pdf-gen] glibc=${glibcVer || "unknown"} → ${tarName}`);
 
+  // ⚠️ 打包後的 function 檔案位置不一定固定 → 多個候選根目錄都試一次。
   const here = path.dirname(new URL(import.meta.url).pathname);
-  const projectRoot = path.resolve(here, "..", "..");
-  const tarPath = path.join(
-    projectRoot,
-    "node_modules",
-    "@sparticuz",
-    "chromium",
-    "bin",
-    tarName,
-  );
+  const roots = [
+    path.resolve(here, "..", ".."),
+    path.resolve(here, ".."),
+    process.cwd(),
+    "/var/task",
+  ];
+  let tarPath = "";
+  for (const root of roots) {
+    const p = path.join(
+      root,
+      "node_modules",
+      "@sparticuz",
+      "chromium",
+      "bin",
+      tarName,
+    );
+    if (fs.existsSync(p)) {
+      tarPath = p;
+      break;
+    }
+  }
+  if (!tarPath) {
+    throw new Error(
+      `找不到 ${tarName}（試過: ${roots.join(", ")}）— @sparticuz/chromium 未正確打包`,
+    );
+  }
 
   if (!fs.existsSync(path.join(libDir, "libnss3.so"))) {
     fs.mkdirSync(libDir, { recursive: true });
@@ -123,6 +144,13 @@ async function prepareChromiumEnv(): Promise<any> {
 // Blob 存取
 // ============================================================
 
+/**
+ * 取得 Blobs store。
+ *
+ * ⚠️ 正式站的 function runtime 會由 Netlify 注入 Blobs context
+ *    （NETLIFY_BLOBS_CONTEXT），SDK 的 getStore(name) 會自動使用它。
+ *    只有在本機執行時才需要明確帶 siteID + token。
+ */
 async function getStore(): Promise<any> {
   const { getStore: getNetlifyStore } = await import("@netlify/blobs");
   const siteID = process.env.NETLIFY_SITE_ID;
@@ -132,7 +160,7 @@ async function getStore(): Promise<any> {
       name: BLOB_STORE,
       siteID,
       token,
-      apiURL: API_BASE,
+      apiURL: "https://api.netlify.com",
     });
   }
   return getNetlifyStore(BLOB_STORE);
@@ -162,74 +190,11 @@ async function writeStatus(slug: string, status: Record<string, unknown>) {
 }
 
 // ============================================================
-// 讀 book meta（與 api/story-books/pdf/route.ts 的 loadBookMeta 對應）
-// ============================================================
-
-type BookMeta = {
-  book_id: string;
-  title: string | null;
-  author_name: string | null;
-  layout_mode: string | null;
-  selected_post_ids: string[];
-  updated_at: string | null;
-  is_public: boolean;
-};
-
-async function loadBookMeta(slug: string): Promise<BookMeta | null> {
-  // 1) Netlify Blobs 快照（線上主路徑）
-  try {
-    const store = await getStore();
-    const raw = await store.get("content/site-content.json", { type: "text" });
-    if (raw) {
-      const content = JSON.parse(
-        typeof raw === "string" ? raw : String(raw),
-      ) as { books?: any[] };
-      const hit = content.books?.find((b: any) => b.share_slug === slug);
-      if (hit) {
-        return {
-          book_id: hit.book_id,
-          title: hit.title,
-          author_name: hit.author_name,
-          layout_mode: hit.layout_mode,
-          selected_post_ids: hit.selected_post_ids || [],
-          updated_at: hit.updated_at,
-          is_public: hit.is_public !== false,
-        };
-      }
-    }
-  } catch (e) {
-    console.error("[pdf-gen] Blobs 快照讀取失敗:", (e as Error).message);
-  }
-
-  // 2) Supabase pooler（最後後備）
-  try {
-    const { localQuery } = await import("../../src/lib/localFallback");
-    const rows = await localQuery<Record<string, unknown>>(
-      "select book_id, title, author_name, layout_mode, selected_post_ids, updated_at, is_public from custom_story_books where share_slug = $1 limit 1",
-      [slug],
-    );
-    if (rows.length > 0) {
-      const r = rows[0] as any;
-      return {
-        book_id: r.book_id,
-        title: r.title,
-        author_name: r.author_name,
-        layout_mode: r.layout_mode,
-        selected_post_ids: r.selected_post_ids || [],
-        updated_at: r.updated_at,
-        is_public: r.is_public !== false,
-      };
-    }
-  } catch (e) {
-    console.error("[pdf-gen] pooler 讀取失敗:", (e as Error).message);
-  }
-
-  return null;
-}
-
-// ============================================================
 // 主流程
 // ============================================================
+
+/** 只接受「自己算出來」的 key 格式，避免被塞任意 key 寫進 Blobs */
+const KEY_RE = /^pdf\/[A-Za-z0-9_-]+-[0-9a-f]{16}\.pdf$/;
 
 export default async (req: Request): Promise<Response> => {
   const startedAt = Date.now();
@@ -241,43 +206,30 @@ export default async (req: Request): Promise<Response> => {
     return Response.json({ error: "Provide slug" }, { status: 400 });
   }
 
+  // ⚠️ key 必須由呼叫端（Next.js route）算好傳進來：
+  //    觸發端與下載端點 /api/story-books/pdf 用「同一份資料來源」算 key，
+  //    否則 updated_at 來源不同就會分歧 → 寫進去的 PDF 下載端點找不到。
+  const keyParam = url.searchParams.get("key");
+  if (!keyParam || !KEY_RE.test(keyParam)) {
+    return Response.json({ error: "Invalid or missing key" }, { status: 400 });
+  }
+  const key = keyParam;
+
   try {
-    const book = await loadBookMeta(slug);
-    if (!book) {
-      await writeStatus(slug, { state: "error", error: "Book not found" });
-      return Response.json({ error: "Book not found" }, { status: 404 });
-    }
-    if (book.is_public === false) {
-      await writeStatus(slug, { state: "error", error: "Book is not public" });
-      return Response.json({ error: "Book is not public" }, { status: 403 });
-    }
-
-    const ids = book.selected_post_ids || [];
-    const { pageRanges } = parseRange(range);
-
-    // ⚠️ key 由呼叫端（Next.js route）算好傳進來 ——
-    //    必須跟下載端點 /api/story-books/pdf 用「同一份資料來源」算出來的 key 一致，
-    //    否則寫進去的 PDF 下載端點找不到（updated_at 來源不同就會分歧）。
-    const keyParam = url.searchParams.get("key");
-    const key =
-      keyParam && /^pdf\/[A-Za-z0-9_-]+-[0-9a-f]{16}\.pdf$/.test(keyParam)
-        ? keyParam
-        : pdfBlobKey(slug, {
-            bookId: book.book_id,
-            layoutMode: book.layout_mode,
-            updatedAt: book.updated_at,
-            postIds: ids,
-            range,
-          });
-    console.log(`[pdf-gen] slug=${slug} key=${key}`);
-
     // 冪等：已經有了就不用重做
     if (await blobExists(key)) {
       await writeStatus(slug, { state: "done", key, cached: true });
       return Response.json({ ok: true, key, cached: true });
     }
 
-    await writeStatus(slug, { state: "running", key, started_at: new Date().toISOString() });
+    await writeStatus(slug, {
+      state: "running",
+      key,
+      started_at: new Date().toISOString(),
+    });
+
+    const { pageRanges } = parseRange(range);
+    console.log(`[pdf-gen] slug=${slug} range=${range} key=${key}`);
 
     // Chromium
     const chromium = await prepareChromiumEnv();
@@ -292,6 +244,7 @@ export default async (req: Request): Promise<Response> => {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
+        "--single-process",
       ],
       defaultViewport: { width: 800, height: 1200, deviceScaleFactor: 1 },
       executablePath,
@@ -309,9 +262,7 @@ export default async (req: Request): Promise<Response> => {
 
       // ⚠️ 抓「線上正式站」的 print=1 頁 → 版面與訪客看到的 100% 一致
       const origin =
-        process.env.URL ||
-        process.env.DEPLOY_PRIME_URL ||
-        "https://travel-china.netlify.app";
+        process.env.DEPLOY_PRIME_URL || process.env.URL || SITE_FALLBACK;
       const targetUrl = `${origin}/story-blog-custom/preview/${encodeURIComponent(
         slug,
       )}?book_slug=${encodeURIComponent(slug)}&print=1`;
@@ -329,6 +280,11 @@ export default async (req: Request): Promise<Response> => {
       );
       console.log(`[pdf-gen] found ${pagesFound} .print-book-page`);
 
+      // 書不存在 / 不是公開 → print 頁不會有內容 → 不要產出垃圾 PDF
+      if (!pagesFound) {
+        throw new Error("print 頁沒有任何頁面（書不存在或未公開）");
+      }
+
       const { loaded, total, waitedMs } = await forceLoadAllImages(page, 0.8);
       console.log(`[pdf-gen] images ${loaded}/${total} after ${waitedMs}ms`);
 
@@ -339,9 +295,10 @@ export default async (req: Request): Promise<Response> => {
       console.log(`[pdf-gen] pdf ${pdfBuffer.length} bytes`);
 
       const store = await getStore();
+      // ⚠️ contentType 要放 metadata（跟 scripts/upload-pdfs-to-blobs.mjs 一致），
+      //    set() 的 options 沒有頂層 type 欄位。
       await store.set(key, pdfBuffer as any, {
-        type: "application/pdf",
-        metadata: { generatedBy: "netlify-standalone-function" },
+        metadata: { contentType: "application/pdf" },
       });
       console.log(`[pdf-gen] uploaded → ${key}`);
 
@@ -376,9 +333,12 @@ export default async (req: Request): Promise<Response> => {
   }
 };
 
+/**
+ * ⚠️ 不可設定 path：
+ *   設定後 function 只在該路徑可用，/.netlify/functions/story-pdf-generate 會 404，
+ *   而觸發端（Next.js route）呼叫的就是預設網址。
+ * ⚠️ 不可設定 memory：站台方案不含 credit-based features，設定 memory 會被拒。
+ */
 export const config: Config = {
-  path: "/story-pdf/generate",
   background: true,
-  // Chromium 需要較多記憶體（逐頁拍 + pdf-lib 合併）
-  memory: "2048",
 };

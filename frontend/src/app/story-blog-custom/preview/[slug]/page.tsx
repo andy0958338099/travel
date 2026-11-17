@@ -18,11 +18,13 @@
  */
 
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -69,6 +71,14 @@ type Book = {
   author_token?: string;
   updated_at?: string;
   created_at?: string;
+};
+
+/** 一個章節 = 一個 Day + 本章文章(順序 = 作者編輯的相對順序) */
+type Chapter = {
+  day: number;
+  posts: PostRow[];
+  /** 本章第一篇在全書的篇序(0-based) */
+  start: number;
 };
 
 const DAY_LABEL: Record<number, string> = {
@@ -249,6 +259,34 @@ export default function PreviewBookPage() {
     }
     return m;
   }, [posts]);
+
+  // ============================================================
+  // 2.1 章節結構(2026-11-17 重組)
+  //
+  // 為什麼要重組:
+  //   舊版把所有 Day 的扉頁連續排在前面,再把全部文章集中在最後 →
+  //   讀者翻過 Day 03~Day 08 的扉頁才看得到 Day 02 的文章。
+  //
+  // 組法:
+  //   - 章的順序:day_number 由小到大(序章 → Day 01 → … → 後記)
+  //   - 章內順序:保留 selected_post_ids 的相對順序
+  //     ⚠️ 這是作者在編輯器用「上移/下移」排好的意圖,不能被 sort_order 覆蓋。
+  //       實例:3skc6sdm 章內 sort_order = 1000,2000,3000,19000,18000,17000…
+  //             明顯是人工反向排的,覆蓋它等於推翻作者編輯。
+  //   - start:本章第一篇在全書的篇序(第 N 篇的 N 要跨章連續)
+  // ============================================================
+  const chapters = useMemo<Chapter[]>(() => {
+    const days = Object.keys(postsByDay)
+      .map((k) => Number(k))
+      .sort((a, b) => a - b);
+    let start = 0;
+    return days.map((day) => {
+      const ps = postsByDay[day] || [];
+      const ch: Chapter = { day, posts: ps, start };
+      start += ps.length;
+      return ch;
+    });
+  }, [postsByDay]);
 
   const pageEst = useMemo(
     () =>
@@ -672,6 +710,152 @@ export default function PreviewBookPage() {
   //   print=1 (Puppeteer 拍 PDF) 與 read=1 (訪客線上閱讀) 用同一份版面,
   //   確保「讀者看到的」與「PDF 印出來的」完全一致。
   // ============================================================
+  // ============================================================
+  // 5.1 章節內文章(mode A / B / C)
+  //
+  //   ⚠️ 配對只在「本章之內」進行:
+  //      一頁若同時裝兩個章節的故事,章節邊界又會錯位
+  //      (Day 02 的故事跟 Day 03 的故事擠同一頁 → 讀者對不上章節)。
+  //      跨章一律拆成兩頁,各歸各章。
+  // ============================================================
+  const renderChapterPages = (chapter: Chapter): ReactNode => {
+    const chapterMode = book.layout_mode;
+    const list = chapter.posts;
+      if (chapterMode === "C") {
+        // === Mode C:左右並排(沿用既有 .print-book-paired-container) ===
+        const pairs: PostRow[][] = [];
+        for (let i = 0; i < list.length; i += 2) {
+          pairs.push(list.slice(i, i + 2));
+        }
+        return pairs.map((pair, pairIdx) => (
+          <section
+            key={`c-pair-${chapter.day}-${pairIdx}`}
+            className="print-book-page print-book-mode-c-page"
+          >
+            <div className="print-book-paired-container">
+              {pair.map((p, idx) => (
+                <article
+                  key={p.id}
+                  className="print-book-post print-book-mode-c-cell"
+                >
+                  <header className="print-book-post-header">
+                    <span className="print-book-post-day">
+                      {DAY_LABEL[p.day_number]?.split(" · ")[0] ?? `D${p.day_number}`}
+                    </span>
+                    <h3 className="print-book-post-title">{p.title || "（無標題）"}</h3>
+                  </header>
+                  {p.image_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.image_url}
+                      alt=""
+                      className="print-book-post-image"
+                      loading="eager"
+                      fetchPriority="high"
+                    />
+                  )}
+                  {/* 2026-11-14: 內文開頭與標題重複時不重複印一次 (見 TimelineStory 相同處理) */}
+                  {(() => {
+                    const raw = p.content || "";
+                    const title = (p.title || "").trim();
+                    let body = raw;
+                    if (title) {
+                      if (raw.trim() === title) body = "";
+                      else if (raw.trimStart().startsWith(title))
+                        body = raw.trimStart().slice(title.length).replace(/^\n+/, "");
+                    }
+                    return body ? (
+                      <p className="print-book-post-text">{body}</p>
+                    ) : null;
+                  })()}
+                </article>
+              ))}
+            </div>
+          </section>
+        ));
+      }
+      if (chapterMode === "B") {
+        // === Mode B (10-21 聖上拍板「彈性密度」) ===
+        //
+        // 🆕 2026-11-14 重大修正(使用者要求:「PDF 一頁要有 2 個故事」):
+        //
+        //   舊版有「字數 > 220 → 獨立整頁」的硬門檻,結果 113 則裡
+        //   35 頁只有 1 則故事(實測 74 頁 / 113 格)。
+        //   這個門檻是「猜」的常數,不是量測出來的 → 整個拿掉。
+        //
+        //   現在:一律「一頁 2 則」(篇數為奇數時,最後一頁 1 則)。
+        //   放不放得下 → 不猜,交給實測:
+        //     planPairLayout() 在瀏覽器量每一格的真實需求高度
+        //     (標題 + max(照片, 文字繞排區塊)),量測時文字鎖 9pt。
+        //     同頁兩格加總超出可用高度 → 縮小照片級距
+        //     (照片窄 → 文字欄寬 → 行數少 → 需求下降)直到塞得下。
+        //     最後把該頁可用高度依需求比例分配給兩格 → 整頁滿版、
+        //     不留大空白,剩下的空間由既有的 adaptive-font-size hook
+        //     在各格內放大字級(9~13pt)填滿。
+        //
+        //   ⚠️ 字級下限仍是 9pt(實體書可讀),不用縮小字來塞。
+        const pairs: PostRow[][] = [];
+        for (let i = 0; i < list.length; i += 2) {
+          pairs.push(list.slice(i, i + 2));
+        }
+        return pairs.map((pair, pairIdx) => {
+          const isSingle = pair.length === 1;
+          const cells: PostRow[] = pair;
+          const pageClass = isSingle
+            ? "print-book-page print-book-mode-b-pair-page is-single"
+            : "print-book-page print-book-mode-b-pair-page has-two";
+          // 🆕 2026-11-14: 同頁兩則若為同一天 → day header 只在頁頂顯示一次,
+          //   底下兩格共用(省掉重複的紅色標籤,版面乾淨)。
+          const sameDay =
+            cells.length === 2 && cells[0].day_number === cells[1].day_number;
+          const pageDayHdr = sameDay
+            ? DAY_HEADER[cells[0].day_number] || {
+                label: `Day ${cells[0].day_number}`,
+                title: "",
+              }
+            : null;
+          return (
+            <section key={`b-pair-${chapter.day}-${pairIdx}`} className={pageClass}>
+              {pageDayHdr && (
+                <header className="print-book-pair-day-header">
+                  <div className="print-book-pair-day-label">
+                    {pageDayHdr.label}
+                  </div>
+                  {pageDayHdr.title && (
+                    <div className="print-book-pair-day-title">
+                      {pageDayHdr.title}
+                    </div>
+                  )}
+                </header>
+              )}
+              {cells.map((p, cellIdx) => (
+                <BPairCell
+                  key={p.id}
+                  post={p}
+                  isFirst={cellIdx === 0}
+                  postIdx={chapter.start + pairIdx * 2 + cellIdx}
+                  hideDayHeader={!!pageDayHdr}
+                  isSinglePage={isSingle}
+                  plannedHeight={pairPlan?.heights[p.id]}
+                  plannedPhotoScale={pairPlan?.photoScale[p.id]}
+                  plannedSinglePhotoMm={pairPlan?.singlePhotoMm[p.id]}
+                />
+              ))}
+            </section>
+          );
+        });
+      }
+      // === Mode A:每篇獨立全頁,大圖為主(既有) ===
+      return list.map((p, idx) => (
+        <section
+          key={p.id}
+          className="print-book-page print-book-post-page print-book-mode-a"
+        >
+          <SinglePost post={p} postIdx={chapter.start + idx} book={book} />
+        </section>
+      ));
+  };
+
   const bookPages = (
     <>
         {/* 封面 */}
@@ -719,172 +903,36 @@ export default function PreviewBookPage() {
           </ul>
         </section>
 
-        {/* 章節:每 Day 一個 intro 頁 */}
-        {Object.keys(postsByDay)
-          .map((k) => Number(k))
-          .sort((a, b) => a - b)
-          .map((day) => (
-            <section
-              key={`day-intro-${day}`}
-              className="print-book-page print-book-chapter-intro"
-            >
+        {/* 🆕 2026-11-17: 章節結構 —— 章節扉頁「緊接」本章文章
+            (使用者回報:先前是所有 Day 的扉頁排成一排、整本內文全部堆在最後,
+             讀者對不上「本章 N 篇」到底是哪 N 篇。)
+
+            ⚠️ 配對改成「章內配對」(不跨章):
+               一頁兩則若跨章,「Day 03 的文章」會出現在「Day 02 的扉頁」之後
+               —— 章節邊界又錯位。章內配對後,一頁最多只屬於一個 Day。 */}
+        {chapters.map((chapter) => (
+          <Fragment key={`chapter-${chapter.day}`}>
+            {/* ① 章節扉頁 */}
+            <section className="print-book-page print-book-chapter-intro">
               <div className="print-book-chapter-label">
-                {DAY_LABEL[day]?.split(" · ")[0] ?? `Day ${day}`}
+                {DAY_LABEL[chapter.day]?.split(" · ")[0] ?? `Day ${chapter.day}`}
               </div>
               <h2 className="print-book-chapter-title">
-                {DAY_LABEL[day]?.split(" · ")[1] ?? DAY_LABEL[day]}
+                {DAY_LABEL[chapter.day]?.split(" · ")[1] ?? DAY_LABEL[chapter.day]}
               </h2>
               <div className="print-book-frontispiece-divider" />
               <p className="print-book-chapter-meta">
-                本章 {(postsByDay[day] || []).length} 篇
+                本章 {chapter.posts.length} 篇
               </p>
             </section>
-          ))}
 
-        {/* === 🆕 10-20: 配對 post + mode-aware 排版 ===
-            - 模式 A:每篇獨立全頁(.print-book-mode-a,大圖為主)
-            - 模式 B:兩篇成對(.print-book-mode-b-pair),圖文左右並列 + 自動字級
-              * 第 1 則:圖左 / 文右
-              * 第 2 則:圖右 / 文左
-              * 最後落單:全幅獨立
-            - 模式 C:兩兩並排共頁(.print-book-paired-container,既有用法)
-        */}
-        {(() => {
-          const mode = book.layout_mode;
-          if (mode === "C") {
-            // === Mode C:左右並排(沿用既有 .print-book-paired-container) ===
-            const pairs: PostRow[][] = [];
-            for (let i = 0; i < posts.length; i += 2) {
-              pairs.push(posts.slice(i, i + 2));
-            }
-            return pairs.map((pair, pairIdx) => (
-              <section
-                key={`pair-${pairIdx}`}
-                className="print-book-page print-book-mode-c-page"
-              >
-                <div className="print-book-paired-container">
-                  {pair.map((p, idx) => (
-                    <article
-                      key={p.id}
-                      className="print-book-post print-book-mode-c-cell"
-                    >
-                      <header className="print-book-post-header">
-                        <span className="print-book-post-day">
-                          {DAY_LABEL[p.day_number]?.split(" · ")[0] ?? `D${p.day_number}`}
-                        </span>
-                        <h3 className="print-book-post-title">{p.title || "（無標題）"}</h3>
-                      </header>
-                      {p.image_url && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={p.image_url}
-                          alt=""
-                          className="print-book-post-image"
-                          loading="eager"
-                          fetchPriority="high"
-                        />
-                      )}
-                      {/* 2026-11-14: 內文開頭與標題重複時不重複印一次 (見 TimelineStory 相同處理) */}
-                      {(() => {
-                        const raw = p.content || "";
-                        const title = (p.title || "").trim();
-                        let body = raw;
-                        if (title) {
-                          if (raw.trim() === title) body = "";
-                          else if (raw.trimStart().startsWith(title))
-                            body = raw.trimStart().slice(title.length).replace(/^\n+/, "");
-                        }
-                        return body ? (
-                          <p className="print-book-post-text">{body}</p>
-                        ) : null;
-                      })()}
-                    </article>
-                  ))}
-                </div>
-              </section>
-            ));
-          }
-          if (mode === "B") {
-            // === Mode B (10-21 聖上拍板「彈性密度」) ===
-            //
-            // 🆕 2026-11-14 重大修正(使用者要求:「PDF 一頁要有 2 個故事」):
-            //
-            //   舊版有「字數 > 220 → 獨立整頁」的硬門檻,結果 113 則裡
-            //   35 頁只有 1 則故事(實測 74 頁 / 113 格)。
-            //   這個門檻是「猜」的常數,不是量測出來的 → 整個拿掉。
-            //
-            //   現在:一律「一頁 2 則」(篇數為奇數時,最後一頁 1 則)。
-            //   放不放得下 → 不猜,交給實測:
-            //     planPairLayout() 在瀏覽器量每一格的真實需求高度
-            //     (標題 + max(照片, 文字繞排區塊)),量測時文字鎖 9pt。
-            //     同頁兩格加總超出可用高度 → 縮小照片級距
-            //     (照片窄 → 文字欄寬 → 行數少 → 需求下降)直到塞得下。
-            //     最後把該頁可用高度依需求比例分配給兩格 → 整頁滿版、
-            //     不留大空白,剩下的空間由既有的 adaptive-font-size hook
-            //     在各格內放大字級(9~13pt)填滿。
-            //
-            //   ⚠️ 字級下限仍是 9pt(實體書可讀),不用縮小字來塞。
-            const pairs: PostRow[][] = [];
-            for (let i = 0; i < posts.length; i += 2) {
-              pairs.push(posts.slice(i, i + 2));
-            }
-            return pairs.map((pair, pairIdx) => {
-              const isSingle = pair.length === 1;
-              const cells: PostRow[] = pair;
-              const pageClass = isSingle
-                ? "print-book-page print-book-mode-b-pair-page is-single"
-                : "print-book-page print-book-mode-b-pair-page has-two";
-              // 🆕 2026-11-14: 同頁兩則若為同一天 → day header 只在頁頂顯示一次,
-              //   底下兩格共用(省掉重複的紅色標籤,版面乾淨)。
-              const sameDay =
-                cells.length === 2 && cells[0].day_number === cells[1].day_number;
-              const pageDayHdr = sameDay
-                ? DAY_HEADER[cells[0].day_number] || {
-                    label: `Day ${cells[0].day_number}`,
-                    title: "",
-                  }
-                : null;
-              return (
-                <section key={`b-pair-${pairIdx}`} className={pageClass}>
-                  {pageDayHdr && (
-                    <header className="print-book-pair-day-header">
-                      <div className="print-book-pair-day-label">
-                        {pageDayHdr.label}
-                      </div>
-                      {pageDayHdr.title && (
-                        <div className="print-book-pair-day-title">
-                          {pageDayHdr.title}
-                        </div>
-                      )}
-                    </header>
-                  )}
-                  {cells.map((p, cellIdx) => (
-                    <BPairCell
-                      key={p.id}
-                      post={p}
-                      isFirst={cellIdx === 0}
-                      postIdx={pairIdx * 2 + cellIdx}
-                      hideDayHeader={!!pageDayHdr}
-                      isSinglePage={isSingle}
-                      plannedHeight={pairPlan?.heights[p.id]}
-                      plannedPhotoScale={pairPlan?.photoScale[p.id]}
-                      plannedSinglePhotoMm={pairPlan?.singlePhotoMm[p.id]}
-                    />
-                  ))}
-                </section>
-              );
-            });
-          }
-          // === Mode A:每篇獨立全頁,大圖為主(既有) ===
-          return posts.map((p, idx) => (
-            <section
-              key={p.id}
-              className="print-book-page print-book-post-page print-book-mode-a"
-            >
-              <SinglePost post={p} postIdx={idx} book={book} />
-            </section>
-          ));
-        })()}
+            {/* ② 本章文章(mode A/B/C 各自排法) */}
+            {renderChapterPages(chapter)}
+          </Fragment>
+        ))}
+
+        {/* 本章文章由 chapters.map 逐章呼叫 renderChapterPages 渲染 */}
+
 
         {/* 末頁:後記 */}
         <section className="print-book-page print-book-back-cover">

@@ -12,26 +12,38 @@
 # ─────────────────────────────────────────────────────────────
 # Functions
 #
-# ⚠️ 2026-11-16: Netlify 只讀 **repo 根目錄**的 netlify.toml，
-#    frontend/netlify.toml 不會被套用 → 設定必須寫在這裡。
+# ⚠️ 2026-11-16 重要修正（三個坑，導致 function 完全沒被部署）
 #
-# 為什麼需要 standalone function:
-#   Next.js framework function（___netlify-server-handler）已佔 234MB，
+# 1) **不要設定 [functions] directory**
+#    Netlify 預設就是「BASE_DIRECTORY/netlify/functions」，
+#    而 base = "frontend" → 預設 = frontend/netlify/functions ✅
+#    先前寫成 directory = "frontend/netlify/functions"，
+#    會被相對 base 再加一層 → frontend/frontend/netlify/functions ❌
+#    （schema 說明："Custom absolute path to your functions.
+#     The default location is YOUR_BASE_DIRECTORY/netlify/functions"）
+#
+# 2) **不要用 [functions."xxx"] 設定 timeout / memory**
+#    Netlify function schema 的合法欄位只有：
+#      deno_import_map / external_node_modules / ignored_node_modules /
+#      included_files / memory / node_bundler / region / schedule / vcpu
+#    timeout 不在其中（背景 function 預設就是 900 秒），
+#    memory 需要 credit-based 付費方案，設定在免費方案會讓佈建失敗。
+#
+# 3) **不要設定 config.path**
+#    config.path 會取代預設網址 /.netlify/functions/<name>，
+#    而觸發端（Next.js route）呼叫的就是預設網址 → 會 404。
+#
+# 為什麼需要 standalone function（而不是塞進 Next.js function）:
+#   Next.js framework function（___netlify-server-handler）已佔約 234MB，
 #   離 250MB 上限只剩 16MB → 塞不下 Chromium（@sparticuz/chromium 約 70MB）。
-#   官方建議：需要大型 runtime 模組時，改用 Netlify Function 比 Next.js function 開銷小。
 #   Standalone function 有自己獨立的 bundle 額度。
 #
-#   @sparticuz/chromium 專為 AWS Lambda 環境打包（Netlify function 跑在 AWS Lambda 上）。
+#   @sparticuz/chromium 專為 AWS Lambda 環境打包（Netlify function 跑在 AWS Lambda）。
 #   ⚠️ 版本必須鎖 v131：v138 起移除了 al2.tar.br，
 #      而 Netlify function 是 Amazon Linux 2（glibc 2.26）需要 al2 那套。
+#
+# 背景 function（逐頁拍 A5 PDF）:
+#   由 frontend/netlify/functions/story-pdf-generate.mts 的
+#   `export const config = { background: true }` 宣告（15 分鐘上限），
+#   觸發網址 /.netlify/functions/story-pdf-generate
 # ─────────────────────────────────────────────────────────────
-[functions]
-  directory = "frontend/netlify/functions"
-
-[functions."___netlify-server-handler"]
-  timeout = 60
-
-# 背景生成 A5 PDF：逐頁拍攝需要時間 → 背景 function（15 分鐘上限）
-[functions."story-pdf-generate-background"]
-  timeout = 900
-  memory = 2048
