@@ -35,6 +35,41 @@ export const maxDuration = 600;
 // 快取目錄:專案 data/pdf-cache(不在 frontend/public → 不會被打包進 build)
 const CACHE_DIR = path.join(process.cwd(), "..", "data", "pdf-cache");
 
+/**
+ * 判斷「這個 runtime 有沒有本機 Chromium 可用」。
+ *
+ * ⚠️ 2026-11-17: 不能用 process.env.NETLIFY 判斷 —— Netlify 的 Next.js
+ *    runtime 不保證會設這個變數(正式站實測為 falsy)。用 env 判斷會把
+ *    正式站誤認為「本機」,於是掉進 Puppeteer 的錯誤分支,回出
+ *    「線上伺服器沒有排版引擎無法即時生成」這種誤導訊息 ——
+ *    但實際上線上是有排版引擎的(Netlify background function 用
+ *    @sparticuz/chromium)。
+ *
+ * 改成問實際的問題:「這台機器上找得到 Chromium 嗎?」
+ *  - PUPPETEER_EXECUTABLE_PATH / CHROME_PATH 有設定 → 有
+ *  - 常見安裝路徑存在 → 有
+ *  - 都不是 → 沒有(雲端 serverless 的典型情況)
+ */
+function hasLocalChrome(): boolean {
+  const fromEnv =
+    process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH;
+  if (fromEnv) return true;
+  try {
+    const { existsSync } = require("fs") as typeof import("fs");
+    const candidates = [
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "/Applications/Chromium.app/Contents/MacOS/Chromium",
+      "/usr/bin/google-chrome",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/google-chrome-stable",
+    ];
+    return candidates.some((p) => existsSync(p));
+  } catch {
+    return false;
+  }
+}
+
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const key =
@@ -208,19 +243,24 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 來源 3:即時生成(只有本機有 Chromium 才能跑)──
-  // ⚠️ 2026-11-17: 正式站(Netlify serverless)沒有 Chromium,
+  // ⚠️ 2026-11-17: 正式站(Netlify serverless)沒有本機 Chromium,
   //    這條路徑一定會失敗。與其 import puppeteer 再吃一個錯誤,
   //    不如直接回 503 PDF_NOT_PREBUILT —— 前端 preview 頁看到這個 code
   //    就會去觸發背景生成 function(線上用 @sparticuz/chromium 現拍)。
   //    這樣「線上生成」的流程才會被真正啟動,而不是在這裡卡住。
-  const isServerless = !!process.env.NETLIFY;
+  //
+  // ⚠️ 偵測方式:不能用 process.env.NETLIFY —— Netlify 的 Next.js runtime
+  //    不保證會設這個變數(實測為 falsy,會誤判成「本機」而掉進 Puppeteer
+  //    的錯誤分支,回出「線上伺服器沒有排版引擎」這種誤導訊息)。
+  //    改用「有沒有本機 Chromium」這個實際能力來判斷。
+  const isServerless = !hasLocalChrome();
   if (!cached && isServerless) {
     console.log(
-      `[story-books/pdf] blob MISS ${slug} → 正式站無 Chromium,回 PDF_NOT_PREBUILT`,
+      `[story-books/pdf] blob MISS ${slug} → 線上無本機 Chromium,回 PDF_NOT_PREBUILT`,
     );
     return NextResponse.json(
       {
-        error: "這本書的 A5 PDF 尚未產生，將於線上重新生成。",
+        error: "這本書的 A5 PDF 尚未產生，線上將自動重新生成。",
         code: "PDF_NOT_PREBUILT",
         hint: "線上背景生成會自動啟動，約需 1-2 分鐘後即可下載。",
       },
@@ -250,17 +290,22 @@ export async function GET(req: NextRequest) {
       const isChromeMissing = /Could not find Chrome|chrome.*not found|ENOENT.*chrome/i.test(
         msg
       );
+      // ⚠️ 2026-11-17: 訊息要對應「線上現在真的可以生成」的事實。
+      //    舊文案說「線上伺服器沒有排版引擎」+「請在本機執行 script 上傳」——
+      //    那是沒有背景生成 function 的舊架構。現在線上有 background function,
+      //    前端拿到 PDF_NOT_PREBUILT 會自動觸發線上生成,所以只要說清楚
+      //    「正在線上生成,稍等一下再試」。
       return NextResponse.json(
         {
           error: isChromeMissing
-            ? "這本書的 A5 PDF 尚未產生，線上伺服器沒有排版引擎無法即時生成。"
+            ? "這本書的 A5 PDF 尚未產生，線上將自動重新生成。"
             : `PDF 生成失敗: ${msg}`,
           code: isChromeMissing ? "PDF_NOT_PREBUILT" : "PDF_GENERATION_FAILED",
           hint: isChromeMissing
-            ? "請在本機執行 `node scripts/upload-pdfs-to-blobs.mjs` 產生並上傳這本書的 PDF，之後線上即可下載。"
+            ? "線上背景生成會自動啟動，約需 1-2 分鐘後即可下載。"
             : "請查看 Netlify function 記錄。",
         },
-        { status: 503 }
+        { status: 503, headers: { "Cache-Control": "no-store" } },
       );
     }
     cached = buf;
