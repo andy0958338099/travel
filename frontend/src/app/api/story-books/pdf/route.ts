@@ -215,17 +215,21 @@ export async function GET(req: NextRequest) {
   const blobKey = `pdf/${slug}-${sig}.pdf`;
 
   // ── 來源 1:Netlify Blobs 預生成 PDF(線上正式路徑)──
+  // ⚠️ 2026-11-17: 這裡原本有 `if (range === "full")` 的限制。
+  //    那是當時排查「CDN 跨書污染」時加的臨時手段(range 只讀 full 的 blob,
+  //    避免 range 參數命中別的 key)。現在污染根因已用 Cache-Control: no-store
+  //    解決,而且線上背景生成會把 range 版的 PDF 也寫進 Blob
+  //    (key 含 range → range=1-1 是獨立的一個 blob),
+  //    保留那個限制會讓「只印某幾頁」的 PDF 永遠讀不到。
   let cached: Buffer | null = null;
   let source = "blob";
-  if (range === "full") {
-    try {
-      cached = await getBlobPdf(blobKey);
-      if (cached) {
-        console.log(`[story-books/pdf] blob HIT ${blobKey} (${cached.length} bytes)`);
-      }
-    } catch (e) {
-      console.error("[story-books/pdf] Blob 讀取失敗:", (e as Error).message);
+  try {
+    cached = await getBlobPdf(blobKey);
+    if (cached) {
+      console.log(`[story-books/pdf] blob HIT ${blobKey} (${cached.length} bytes)`);
     }
+  } catch (e) {
+    console.error("[story-books/pdf] Blob 讀取失敗:", (e as Error).message);
   }
 
   // ── 來源 2:本機磁碟快取 ──
