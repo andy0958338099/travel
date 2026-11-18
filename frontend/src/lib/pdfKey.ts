@@ -34,8 +34,15 @@ import { createHash } from "crypto";
  *   v3-sans-webfont    → 2026-11-18 標題改用自帶 Noto Sans TC 子集
  *                        （修「線上 PDF 中文標題變豆腐字」）
  *                        舊版的標題走系統字型 → 線上 Linux 沒有 → 方框字。
+ *   v4-full-glyph-coverage → 2026-11-18 補齊 emoji / 簡體 / 數學 / 符號子集
+ *   v5-strip-zwj-emoji  → 2026-11-18 移除 emoji 的 ZWJ (U+200D)
+ *                        自帶的 Noto Emoji（單色）沒有 ZWJ ligature,
+ *                        Chromium 會把整個 grapheme cluster 當成一個字串
+ *                        做 font fallback → 找不到能渲染整串的字型 →
+ *                        整串變成 .notdef（方框內有叉號）。
+ *                        顯示層移除 ZWJ 後變成兩個各自有字型的 glyph。
  */
-export const PDF_LAYOUT_VERSION = "v4-full-glyph-coverage";
+export const PDF_LAYOUT_VERSION = "v5-strip-zwj-emoji";
 
 /**
  * 把 updated_at 正規化成 ISO 字串。

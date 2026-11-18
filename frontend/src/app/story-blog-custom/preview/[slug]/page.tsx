@@ -81,6 +81,31 @@ type Chapter = {
   start: number;
 };
 
+/**
+ * 🆕 2026-11-18 移除 emoji 的 ZWJ (U+200D) 連接符。
+ *
+ * 為什麼：正式 PDF 第 14 頁標題「…能上崗？ 🙋‍♂」的 🙋‍♂ 顯示成
+ * 「方框內有叉號」（.notdef）。原因是自帶的 Noto Emoji（單色 glyf）
+ * **沒有 ZWJ ligature**（GSUB 只有 ccmp），Chromium 把整個 grapheme
+ * cluster 當成一個字串做 font fallback → 找不到能渲染整串的字型
+ * → 整串落到 .notdef。
+ *
+ * 實測（scripts/font/test-zwj-render.mjs）：
+ *   "🙋\u200d♂\uFE0F"  寬度 40.0px（= 一個 .notdef 方框）
+ *   "🙋♂\uFE0F"       寬度 90.8px（= 兩個正常 glyph）
+ *
+ * 解法：拿掉 ZWJ → 變成兩個各自有字型的 glyph（🙋 與 ♂），視覺正常。
+ * 這是跨平台最穩的做法：macOS 的系統 emoji 字型本來就支援 ZWJ 合成，
+ * 但線上 Linux 只會用我們自帶的子集 → 兩邊行為一致更重要。
+ *
+ * ⚠️ 只影響「顯示層」，不動資料庫內容。
+ */
+function stripZwj(text: string | null | undefined): string {
+  if (!text) return "";
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/‍/g, "");
+}
+
 const DAY_LABEL: Record<number, string> = {
   0: "序章",
   1: "Day 01 · 搭乘春秋航空抵達上海",
@@ -786,7 +811,7 @@ export default function PreviewBookPage() {
                     <span className="print-book-post-day">
                       {DAY_LABEL[p.day_number]?.split(" · ")[0] ?? `D${p.day_number}`}
                     </span>
-                    <h3 className="print-book-post-title">{p.title || "（無標題）"}</h3>
+                    <h3 className="print-book-post-title">{stripZwj(p.title) || "（無標題）"}</h3>
                   </header>
                   {p.image_url && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -809,7 +834,7 @@ export default function PreviewBookPage() {
                         body = raw.trimStart().slice(title.length).replace(/^\n+/, "");
                     }
                     return body ? (
-                      <p className="print-book-post-text">{body}</p>
+                      <p className="print-book-post-text">{stripZwj(body)}</p>
                     ) : null;
                   })()}
                 </article>
@@ -867,7 +892,7 @@ export default function PreviewBookPage() {
                   </div>
                   {pageDayHdr.title && (
                     <div className="print-book-pair-day-title">
-                      {pageDayHdr.title}
+                      {stripZwj(pageDayHdr.title)}
                     </div>
                   )}
                 </header>
@@ -909,14 +934,14 @@ export default function PreviewBookPage() {
             alt="封面"
             className="print-book-cover-image"
           />
-          <h1 className="print-book-cover-title">{book.title}</h1>
+          <h1 className="print-book-cover-title">{stripZwj(book.title)}</h1>
           <p className="print-book-cover-meta">{book.author_name} · 客製紀念版</p>
         </section>
 
         {/* 扉頁 */}
         <section className="print-book-page print-book-frontispiece">
           <div className="print-book-frontispiece-line">C U S T O M · 2 0 2 6</div>
-          <div className="print-book-frontispiece-line">{book.title}</div>
+          <div className="print-book-frontispiece-line">{stripZwj(book.title)}</div>
           <div className="print-book-frontispiece-divider" />
           <div className="print-book-frontispiece-line">
             {book.author_name}
@@ -1525,7 +1550,7 @@ function BPairCell({
         <header className="print-book-day-header">
           <div className="print-book-day-header-label">{dayHdr.label}</div>
           {dayHdr.title && (
-            <div className="print-book-day-header-title">{dayHdr.title}</div>
+            <div className="print-book-day-header-title">{stripZwj(dayHdr.title)}</div>
           )}
         </header>
       )}
@@ -1535,7 +1560,7 @@ function BPairCell({
           hook 把這些高度當成「被保留」→ textMaxH 嚴重不足(實測只剩 83px)
           → 文字溢出被裁。
           現在:標題滿寬 → 圖 float → 文字繞排,容量與視覺都正確。 */}
-      <h3 className="print-book-post-title">{post.title || "（無標題）"}</h3>
+      <h3 className="print-book-post-title">{stripZwj(post.title) || "（無標題）"}</h3>
       {/* 圖(無圖時省略) */}
       {post.image_url ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -1552,7 +1577,7 @@ function BPairCell({
       ) : null}
       <div className="print-book-post-text-wrap">
         <p ref={textRef} className="print-book-post-text">
-          {bodyText}
+          {stripZwj(bodyText)}
         </p>
         <footer className="print-book-post-footer">
           {/* 🆕 2026-11-14 (使用者:「每頁故事的下面都寫名字,這都重覆不需要」):
@@ -1599,7 +1624,7 @@ function SinglePost({
         <span className="print-book-post-day">
           {DAY_LABEL[post.day_number]?.split(" · ")[0] ?? `D${post.day_number}`}
         </span>
-        <h3 className="print-book-post-title">{post.title || "（無標題）"}</h3>
+        <h3 className="print-book-post-title">{stripZwj(post.title) || "（無標題）"}</h3>
       </header>
       <div className="print-book-post-body">
         {post.image_url && (
@@ -1613,7 +1638,7 @@ function SinglePost({
           />
         )}
         <p ref={textRef} className="print-book-post-text">
-          {post.content}
+          {stripZwj(post.content)}
         </p>
       </div>
       <footer className="print-book-post-footer">
