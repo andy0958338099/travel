@@ -25,7 +25,7 @@ import { getStore } from "@netlify/blobs";
  * 版面組裝規則改變時（例：2026-11-17 章節改為「扉頁緊接本章文章」），
  * 這裡要跟著改，否則上傳的 key 跟線上算的不同 → 下載時找不到。
  */
-const PDF_LAYOUT_VERSION = "v2-chapter-per-day";
+const PDF_LAYOUT_VERSION = "v3-sans-webfont";
 
 const ROOT = path.resolve(process.cwd());
 const CACHE_DIR = path.join(ROOT, "..", "data", "pdf-cache");

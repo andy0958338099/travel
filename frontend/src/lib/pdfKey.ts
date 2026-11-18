@@ -27,8 +27,15 @@ import { createHash } from "crypto";
  * PDF 排版版本。
  * 任何影響「PDF 印出來的樣子」的改動都要 +1,
  * 否則線上會繼續供應舊版排版的 PDF。
+ *
+ * 歷史:
+ *   v1                → 初始
+ *   v2-chapter-per-day → 2026-11-17 每個 Day 扉頁緊接本章文章
+ *   v3-sans-webfont    → 2026-11-18 標題改用自帶 Noto Sans TC 子集
+ *                        （修「線上 PDF 中文標題變豆腐字」）
+ *                        舊版的標題走系統字型 → 線上 Linux 沒有 → 方框字。
  */
-export const PDF_LAYOUT_VERSION = "v2-chapter-per-day";
+export const PDF_LAYOUT_VERSION = "v3-sans-webfont";
 
 /**
  * 把 updated_at 正規化成 ISO 字串。
