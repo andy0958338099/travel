@@ -27,6 +27,9 @@ CSS fallback 鏈（print-mode.css）:
   1. 宋體子集已有的 6,863 字（Big5 常用字 + 全站用字）
   2. 公開快照 site-content.public.json 的所有字元
   3. ASCII / 常用中西文標點
+  4. 🆕 2026-11-18 原始碼裡的靜態字串
+     例如封面「模式 🅍B」的 U+1F14D（負方塊拉丁大寫 M）——
+     它只出現在程式碼，不在內容快照裡 → 漏掉 → 封面出現豆腐字。
 
 用法：
   python3 scripts/font/build-sans-subset.py \
@@ -76,13 +79,112 @@ def snapshot_chars():
     return chars
 
 
+def source_code_chars():
+    """
+    🆕 2026-11-18 掃描原始碼裡「會被顯示出來」的非 ASCII 字元。
+
+    為什麼需要：某些字元只存在於程式碼的靜態字串裡，不在內容快照中。
+    實際案例：客製書封面印「模式 🅍B · 共 12 篇文章」，
+    其中 U+1F14D（負方塊拉丁大寫 M）不在快照 → 沒被納入字型子集
+    → 正式 PDF 封面出現「方框內有叉號」的豆腐字。
+
+    掃描範圍：src/ 與 netlify/ 下的 .ts/.tsx/.mts/.js/.jsx/.mjs。
+
+    ⚠️ 只取「字串字面值」與 JSX 文字，**排除註解**：
+       原始碼註解裡有大量裝飾用 emoji（🆕、📌、⚔…），
+       把它們塞進字型子集會讓字型檔從 84 字膨脹到 277 字（+0.06MB），
+       但這些字永遠不會出現在讀者看到的版面。
+       → 只掃「非註解部分」的字串內容。
+
+    排除 U+FFFD（replacement character）：它是壞位元組的佔位符，
+       不是真實字元，任何字型都不該有它。
+    """
+    chars = set()
+    src_root = os.path.join(FRONTEND, "src")
+    netlify_root = os.path.join(FRONTEND, "netlify")
+    exts = (".ts", ".tsx", ".mts", ".js", ".jsx", ".mjs")
+    for root in (src_root, netlify_root):
+        if not os.path.isdir(root):
+            continue
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d != "node_modules"]
+            for fn in filenames:
+                if not fn.endswith(exts):
+                    continue
+                path = os.path.join(dirpath, fn)
+                try:
+                    text = open(path, encoding="utf-8").read()
+                except Exception:
+                    continue
+                for ch in strip_comments(text):
+                    if ord(ch) > 0x7F and ch != "�":
+                        chars.add(ch)
+    return chars
+
+
+def strip_comments(text):
+    """
+    移除 JS/TS 原始碼裡的註解，只留下「會被顯示或執行」的部分。
+
+    註解形式:
+      - 單行: // ...
+      - 區塊: /* ... */
+      - JSX: {/* ... */}
+    ⚠️ 這是「盡力去除」，不追求完整的語法解析：
+       字串裡的 "//"（例如網址）可能造成誤判，
+       但那只會少算一些字元 → 字型子集略小 → 頂多漏字，不會產生豆腐字以外的副作用。
+    """
+    out = []
+    i = 0
+    n = len(text)
+    in_str = None  # 當前字串的引號（' " `）
+    while i < n:
+        ch = text[i]
+        nxt = text[i + 1] if i + 1 < n else ""
+        if in_str:
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if ch == in_str:
+                in_str = None
+            i += 1
+            continue
+        if ch in "'\"":
+            in_str = ch
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "`":
+            # template literal：內容可能含 ${}，保守地整段保留
+            in_str = "`"
+            out.append(ch)
+            i += 1
+            continue
+        if ch == "/" and nxt == "/":
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        if ch == "/" and nxt == "*":
+            i += 2
+            while i < n - 1 and not (text[i] == "*" and text[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 def collect_main_codes():
-    """主字型（黑體/宋體）的字元集：宋體子集 ∪ 快照 ∪ ASCII/標點。"""
+    """主字型（黑體/宋體）的字元集：宋體子集 ∪ 快照 ∪ 原始碼 ∪ ASCII/標點。"""
     chars = set()
     if os.path.exists(SERIF):
         chars |= set(TTFont(SERIF).getBestCmap().keys())
 
     chars |= snapshot_chars()
+    chars |= source_code_chars()
 
     for c in range(0x20, 0x7F):
         chars.add(c)
@@ -94,7 +196,7 @@ def collect_main_codes():
 def collect_gap_codes(covered):
     """找出主字型都沒有的字元 → 交給補丁字型。"""
     out = set()
-    for c in snapshot_chars():
+    for c in snapshot_chars() | source_code_chars():
         code = ord(c)
         if code in covered or code in (0x0A, 0x20):
             continue

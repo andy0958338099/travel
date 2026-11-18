@@ -45,7 +45,9 @@ await page.setViewport({ width: 794, height: 1123 });
 
 await page.goto(
   `${BASE}/story-blog-custom/preview/${slug}?book_slug=${slug}&print=1`,
-  { waitUntil: "networkidle2", timeout: 90000 },
+  // ⚠️ 正式站會載入大量圖片 → networkidle2 可能等不到（90s timeout）。
+  //    這裡只需要 DOM 與字型，改用 domcontentloaded + data-layout-ready 訊號。
+  { waitUntil: "domcontentloaded", timeout: 90000 },
 );
 await page.waitForSelector('[data-layout-ready="1"]', { timeout: 60000 });
 await sleep(1500);
