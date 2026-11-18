@@ -291,6 +291,33 @@ export default async (req: Request): Promise<Response> => {
       await waitForBookReady(page);
       await new Promise((r) => setTimeout(r, 2000));
 
+      // ⚠️ 🆕 2026-11-18 拍版前最後確認字型就緒
+      //   使用者回報「輸出 PDF 的時候變成亂碼的字」——
+      //   根因是標題用系統字體（macOS 才有），線上 Linux 沒有 → 豆腐字。
+      //   已改為自帶 Noto Sans TC 子集（PrintSansTC）+ 明確 fonts.load()，
+      //   這裡再當最後一道保險：字型還沒好就中止，寧可失敗也不要產出壞 PDF。
+      const fontOk = await page.evaluate(async () => {
+        const fonts = (document as any).fonts;
+        if (!fonts) return true;
+        await Promise.all([
+          fonts.load('400 16px "PrintSerifTC"', "測試中文"),
+          fonts.load('700 16px "PrintSerifTC"', "測試中文"),
+          fonts.load('400 16px "PrintSansTC"', "測試中文"),
+          fonts.load('700 16px "PrintSansTC"', "測試中文"),
+        ]).catch(() => undefined);
+        await fonts.ready;
+        return (
+          fonts.check('400 16px "PrintSerifTC"', "測試中文") &&
+          fonts.check('700 16px "PrintSansTC"', "測試中文")
+        );
+      });
+      if (!fontOk) {
+        throw new Error(
+          "webfont 未就緒（PrintSerifTC / PrintSansTC）— 中止以避免產出豆腐字 PDF",
+        );
+      }
+      console.log("[pdf-gen] webfonts ready ✓");
+
       const pdfBuffer = await generatePdfPerPage(page, pageRanges);
       console.log(`[pdf-gen] pdf ${pdfBuffer.length} bytes`);
 

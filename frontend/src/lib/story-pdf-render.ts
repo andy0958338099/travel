@@ -263,7 +263,63 @@ export async function waitForBookReady(
     fontReady = true;
     console.log(`[pdf-gen] fontSize settled ✓`);
   } catch (e) {
-    console.warn(`[pdf-gen] fontSize settle timeout, capture anyway`);
+    console.warn("[pdf-gen] fontSize settle timeout, capture anyway");
+  }
+
+  // ⚠️ 🆕 2026-11-18 等 webfont 真的載入完成（修「PDF 標題變豆腐字」）
+  //
+  // 為什麼必須等：
+  //   列印版面用兩份自帶的 woff2 子集當字型來源：
+  //     PrintSerifTC（Noto Serif TC）→ 內文
+  //     PrintSansTC （Noto Sans TC） → 標題
+  //   兩份檔案各約 1~2 MB。線上 background function 是冷啟動，
+  //   第一次請求時字型還在下載 → `font-display: block` 會先畫出
+  //   invisible（3 秒 block 期），量測到的文字寬度會是 fallback 字型的寬度，
+  //   甚至直接拍到 .notdef 方框。
+  //
+  //   `document.fonts.ready` 只會在「所有正在載入的字型都完成」後才 resolve，
+  //   但不會保證沒用到的字型已載入 → 所以先明確 `document.fonts.load()`。
+  try {
+    const fontLoaded = await page.evaluate(async () => {
+      const fonts = (document as any).fonts;
+      if (!fonts) return { ok: true, note: "no document.fonts" };
+      // 明確載入列印版面會用到的所有字型（含各種 weight）
+      const families = [
+        "400 16px PrintSerifTC",
+        "700 16px PrintSerifTC",
+        "400 16px PrintSansTC",
+        "700 16px PrintSansTC",
+      ];
+      const results: Record<string, string> = {};
+      for (const f of families) {
+        try {
+          // 每個 family 至少載入一個含中文字的測試字串
+          await fonts.load(f, "測試中文");
+          results[f] = "ok";
+        } catch (e) {
+          results[f] = `fail: ${(e as Error).message}`;
+        }
+      }
+      // 再等所有 pending 的字型完成
+      await fonts.ready;
+      // 檢查是否真的可渲染中文
+      const canRender =
+        fonts.check('400 16px "PrintSansTC"', "測試中文") &&
+        fonts.check('700 16px "PrintSansTC"', "測試中文") &&
+        fonts.check('400 16px "PrintSerifTC"', "測試中文");
+      return { ok: canRender, results, size: fonts.size, status: fonts.status };
+    });
+    console.log(
+      `[pdf-gen] webfonts loaded: ${JSON.stringify(fontLoaded.results)} ok=${fontLoaded.ok}`,
+    );
+    if (!fontLoaded.ok) {
+      console.warn(
+        "[pdf-gen] ⚠️ webfont 未完全就緒（PDF 可能出現豆腐字）— " +
+          `status=${(fontLoaded as any).status}`,
+      );
+    }
+  } catch (e) {
+    console.warn("[pdf-gen] 等 webfont 失敗:", (e as Error).message);
   }
 
   return { layoutReady, fontReady };

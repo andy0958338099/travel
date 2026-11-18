@@ -161,10 +161,22 @@ export default function PreviewBookPage() {
       //   字型沒到位就量 → 用 fallback 字型算出錯誤的行高/字級需求,
       //   結果就是照片被縮、字級被壓。document.fonts.ready 是 async,
       //   所以不能在這個 interval 裡直接量,改成 promise 鏈。
+      //
+      // 🆕 2026-11-18:明確 fonts.load() 兩份自帶字型。
+      //   `document.fonts.ready` 只保證「已被觸發載入」的字型完成;
+      //   沒被任何元素用到的字型不會載入 → 必須明確要求。
+      //   標題用 PrintSansTC(思源黑體子集),內文用 PrintSerifTC(宋體子集)。
+      //   少了這步,線上冷啟動時字型還沒到位就量測 → 豆腐字 + 版面算錯。
       clearInterval(timer);
       void (async () => {
         try {
           if (typeof document !== "undefined" && document.fonts) {
+            await Promise.all([
+              document.fonts.load('400 16px "PrintSerifTC"', "測試中文"),
+              document.fonts.load('700 16px "PrintSerifTC"', "測試中文"),
+              document.fonts.load('400 16px "PrintSansTC"', "測試中文"),
+              document.fonts.load('700 16px "PrintSansTC"', "測試中文"),
+            ]);
             await document.fonts.ready;
           }
         } catch {
@@ -219,6 +231,32 @@ export default function PreviewBookPage() {
     });
     return () => cancelAnimationFrame(t);
   }, [isModeB, pairPlanDone]);
+
+  // ============================================================
+  // 1b. 瀏覽次數 +1（背景 function，fire-and-forget）
+  // ============================================================
+  // 🆕 2026-11-17: 計數改由 standalone background function `story-view-count`
+  //   寫入 Netlify Blobs（不再用 Supabase RPC —— 正式站會全回 402
+  //   exceed_cached_egress_quota，每個預覽請求都噴錯）。
+  //
+  //   為什麼在前端觸發而不是 GET /api/story-books 裡做：
+  //   Blob 的 compare-and-swap 讀寫各約 500ms，放進 GET 路徑會讓
+  //   每次預覽多等約 1 秒；併發時重試還可能撞 function 時間上限。
+  //
+  //   為什麼不在 print=1 時計數：
+  //   print=1 是 Puppeteer 拍 PDF 用的，會被背景 function 載入同一頁。
+  //   那是機器讀取，不是訪客瀏覽，不該計入。
+  useEffect(() => {
+    if (!slug) return;
+    if (isPrintMode) return; // PDF 生成不算瀏覽
+    // fire-and-forget：不 await、不阻塞、不影響預覽
+    void fetch(
+      `/.netlify/functions/story-view-count?slug=${encodeURIComponent(slug)}`,
+      { method: "POST" },
+    ).catch(() => {
+      /* 計數失敗不影響預覽 */
+    });
+  }, [slug, isPrintMode]);
 
   // ============================================================
   // 1. 載入 (URL hash 帶 token 就順便校驗)

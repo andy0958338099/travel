@@ -418,21 +418,30 @@ async function handleGet(req: NextRequest) {
     return NextResponse.json({ error: "Book not found" }, { status: 404 });
   }
 
-  // 公開 slug 預覽 → +1 view (RPC)
+  // 公開 slug 預覽 → 讀取瀏覽次數
   if (slug) {
-    // 🆕 2026-11-14: Supabase 掛掉時 RPC 也會失敗，但不該讓整個預覽掛掉
+    // 🆕 2026-11-17: 原本用 Supabase RPC `increment_book_view_count`。
+    //   但 Supabase 專案被 spend cap 限制（402 exceed_cached_egress_quota），
+    //   正式站每個預覽請求都會噴錯並拖慢回應 —— 而公開路徑本就不該
+    //   依賴 Supabase。改用 Netlify Blobs 計數器。
+    //
+    //   讀寫分工：
+    //   - 這裡（GET 路徑）只「讀」計數 → 顯示用。
+    //     讀取走 blobPdf.getBlobText（REST + node:https），
+    //     因為 SDK 的 store.get() 在 Next.js runtime 會卡住。
+    //   - 「寫入」交給 standalone background function `story-view-count`，
+    //     由 preview 頁面載入時 fire-and-forget 觸發。
+    //     同步做 CAS 會讓每次預覽多花約 1 秒（Blob 讀寫各 500ms），
+    //     且併發時重試可能撞 function 時間上限。
     try {
-      const { error: rpcErr } = await supabase.rpc(
-        "increment_book_view_count",
-        { p_book_id: book.book_id }
-      );
-      if (rpcErr) {
-        console.error("[story-books] increment view 失敗:", rpcErr.message);
+      const { readViewCount } = await import("@/lib/viewCounter");
+      const stored = await readViewCount(slug);
+      if (stored !== null) {
+        book.view_count = stored;
       }
     } catch (e) {
-      console.error("[story-books] increment view 例外:", e);
+      console.error("[story-books] 讀取 view_count 失敗:", e);
     }
-    book.view_count = (book.view_count ?? 0) + 1;
   }
 
   // 載入被選的 posts

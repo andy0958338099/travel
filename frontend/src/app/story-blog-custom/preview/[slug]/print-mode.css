@@ -42,6 +42,39 @@
   src: url("/fonts/NotoSerifTC-Print-Bold.woff2") format("woff2");
 }
 
+/* === 標題黑體:自帶思源黑體子集 ===
+   🆕 2026-11-18 修掉「PDF 標題變豆腐字(方框)」
+
+   問題：標題原本用
+     font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC";
+   這兩個中文字型都是 **macOS 系統字體**。
+   線上 PDF 是 Netlify background function 在 Amazon Linux 上用
+   Chromium 拍的 → 沒有 PingFang TC / Heiti TC，
+   Geist Sans 也沒有中文字形 → 中文標題整片掉成方框豆腐字。
+   （內文沒事，因為內文用的是自帶的 PrintSerifTC woff2。）
+
+   解法：跟內文宋體同樣策略 —— 自己 embed 思源黑體 TC 子集
+   （public/fonts/NotoSansTC-Print-*.woff2，OFL 授權），
+   掛一個專屬 family 名 "PrintSansTC"，
+   並在檔案末尾的「字型分工(最終)」區塊把它放到 font-family 第一位。
+
+   ⚠️ 產生子集：python3 scripts/dev/build-sans-subset.py
+          --src400 <NotoSansTC-Regular.ttf> --src700 <NotoSansTC-Bold.ttf> */
+@font-face {
+  font-family: "PrintSansTC";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/NotoSansTC-Print-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "PrintSansTC";
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url("/fonts/NotoSansTC-Print-Bold.woff2") format("woff2");
+}
+
 /* === 紙底 ===
    🆕 2026-11-15 使用者回饋「宣紙底我不喜歡,請移除」
    → 移除淡米色紙底與纖維紋理,回到原本的純白紙面 #fafaf9
@@ -51,6 +84,13 @@
   background-color: #fafaf9;
   background-image: none;
   color: #2a1810;
+  /* 🆕 2026-11-18 全域預設字型（防漏網）
+   *   沒有宣告 font-family 的元素會繼承 <body> 的系統 sans stack
+   *   → 線上 Linux 沒有 PingFang TC → 中文豆腐字。
+   *   掛在 .print-book-page 上，頁面內所有元素都有安全的預設值。
+   *   內文/散文類另外指定 PrintSerifTC，標題類指定 PrintSansTC。 */
+  font-family: "PrintSerifTC", "Songti TC", "Songti SC", "STSong",
+    "Noto Serif TC", serif;
 }
 
 /* === 頁面外框細線(單框 + 內側淡框)===
@@ -113,8 +153,8 @@
 
 .print-book-post-title {
   /* 🆕 2026-11-14 標題維持黑體(使用者選擇) */
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   /* 🆕 10-20 聖上拍板:標題 vs 內文層次比 1.4:1 (內文 16pt → 標題 22pt) */
   font-size: 22pt;
   font-weight: 700;
@@ -274,8 +314,8 @@
   text-align: center;
 }
 .print-book-pair-day-label {
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 10pt;
   font-weight: 600;
   color: #C43A2F;
@@ -283,8 +323,8 @@
   text-indent: 0.5em;   /* 抵銷 letter-spacing 造成的右偏 */
 }
 .print-book-pair-day-title {
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 8.5pt;
   font-weight: 500;
   color: rgba(196, 58, 47, 0.75);
@@ -300,8 +340,8 @@
 }
 .print-book-b-cell .print-book-day-header-label {
   display: inline-block;
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 9pt;
   font-weight: 600;
   color: #C43A2F;
@@ -310,8 +350,8 @@
 }
 .print-book-b-cell .print-book-day-header-title {
   display: inline;
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 9pt;
   font-weight: 500;
   color: #C43A2F;
@@ -413,8 +453,8 @@
 
 .print-book-b-cell .print-book-post-title {
   /* 🆕 2026-11-14 標題維持黑體(使用者選擇:內文宋體、標題黑體) */
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   /* 🆕 2026-11-14: 10.5pt → 12pt,拉開與內文的層級差距
      (視覺分析指出「標題字級與內文差距不夠明顯」) */
   font-size: 12pt;
@@ -562,8 +602,8 @@
 }
 
 .print-book-chapter-label {
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 11pt;
   letter-spacing: 0.4em;
   color: #c43a2f;
@@ -571,8 +611,8 @@
 }
 
 .print-book-chapter-title {
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 22pt;
   font-weight: 700;
   color: #2a1810;
@@ -599,8 +639,8 @@
 }
 
 .print-book-back-cover-mark {
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 14pt;
   color: #2a1810;
   border-top: 1pt solid #c43a2f;
@@ -652,8 +692,29 @@
 .print-book-back-cover-mark,
 .print-book-b-cell .print-book-day-header-label,
 .print-book-b-cell .print-book-day-header-title {
-  font-family: var(--font-geist-sans), "PingFang TC", "Heiti TC",
-    "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
+}
+
+/* 🆕 2026-11-18 補齊「原本沒有 font-family 宣告」的元素
+ *
+ * 這些元素沒有自己的 font-family → 繼承 <body> 的系統 sans stack
+ * → 線上 Linux 沒有 PingFang TC / Heiti TC → 中文變豆腐字。
+ * （2026-11-18 實測：封面標題、封面說明、目錄項目都還是 Type3 fallback。）
+ *
+ * 封面標題 → 黑體（它是全書最大標）
+ * 封面說明 / 目錄項目 / 目錄篇名 → 宋體（散文類）
+ */
+.print-book-cover-title {
+  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
+    "Heiti TC", "Noto Sans TC", sans-serif;
+}
+.print-book-cover-meta,
+.print-book-toc-item,
+.print-book-toc-number,
+.print-book-toc-title {
+  font-family: "PrintSerifTC", "Songti TC", "Songti SC", "STSong",
+    "Noto Serif TC", serif;
 }
 /* ============================================================
  * 🆕 2026-11-15: 公開閱讀模式(read=1)
