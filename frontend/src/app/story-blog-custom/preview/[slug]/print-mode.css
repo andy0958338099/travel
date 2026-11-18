@@ -75,6 +75,52 @@
   src: url("/fonts/NotoSansTC-Print-Bold.woff2") format("woff2");
 }
 
+/* === 補丁字型（emoji / 簡體 / 數學花體 / 特殊符號）===
+   🆕 2026-11-18 使用者回報「輸出 PDF 的時候變成亂碼的字」
+
+   修完中文標題後，仍然有殘留方框。追查後發現全站用到的非中文字元有：
+     emoji        ✈️ ⏱ ⛴ ✅ 🎬 📍 🚗 🐰 …
+     簡體專用字   刚 围 应 栅 标 缝 阖 静 …
+     數學花體字   𝓓 𝓪 𝔂
+     特殊符號     ➔ ➕ ❗ ❤ …
+   線上 Amazon Linux 完全沒有這些字型 → 全部掉成方框。
+
+   解法：每個來源各做一份**極小**子集（合計 < 50 KB），各自掛一個
+   @font-face，並在 font-family 清單裡排成 fallback 鏈。
+   瀏覽器是**逐字元**往下一個 family 找有該 glyph 的字型，
+   所以「主字型缺哪個字，就由下一個 family 補上」，
+   不需要把不同字型的 glyph 硬合併成一份（合併要動 glyf/loca/maxp，容易壞）。
+
+   ⚠️ 產生子集：python3 scripts/font/build-sans-subset.py ... */
+@font-face {
+  font-family: "PrintEmoji";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/NotoEmoji-Print-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "PrintSansSC";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/NotoSansSC-Print-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "PrintSansMath";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/NotoSansMath-Print-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "PrintSansSymbols2";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("/fonts/NotoSansSymbols2-Print-Regular.woff2") format("woff2");
+}
+
 /* === 紙底 ===
    🆕 2026-11-15 使用者回饋「宣紙底我不喜歡,請移除」
    → 移除淡米色紙底與纖維紋理,回到原本的純白紙面 #fafaf9
@@ -90,7 +136,7 @@
    *   掛在 .print-book-page 上，頁面內所有元素都有安全的預設值。
    *   內文/散文類另外指定 PrintSerifTC，標題類指定 PrintSansTC。 */
   font-family: "PrintSerifTC", "Songti TC", "Songti SC", "STSong",
-    "Noto Serif TC", serif;
+    "Noto Serif TC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", serif;
 }
 
 /* === 頁面外框細線(單框 + 內側淡框)===
@@ -153,8 +199,7 @@
 
 .print-book-post-title {
   /* 🆕 2026-11-14 標題維持黑體(使用者選擇) */
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   /* 🆕 10-20 聖上拍板:標題 vs 內文層次比 1.4:1 (內文 16pt → 標題 22pt) */
   font-size: 22pt;
   font-weight: 700;
@@ -187,7 +232,7 @@
 .print-book-post-text {
   /* 🆕 2026-11-14 內文改宋體(思源宋體子集,OFL) */
   font-family: "PrintSerifTC", "Songti TC", "Songti SC", "STSong",
-    "Noto Serif TC", serif;
+    "Noto Serif TC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", serif;
   font-size: 10pt;
   line-height: 1.8;
   color: #2a1810;
@@ -314,8 +359,7 @@
   text-align: center;
 }
 .print-book-pair-day-label {
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 10pt;
   font-weight: 600;
   color: #C43A2F;
@@ -323,8 +367,7 @@
   text-indent: 0.5em;   /* 抵銷 letter-spacing 造成的右偏 */
 }
 .print-book-pair-day-title {
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 8.5pt;
   font-weight: 500;
   color: rgba(196, 58, 47, 0.75);
@@ -340,8 +383,7 @@
 }
 .print-book-b-cell .print-book-day-header-label {
   display: inline-block;
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 9pt;
   font-weight: 600;
   color: #C43A2F;
@@ -350,8 +392,7 @@
 }
 .print-book-b-cell .print-book-day-header-title {
   display: inline;
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 9pt;
   font-weight: 500;
   color: #C43A2F;
@@ -453,8 +494,7 @@
 
 .print-book-b-cell .print-book-post-title {
   /* 🆕 2026-11-14 標題維持黑體(使用者選擇:內文宋體、標題黑體) */
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   /* 🆕 2026-11-14: 10.5pt → 12pt,拉開與內文的層級差距
      (視覺分析指出「標題字級與內文差距不夠明顯」) */
   font-size: 12pt;
@@ -469,7 +509,7 @@
 
 /* === 內文: 9pt 由 hook 二分搜尋覆寫, 這裡是預設值 === */
 .print-book-mode-b-pair-page .print-book-post-text {
-  font-family: "PrintSerifTC", "Songti TC", "Noto Serif TC", serif;
+  font-family: "PrintSerifTC", "Songti TC", "Noto Serif TC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", serif;
   font-size: 9pt;
   font-weight: 400;
   line-height: 1.65;
@@ -602,8 +642,7 @@
 }
 
 .print-book-chapter-label {
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 11pt;
   letter-spacing: 0.4em;
   color: #c43a2f;
@@ -611,8 +650,7 @@
 }
 
 .print-book-chapter-title {
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 22pt;
   font-weight: 700;
   color: #2a1810;
@@ -639,8 +677,7 @@
 }
 
 .print-book-back-cover-mark {
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
   font-size: 14pt;
   color: #2a1810;
   border-top: 1pt solid #c43a2f;
@@ -679,7 +716,7 @@
 .print-book-toc-list,
 .print-book-post-footer {
   font-family: "PrintSerifTC", "Songti TC", "Songti SC", "STSong",
-    "Noto Serif TC", serif;
+    "Noto Serif TC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", serif;
 }
 
 /* 標題類 → 黑體 */
@@ -692,8 +729,7 @@
 .print-book-back-cover-mark,
 .print-book-b-cell .print-book-day-header-label,
 .print-book-b-cell .print-book-day-header-title {
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
 }
 
 /* 🆕 2026-11-18 補齊「原本沒有 font-family 宣告」的元素
@@ -706,15 +742,14 @@
  * 封面說明 / 目錄項目 / 目錄篇名 → 宋體（散文類）
  */
 .print-book-cover-title {
-  font-family: "PrintSansTC", var(--font-geist-sans), "PingFang TC",
-    "Heiti TC", "Noto Sans TC", sans-serif;
+  font-family: "PrintSansTC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", var(--font-geist-sans), "PingFang TC", "Heiti TC", "Noto Sans TC", sans-serif;
 }
 .print-book-cover-meta,
 .print-book-toc-item,
 .print-book-toc-number,
 .print-book-toc-title {
   font-family: "PrintSerifTC", "Songti TC", "Songti SC", "STSong",
-    "Noto Serif TC", serif;
+    "Noto Serif TC", "PrintEmoji", "PrintSansSC", "PrintSansMath", "PrintSansSymbols2", serif;
 }
 /* ============================================================
  * 🆕 2026-11-15: 公開閱讀模式(read=1)

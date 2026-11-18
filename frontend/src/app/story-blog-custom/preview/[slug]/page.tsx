@@ -176,6 +176,12 @@ export default function PreviewBookPage() {
               document.fonts.load('700 16px "PrintSerifTC"', "測試中文"),
               document.fonts.load('400 16px "PrintSansTC"', "測試中文"),
               document.fonts.load('700 16px "PrintSansTC"', "測試中文"),
+              // 🆕 2026-11-18 補丁字型（emoji / 簡體 / 數學花體 / 符號）
+              //   這幾個 family 只含少數字，沒明確 load 會在拍版後才到位 → 方框。
+              document.fonts.load('400 16px "PrintEmoji"', "✈️⏱✅🎬📍"),
+              document.fonts.load('400 16px "PrintSansSC"', "刚围应栅标缝阖静"),
+              document.fonts.load('400 16px "PrintSansMath"', "𝓓𝓪𝔂"),
+              document.fonts.load('400 16px "PrintSansSymbols2"', "➔➕❗❤"),
             ]);
             await document.fonts.ready;
           }

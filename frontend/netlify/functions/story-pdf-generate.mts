@@ -304,6 +304,11 @@ export default async (req: Request): Promise<Response> => {
           fonts.load('700 16px "PrintSerifTC"', "測試中文"),
           fonts.load('400 16px "PrintSansTC"', "測試中文"),
           fonts.load('700 16px "PrintSansTC"', "測試中文"),
+          // 🆕 2026-11-18 補丁字型（emoji / 簡體 / 數學花體 / 符號）
+          fonts.load('400 16px "PrintEmoji"', "✈️⏱✅🎬📍"),
+          fonts.load('400 16px "PrintSansSC"', "刚围应栅标缝阖静"),
+          fonts.load('400 16px "PrintSansMath"', "𝓓𝓪𝔂"),
+          fonts.load('400 16px "PrintSansSymbols2"', "➔➕❗❤"),
         ]).catch(() => undefined);
         await fonts.ready;
         return (

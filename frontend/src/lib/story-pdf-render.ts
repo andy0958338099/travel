@@ -284,17 +284,33 @@ export async function waitForBookReady(
       const fonts = (document as any).fonts;
       if (!fonts) return { ok: true, note: "no document.fonts" };
       // 明確載入列印版面會用到的所有字型（含各種 weight）
+      // 🆕 2026-11-18: 加上補丁字型（emoji / 簡體 / 數學花體 / 符號）
+      //   這些字型只含少數字，沒有明確 load 的話瀏覽器可能等到排版後才載入 → 拍到方框。
       const families = [
         "400 16px PrintSerifTC",
         "700 16px PrintSerifTC",
         "400 16px PrintSansTC",
         "700 16px PrintSansTC",
+        "400 16px PrintEmoji",
+        "400 16px PrintSansSC",
+        "400 16px PrintSansMath",
+        "400 16px PrintSansSymbols2",
       ];
+      // 每個 family 對應的測試字串（要含該 family 實際涵蓋的字元）
+      const probes: Record<string, string> = {
+        PrintSerifTC: "測試中文",
+        PrintSansTC: "測試中文",
+        PrintEmoji: "✈️⏱✅🎬📍",
+        PrintSansSC: "刚围应栅标缝阖静",
+        PrintSansMath: "𝓓𝓪𝔂",
+        PrintSansSymbols2: "➔➕❗❤",
+      };
       const results: Record<string, string> = {};
       for (const f of families) {
         try {
           // 每個 family 至少載入一個含中文字的測試字串
-          await fonts.load(f, "測試中文");
+          const fam = f.split(" ").slice(2).join(" ");
+          await fonts.load(f, probes[fam] || "測試中文");
           results[f] = "ok";
         } catch (e) {
           results[f] = `fail: ${(e as Error).message}`;

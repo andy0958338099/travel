@@ -35,7 +35,7 @@ import { createHash } from "crypto";
  *                        （修「線上 PDF 中文標題變豆腐字」）
  *                        舊版的標題走系統字型 → 線上 Linux 沒有 → 方框字。
  */
-export const PDF_LAYOUT_VERSION = "v3-sans-webfont";
+export const PDF_LAYOUT_VERSION = "v4-full-glyph-coverage";
 
 /**
  * 把 updated_at 正規化成 ISO 字串。
