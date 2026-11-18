@@ -41,8 +41,10 @@ import { createHash } from "crypto";
  *                        做 font fallback → 找不到能渲染整串的字型 →
  *                        整串變成 .notdef（方框內有叉號）。
  *                        顯示層移除 ZWJ 後變成兩個各自有字型的 glyph。
+ *   v6-font-subset-source → 2026-11-18 字型子集納入原始碼字元
+ *                        補上「模式 🅍B」的 U+1F14D 等只出現在程式碼的字元。
  */
-export const PDF_LAYOUT_VERSION = "v5-strip-zwj-emoji";
+export const PDF_LAYOUT_VERSION = "v6-font-subset-source";
 
 /**
  * 把 updated_at 正規化成 ISO 字串。
