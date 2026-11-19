@@ -44,7 +44,7 @@ import { createHash } from "crypto";
  *   v6-font-subset-source → 2026-11-18 字型子集納入原始碼字元
  *                        補上「模式 🅍B」的 U+1F14D 等只出現在程式碼的字元。
  */
-export const PDF_LAYOUT_VERSION = "v6-font-subset-source";
+export const PDF_LAYOUT_VERSION = "v7-serif-truetype";
 
 /**
  * 把 updated_at 正規化成 ISO 字串。
